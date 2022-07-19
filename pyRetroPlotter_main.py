@@ -65,15 +65,35 @@ required_modules = ['python/anaconda']
 _notification_email = "gaurav.gadhvi@northwestern.edu"
 
 
+def join_levels(_df):
+    for i, col in enumerate(_df.columns.levels):
+        columns = np.where(col.str.contains('Unnamed'), '', col)
+        #print(columns)
+
+        _df.columns.set_levels(columns, level=i, inplace=True)
+
+    # print([' '.join(col).strip() for col in _df.columns.values])
+    # print(_df.columns)
+
+    _df.columns = [' '.join(_col).strip() for _col in _df.columns.values]
+
+    return _df
+
+def create_connection(_db_file):
+    try:
+        _conn = sqlite3.connect(_db_file)
+        return _conn
+    except Error as e:
+        print(e)
+
+    return None
 
 
 
-def retroPlotter_mat3(_projectDir, _projectName, _GC_data, _hist_data, _plotDir):
-    ### Read and preprocess current library Statistics
+def rest_Dev():
 
-
+    
     '''{BEGIN Current Batch Input from USER'''
-
 
     ######## Take this input from user (using specified format/columns) #######
 
@@ -91,10 +111,11 @@ def retroPlotter_mat3(_projectDir, _projectName, _GC_data, _hist_data, _plotDir)
         _currBatch_stat["Project"] = str(_projectName)
 
     _currBatch_stat = _currBatch_stat.loc[:,
-                  ['SampleID', '# Sequenced Reads', '% of Reads after Trimming', '# Uniquely Aligned Reads',
-                   '% Uniquely Aligned Reads', '% Mapped to Exons/Aligned', '# Uniquely Aligned Reads overlaping rRNA',
-                   '# Expressed Genes Detected',
-                   'Project', 'Date']]
+                      ['SampleID', '# Sequenced Reads', '% of Reads after Trimming', '# Uniquely Aligned Reads',
+                       '% Uniquely Aligned Reads', '% Mapped to Exons/Aligned',
+                       '# Uniquely Aligned Reads overlaping rRNA',
+                       '# Expressed Genes Detected',
+                       'Project', 'Date']]
 
     _stat_cols = ['Sample', 'Input_Size', 'Percent_PostTrim', 'Num_Uniquely_Aligned', 'Percent_Uniquely_Aligned',
                   'Percent_Exonic', 'Num_Uniquely_Aligned_rRNA', 'Num_expressed_genes', 'Project', 'Date']
@@ -111,41 +132,44 @@ def retroPlotter_mat3(_projectDir, _projectName, _GC_data, _hist_data, _plotDir)
     _currBatch_stat.loc[:, 'Num_expressed_genes'] = pd.to_numeric(_currBatch_stat['Num_expressed_genes'])
     _currBatch_stat.loc[:, 'Date'] = pd.to_datetime(_currBatch_stat['Date'], format='%m-%d-%Y').dt.date.astype('O')
 
-    print(_currBatch_stat.Date)
+    # print(_currBatch_stat)
 
     ## Read UntrimmedQC stats as a separate DataFrame and merge with _currBatch_stat
     _currBatch_qc_untrim = pd.read_excel(
-        _projectDir + "/Output/1-UntrimmedQC/QC_Table/" + _projectName + "_Untrimmed_FastQC_Table.xlsx", index_col=0,
-        header=[1, 2])
+        _projectDir + "/Output/1-UntrimmedQC/QC_Table/" + _projectName + "_Untrimmed_FastQC_Table.xlsx",
+        index_col=0, header=[1, 2])
 
     # _currBatch_qc_untrim = join_levels(_currBatch_qc_untrim)
-    _currBatch_qc_untrim = join_levels_mat3(_currBatch_qc_untrim)
+    # _currBatch_qc_untrim = join_levels_mat3(_currBatch_qc_untrim)
+    _currBatch_qc_untrim = join_levels(_currBatch_qc_untrim)
 
-    print(_currBatch_qc_untrim.columns)
+    # print(_currBatch_qc_untrim.columns)
 
     _currBatch_qc_untrim = _currBatch_qc_untrim.loc[:,
-                       ['Sample', 'Overrepresented Sequences [% of Total Sequences]', '% of Adapter Content']]
-    _currBatch_qc_untrim.columns = ['Sample', 'Percent_Overrepresented_Seq_Untrimmed', 'Percent_Adapter_Content_Untrimmed']
+                           ['Sample', 'Overrepresented Sequences [% of Total Sequences]', '% of Adapter Content']]
+    _currBatch_qc_untrim.columns = ['Sample', 'Percent_Overrepresented_Seq_Untrimmed',
+                                    'Percent_Adapter_Content_Untrimmed']
 
     _currBatch_qc_untrim.loc[:, 'Percent_Overrepresented_Seq_Untrimmed'] = pd.to_numeric(
         _currBatch_qc_untrim['Percent_Overrepresented_Seq_Untrimmed'].str.strip("%"))
     _currBatch_qc_untrim.loc[:, 'Percent_Adapter_Content_Untrimmed'] = pd.to_numeric(
         _currBatch_qc_untrim['Percent_Adapter_Content_Untrimmed'].str.strip("%"))
 
-    print(_currBatch_qc_untrim)
+    # print(_currBatch_qc_untrim)
 
     ## Read TrimmedQC stats as a separate DataFrame and merge with _currBatch_stat
     _currBatch_qc_trim = pd.read_excel(
-        _projectDir + "/Output/2-TrimmoQC/QC_Table/" + _projectName + "_Trimmed_FastQC_Table.xlsx", index_col=0,
-        header=[1, 2])
+        _projectDir + "/Output/2-TrimmoQC/QC_Table/" + _projectName + "_Trimmed_FastQC_Table.xlsx",
+        index_col=0, header=[1, 2])
 
     # _currBatch_qc = join_levels(_currBatch_qc)
-    _currBatch_qc_trim = join_levels_mat3(_currBatch_qc_trim)
+    # _currBatch_qc_trim = join_levels_mat3(_currBatch_qc_trim)
+    _currBatch_qc_trim = join_levels(_currBatch_qc_trim)
 
-    print(_currBatch_qc_trim.columns)
+    # print(_currBatch_qc_trim.columns)
 
     _currBatch_qc_trim = _currBatch_qc_trim.loc[:,
-                     ['Sample', 'Overrepresented Sequences [% of Total Sequences]', '% of Adapter Content']]
+                         ['Sample', 'Overrepresented Sequences [% of Total Sequences]', '% of Adapter Content']]
     _currBatch_qc_trim.columns = ['Sample', 'Percent_Overrepresented_Seq_Trimmed', 'Percent_Adapter_Content_Trimmed']
 
     _currBatch_qc_trim.loc[:, 'Percent_Overrepresented_Seq_Trimmed'] = pd.to_numeric(
@@ -153,16 +177,17 @@ def retroPlotter_mat3(_projectDir, _projectName, _GC_data, _hist_data, _plotDir)
     _currBatch_qc_trim.loc[:, 'Percent_Adapter_Content_Trimmed'] = pd.to_numeric(
         _currBatch_qc_trim['Percent_Adapter_Content_Trimmed'].str.strip("%"))
 
-    print(_currBatch_qc_trim)
+    # print(_currBatch_qc_trim)
 
     _currBatch_qc = pd.merge(_currBatch_qc_untrim, _currBatch_qc_trim, on='Sample', how='left')
     # print(_currBatch_qc.columns)
 
     _currBatch_df = pd.merge(_currBatch_stat, _currBatch_qc, on='Sample', how='left')
 
-    print(_currBatch_df.iloc[0, 8])
-    print(_currBatch_df.columns)
-    print(_currBatch_df.Input_Size.mean())
+    print(_currBatch_df)
+    # print(_currBatch_df.iloc[0, 8])
+    # print(_currBatch_df.columns)
+    # print(_currBatch_df.Input_Size.mean())
 
     '''END of Current/Batch Input from USER}'''
 
@@ -171,19 +196,19 @@ def retroPlotter_mat3(_projectDir, _projectName, _GC_data, _hist_data, _plotDir)
     ## Adding last row in the dataframe with current library's mean values to be plotted on the final summary page
     # _currBatch_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"].clip(lower=60)
     _currBatch_summary_df = ["Library_Mean",
-                         _currBatch_df.Input_Size.mean(),
-                         _currBatch_df.Percent_PostTrim.mean(),
-                         _currBatch_df.Num_Uniquely_Aligned.mean(),
-                         _currBatch_df.Percent_Uniquely_Aligned.mean(),
-                         _currBatch_df.Percent_Exonic.mean(),
-                         _currBatch_df.Num_Uniquely_Aligned_rRNA.mean(),
-                         _currBatch_df.Num_expressed_genes.mean(),
-                         _currBatch_df.iloc[0, 8],
-                         _currBatch_df.iloc[0, 9],
-                         _currBatch_df.Percent_Overrepresented_Seq_Untrimmed.mean(),
-                         _currBatch_df.Percent_Adapter_Content_Untrimmed.mean(),
-                         _currBatch_df.Percent_Overrepresented_Seq_Trimmed.mean(),
-                         _currBatch_df.Percent_Adapter_Content_Trimmed.mean()]
+                             _currBatch_df.Input_Size.mean(),
+                             _currBatch_df.Percent_PostTrim.mean(),
+                             _currBatch_df.Num_Uniquely_Aligned.mean(),
+                             _currBatch_df.Percent_Uniquely_Aligned.mean(),
+                             _currBatch_df.Percent_Exonic.mean(),
+                             _currBatch_df.Num_Uniquely_Aligned_rRNA.mean(),
+                             _currBatch_df.Num_expressed_genes.mean(),
+                             _currBatch_df.iloc[0, 8],
+                             _currBatch_df.iloc[0, 9],
+                             _currBatch_df.Percent_Overrepresented_Seq_Untrimmed.mean(),
+                             _currBatch_df.Percent_Adapter_Content_Untrimmed.mean(),
+                             _currBatch_df.Percent_Overrepresented_Seq_Trimmed.mean(),
+                             _currBatch_df.Percent_Adapter_Content_Trimmed.mean()]
 
     print(_currBatch_summary_df)
     _currBatch_df.loc[len(_currBatch_df)] = _currBatch_summary_df
@@ -209,8 +234,6 @@ def retroPlotter_mat3(_projectDir, _projectName, _GC_data, _hist_data, _plotDir)
     # print(next(_currBatch_df.iterrows())[1]['Sample'])
 
     '''END of GC and HISTOGRAM data USER input}'''
-
-
 
     '''{ BEGIN HISTORICAL data input/formatting '''
 
@@ -247,17 +270,12 @@ def retroPlotter_mat3(_projectDir, _projectName, _GC_data, _hist_data, _plotDir)
     print(_currBatch_df_violin.columns)
     print(_master_stat_violin.columns)
 
-
     '''END of Historical data input/formatting}'''
 
-
     '''{BEGIN plotting process for Stage 1 - Stage 2'''
-    
-    ###### Remove the GC/HISTOGRAM plots for Stage 1 - Stage2 
+
+    ###### Remove the GC/HISTOGRAM plots for Stage 1 - Stage2
     ###### Create 6 panel grid instead of 8 panels
-
-
-
 
     ### Begin Plotting process
     _pdfObj = PdfPages(_plotDir + "/" + _projectName + "_retroPlot.pdf")
@@ -308,8 +326,19 @@ def retroPlotter_mat3(_projectDir, _projectName, _GC_data, _hist_data, _plotDir)
 
     _pdfObj.close()
 
-
     '''END plotting process for the first 6 panels}'''
+
+
+def retroPlotter_main(_input_file):
+    ### Read input file and load USER data
+    _user_data = pd.read_csv(_input_file, sep = "\t")
+
+    print(_user_data)
+
+
+
+
+
 
     return None
 
@@ -350,6 +379,7 @@ def patient_mapper(_project_dir, _sample_id):
 
 ### Function for calling the RetroPlotter from the pipeline orchestration
 def runRetro(_project_dir, _project_name, _gc_data, _hist_data, _plotOutDir):
+
     os.chdir(_project_dir + "/Output/4-htseqCounts/All_Htseq_scripts")
 
     script_name = "retroPlot_Caller.sh"
@@ -398,10 +428,10 @@ def runRetro(_project_dir, _project_name, _gc_data, _hist_data, _plotOutDir):
 
 
 
-
+'''
 if __name__ == "__main__":
 
-    '''{BEGIN Take command line arguments for all input variables from the USER'''
+    ''''''{BEGIN Take command line arguments for all input variables from the USER''''''
 
     ########## DESIGN new command line arguments for Stage 1 - Stage 2 development
 
@@ -435,4 +465,53 @@ if __name__ == "__main__":
     print("Successfully created the historical data plot.")
 
 
-    '''END command line args from USER}'''
+    ''''''END command line args from USER}''''''
+
+'''
+
+    
+
+if __name__ == "__main__":
+    
+    
+    ### Run RetroParser to take input using commandline arguments (USER Input)
+    parser = argparse.ArgumentParser(description="RetroPlotter Argument Parser")
+
+    parser.add_argument("-ip", "--input-file", type=str, required=True,
+                        help="[REQUIRED] Provide the absolute path of the USER input file.\n -ip [~/INPUT-FILE-PATH/],\t--input-file [~/INPUT-FILE-PATH/]\n")
+
+
+    parser.add_argument("-bgd", "--background-data", type=str, required=True,
+                        help="[REQUIRED] Use the SCRIPT historical background data.\n -bgd [PROJECT-NAME],\t--project-name [PROJECT-NAME]\n")
+    
+
+    '''
+    parser.add_argument("-gc", "--genecoverage-data", type=str, required=True,
+                        help="[REQUIRED] Provide the name of the Gene Coverage Data file containing the GC data to be plotted\n -gc [GC-DATA],\t--genecoverage-data [GC-DATA]\n")
+    parser.add_argument("-hist", "--histogram-data", required=True, type=str,
+                        help="[REQUIRED] Provide the name of the Histogram Data file containing the gene expression histogram data to be plotted.\n-hist [HIST-DATA],\t--histogram-data [HIST-DATA]\n")
+    parser.add_argument("-out", "--output-dir", required=True, type=str,
+                        help="[REQUIRED] Provide the name of the Output Directory for the plot.\n -out [OUTPUT-DIRNAME],\t--output-dir [OUTPUT-DIRNAME]\n")
+    '''
+    
+
+    args = parser.parse_args()
+
+    _ip_file = args.input_file
+
+
+    retroPlotter_main(_ip_file)
+
+
+    
+
+    '''
+    ## Batch11   
+    
+    retroPlotter_mat3("/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11",
+                      "SCRIPT_RNAseq_Batch_11",
+                      "/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11/Output/3-STAROutput_Bam/GeneBody_Coverage/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv",
+                      "/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11/Output/4-htseqCounts/Histogram_Plot/CPM_SCRIPT_RNAseq_Batch_11_final_count_bincounts_0.5.csv",
+                      "/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11/Output/3-STAROutput_Bam/stats")
+    
+    '''
