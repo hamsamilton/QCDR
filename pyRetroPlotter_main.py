@@ -36,7 +36,7 @@ from statsmodels.stats.weightstats import ztest
 
 
 
-
+_script_bgdFile = "/projects/b1063/Gaurav/pyRetroPlotter/data/SCRIPTretro_masterStatistics_allBatches.csv"
 _masterDB = "/projects/b1079/tools/U19_masterDB_dev/U19_masterDB.sqlite"
 _pipeline_dir = "/projects/b1079/U19_RNAseq_Pipeline_SLURM_v01"
 
@@ -87,6 +87,102 @@ def create_connection(_db_file):
         print(e)
 
     return None
+
+
+
+
+
+
+
+def retroPlotter_main(_input_file, _output_file, _bgd_file):
+    
+    ### Read input file and load USER data
+    _user_df = pd.read_csv(_input_file, sep = ",")
+
+
+    ## Adding last row in the USER dataframe with current batch's mean values to be plotted on the final summary page
+    _batch_summary_df = ["Batch_Mean",
+                         _user_df.Input_Size.mean(),
+                         _user_df.Percent_PostTrim.mean(),
+                         _user_df.Num_Uniquely_Aligned.mean(),
+                         _user_df.Percent_Uniquely_Aligned.mean(),
+                         _user_df.Percent_Exonic.mean(),
+                         _user_df.Num_Uniquely_Aligned_rRNA.mean(),
+                         _user_df.Percent_Overrepresented_Seq_Untrimmed.mean(),
+                         _user_df.Percent_Adapter_Content_Untrimmed.mean(),
+                         _user_df.Percent_Overrepresented_Seq_Trimmed.mean(),
+                         _user_df.Percent_Adapter_Content_Trimmed.mean(),
+                         _user_df.iloc[0, 11],
+                         _user_df.iloc[0, 12]]
+
+    ## Add Batch mean as the last row of the USER dataframe
+    _user_df.loc[len(_user_df)] = _batch_summary_df
+
+    print(_user_df.iloc[20:,])
+    #print(_user_df.columns)
+
+
+    ## Read Background file and load HISTORICAL background data
+    _bgd_df = pd.read_csv(_bgd_file, sep = ",")
+
+    # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
+    _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
+
+    print(_bgd_df.iloc[262,])
+
+
+
+    ###### Begin Plotting process ######
+
+    ## Open the given PDF output file
+    _pdfObj = PdfPages(_output_file)
+
+    for _tuple in _user_df.itertuples():
+        print(_tuple)
+
+
+        # Create empty figure
+        fig = plt.figure(frameon=False)
+
+        # Plotting figure 1: Input Size
+        fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1, fig)
+
+
+
+
+
+
+
+
+
+
+
+        # Add sample name at the top-left corner of the page
+        fig.suptitle('Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
+                     horizontalalignment='left', verticalalignment='top', fontweight='book', style='italic')
+
+        # Add page number at the top-right corner of the page
+        fig.text(x=0.99, y=0.99, s=int(_tuple[0]) + 1, ha='right', va='top', fontsize=4)
+
+        plt.subplots_adjust(hspace=0.7, wspace=0.2)
+
+        _pdfObj.savefig(fig)
+
+    _pdfObj.close()
+
+
+
+
+
+
+
+
+    return None
+
+
+
+
+
 
 
 
@@ -329,21 +425,6 @@ def rest_Dev():
     '''END plotting process for the first 6 panels}'''
 
 
-def retroPlotter_main(_input_file):
-    ### Read input file and load USER data
-    _user_data = pd.read_csv(_input_file, sep = "\t")
-
-    print(_user_data)
-
-
-
-
-
-
-    return None
-
-
-
 
 '''
 def patient_mapper(_project_dir, _sample_id):
@@ -428,47 +509,6 @@ def runRetro(_project_dir, _project_name, _gc_data, _hist_data, _plotOutDir):
 
 
 
-'''
-if __name__ == "__main__":
-
-    ''''''{BEGIN Take command line arguments for all input variables from the USER''''''
-
-    ########## DESIGN new command line arguments for Stage 1 - Stage 2 development
-
-    ### Run RetroPlotter from the pipeline using commandline arguments (Original Pipeline Method)
-
-    parser = argparse.ArgumentParser(description="RetroPlotter Argument Parser.")
-
-    # parser.add_argument("-v", "--version", help="Display U19 RNA-seq pipeline version.\n-v, --version\n", action="store_true")
-
-    parser.add_argument("-pdir", "--project-dir", type=str, required=True,
-                        help="[REQUIRED] Provide the absolute path of the project directory.\n -pdir [~/PROJECT-PATH/],\t--project-dir [~/PROJECT-PATH/]\n")
-    parser.add_argument("-pname", "--project-name", type=str, required=True,
-                        help="[REQUIRED] Provide the name of your project.\n -pname [PROJECT-NAME],\t--project-name [PROJECT-NAME]\n")
-    parser.add_argument("-gc", "--genecoverage-data", type=str, required=True,
-                        help="[REQUIRED] Provide the name of the Gene Coverage Data file containing the GC data to be plotted\n -gc [GC-DATA],\t--genecoverage-data [GC-DATA]\n")
-    parser.add_argument("-hist", "--histogram-data", required=True, type=str,
-                        help="[REQUIRED] Provide the name of the Histogram Data file containing the gene expression histogram data to be plotted.\n-hist [HIST-DATA],\t--histogram-data [HIST-DATA]\n")
-    parser.add_argument("-out", "--output-dir", required=True, type=str,
-                        help="[REQUIRED] Provide the name of the Output Directory for the plot.\n -out [OUTPUT-DIRNAME],\t--output-dir [OUTPUT-DIRNAME]\n")
-
-    args = parser.parse_args()
-
-    _pd = args.project_dir
-    _pname = args.project_name
-    _gc = args.genecoverage_data
-    _histo = args.histogram_data
-    _outdir = args.output_dir
-
-    retroPlotter_mat3(_pd, _pname, _gc, _histo, _outdir)
-
-    print("Successfully created the historical data plot.")
-
-
-    ''''''END command line args from USER}''''''
-
-'''
-
     
 
 if __name__ == "__main__":
@@ -477,30 +517,41 @@ if __name__ == "__main__":
     ### Run RetroParser to take input using commandline arguments (USER Input)
     parser = argparse.ArgumentParser(description="RetroPlotter Argument Parser")
 
-    parser.add_argument("-ip", "--input-file", type=str, required=True,
-                        help="[REQUIRED] Provide the absolute path of the USER input file.\n -ip [~/INPUT-FILE-PATH/],\t--input-file [~/INPUT-FILE-PATH/]\n")
+    parser.add_argument("-ip", "--input-filename", type=os.path.abspath, required=True,
+                        help="[REQUIRED] Provide the name of the USER input file.\n -ip [~/INPUT-FILE-PATH/],\t--input-file [~/INPUT-FILE-PATH/]\n")
 
+    parser.add_argument("-out", "--output-filename", required=False, type=os.path.abspath, default = "pyRetroPlotter_OutputPlot.pdf",
+                        help="[REQUIRED] Provide the name of the PDF output file for the plot.\n -out [OUTPUT-FILENAME.pdf],\t--output-dir [OUTPUT-FILENAME.pdf]\n")
 
-    parser.add_argument("-bgd", "--background-data", type=str, required=True,
-                        help="[REQUIRED] Use the SCRIPT historical background data.\n -bgd [PROJECT-NAME],\t--project-name [PROJECT-NAME]\n")
-    
+    parser.add_argument("-bgd", "--background-data", required=False, action = "store_true", default = True,
+                        help="[REQUIRED] Use the SCRIPT historical background data.\n -bgd ,\t--background-data \n")
+
 
     '''
     parser.add_argument("-gc", "--genecoverage-data", type=str, required=True,
                         help="[REQUIRED] Provide the name of the Gene Coverage Data file containing the GC data to be plotted\n -gc [GC-DATA],\t--genecoverage-data [GC-DATA]\n")
     parser.add_argument("-hist", "--histogram-data", required=True, type=str,
                         help="[REQUIRED] Provide the name of the Histogram Data file containing the gene expression histogram data to be plotted.\n-hist [HIST-DATA],\t--histogram-data [HIST-DATA]\n")
-    parser.add_argument("-out", "--output-dir", required=True, type=str,
-                        help="[REQUIRED] Provide the name of the Output Directory for the plot.\n -out [OUTPUT-DIRNAME],\t--output-dir [OUTPUT-DIRNAME]\n")
     '''
     
 
     args = parser.parse_args()
 
-    _ip_file = args.input_file
+    _ip_filename = args.input_filename
+
+    if args.background_data:
+        _bgd_filename = _script_bgdFile
+
+    _op_filename = args.output_filename
 
 
-    retroPlotter_main(_ip_file)
+
+    print(f"Input File : {_ip_filename}")
+    print(f"Output File : {_op_filename}")
+    print(f"Background File : {_bgd_filename}")
+
+
+    retroPlotter_main(_ip_filename, _op_filename, _bgd_filename)
 
 
     
