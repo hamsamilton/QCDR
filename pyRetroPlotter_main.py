@@ -92,8 +92,9 @@ def create_connection(_db_file):
 
 
 
+####### RetroPlotter caller function for reading data and passing it to individual plotters ########
 
-
+#### Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions
 def retroPlotter_main(_input_file, _output_file, _bgd_file):
     
     ### Read input file and load USER data
@@ -146,6 +147,21 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file):
 
         # Plotting figure 1: Input Size
         fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1, fig)
+
+        # Plotting figure 2: Percentage of Reads after Trimming
+        #fig = helper_retroFunctions.plotHist(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2, fig)
+
+        # Plotting figure 3: Percentage of Uniquely Aligned Reads
+        #fig = helper_retroFunctions.plotHist(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3, fig)
+
+        # Plotting figure 4: Percentage of Reads Mapped to Exons
+        #fig = helper_retroFunctions.plotHist(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4, fig)
+
+        # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
+        fig = helper_retroFunctions.plotScatter(_tuple, _user_df, _bgd_df, 5, fig)
+
+        # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
+        #fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6, fig)
 
 
 
