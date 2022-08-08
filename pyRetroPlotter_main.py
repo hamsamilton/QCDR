@@ -3,7 +3,7 @@ import matplotlib.gridspec as gridspec
 import os
 import argparse
 
-matplotlib.use('Agg')
+matplotlib.use('PDF')
 import seaborn
 import matplotlib.pyplot as plt
 import sqlite3
@@ -85,113 +85,6 @@ def create_connection(_db_file):
         return _conn
     except Error as e:
         print(e)
-
-    return None
-
-
-
-
-
-####### RetroPlotter caller function for reading data and passing it to individual plotters ########
-
-#### Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions
-def retroPlotter_main(_input_file, _output_file, _bgd_file):
-    
-    ### Read input file and load USER data
-    _user_df = pd.read_csv(_input_file, sep = ",")
-
-
-    ## Adding last row in the USER dataframe with current batch's mean values to be plotted on the final summary page
-    _batch_summary_df = ["Batch_Mean",
-                         _user_df.Input_Size.mean(),
-                         _user_df.Percent_PostTrim.mean(),
-                         _user_df.Num_Uniquely_Aligned.mean(),
-                         _user_df.Percent_Uniquely_Aligned.mean(),
-                         _user_df.Percent_Exonic.mean(),
-                         _user_df.Num_Uniquely_Aligned_rRNA.mean(),
-                         _user_df.Percent_Overrepresented_Seq_Untrimmed.mean(),
-                         _user_df.Percent_Adapter_Content_Untrimmed.mean(),
-                         _user_df.Percent_Overrepresented_Seq_Trimmed.mean(),
-                         _user_df.Percent_Adapter_Content_Trimmed.mean(),
-                         _user_df.iloc[0, 11],
-                         _user_df.iloc[0, 12]]
-
-    ## Add Batch mean as the last row of the USER dataframe
-    _user_df.loc[len(_user_df)] = _batch_summary_df
-
-    print(_user_df.iloc[20:,])
-    #print(_user_df.columns)
-
-
-    ## Read Background file and load HISTORICAL background data
-    _bgd_df = pd.read_csv(_bgd_file, sep = ",")
-
-    # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
-    _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
-
-    print(_bgd_df.iloc[262,])
-
-
-
-    ###### Begin Plotting process ######
-
-    ## Open the given PDF output file
-    _pdfObj = PdfPages(_output_file)
-
-    for _tuple in _user_df.itertuples():
-        print(_tuple)
-
-
-        # Create empty figure
-        fig = plt.figure(frameon=False)
-
-        # Plotting figure 1: Input Size
-        fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1, fig)
-
-        # Plotting figure 2: Percentage of Reads after Trimming
-        #fig = helper_retroFunctions.plotHist(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2, fig)
-
-        # Plotting figure 3: Percentage of Uniquely Aligned Reads
-        #fig = helper_retroFunctions.plotHist(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3, fig)
-
-        # Plotting figure 4: Percentage of Reads Mapped to Exons
-        #fig = helper_retroFunctions.plotHist(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4, fig)
-
-        # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotScatter(_tuple, _user_df, _bgd_df, 5, fig)
-
-        # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
-        #fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6, fig)
-
-
-
-
-
-
-
-
-
-
-
-        # Add sample name at the top-left corner of the page
-        fig.suptitle('Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
-                     horizontalalignment='left', verticalalignment='top', fontweight='book', style='italic')
-
-        # Add page number at the top-right corner of the page
-        fig.text(x=0.99, y=0.99, s=int(_tuple[0]) + 1, ha='right', va='top', fontsize=4)
-
-        plt.subplots_adjust(hspace=0.7, wspace=0.2)
-
-        _pdfObj.savefig(fig)
-
-    _pdfObj.close()
-
-
-
-
-
-
-
 
     return None
 
@@ -522,10 +415,89 @@ def runRetro(_project_dir, _project_name, _gc_data, _hist_data, _plotOutDir):
         return True
 
 
+####### RetroPlotter caller function for reading data and passing it to individual plotters ########
+
+#### Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions
+def retroPlotter_main(_input_file, _output_file, _bgd_file):
+    ### Read input file and load USER data
+    _user_df = pd.read_csv(_input_file, sep=",")
+
+    ## Adding last row in the USER dataframe with current batch's mean values to be plotted on the final summary page
+    _batch_summary_df = ["Batch_Mean",
+                         _user_df.Input_Size.mean(),
+                         _user_df.Percent_PostTrim.mean(),
+                         _user_df.Num_Uniquely_Aligned.mean(),
+                         _user_df.Percent_Uniquely_Aligned.mean(),
+                         _user_df.Percent_Exonic.mean(),
+                         _user_df.Num_Uniquely_Aligned_rRNA.mean(),
+                         _user_df.Percent_Overrepresented_Seq_Untrimmed.mean(),
+                         _user_df.Percent_Adapter_Content_Untrimmed.mean(),
+                         _user_df.Percent_Overrepresented_Seq_Trimmed.mean(),
+                         _user_df.Percent_Adapter_Content_Trimmed.mean(),
+                         _user_df.iloc[0, 11],
+                         _user_df.iloc[0, 12]]
+
+    ## Add Batch mean as the last row of the USER dataframe
+    _user_df.loc[len(_user_df)] = _batch_summary_df
+
+    #print(_user_df.iloc[20:, ])
+    # print(_user_df.columns)
+
+    ## Read Background file and load HISTORICAL background data
+    _bgd_df = pd.read_csv(_bgd_file, sep=",")
+
+    # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
+    _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
+
+    #print(_bgd_df.iloc[262,])
+
+    ###### Begin Plotting process ######
+
+    ## Open the given PDF output file
+    _pdfObj = PdfPages(_output_file)
+
+    for _tuple in _user_df.itertuples():
+        print(_tuple)
+
+        # Create empty figure
+        fig = plt.figure(frameon=False)
+
+        # Plotting figure 1: Input Size
+        fig = helper_retroFunctions.plotHist_ipSize_old(_tuple, _user_df, _bgd_df, 3, fig)
+
+        # Plotting figure 2: Percentage of Reads after Trimming
+        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 4, fig)
+
+        # Plotting figure 3: Percentage of Uniquely Aligned Reads
+        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 1, fig)
+
+        # Plotting figure 4: Percentage of Reads Mapped to Exons
+        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 2, fig)
+
+        # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
+        #fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5, fig)
+
+        # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
+        #fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6, fig)
+
+        # Add sample name at the top-left corner of the page
+        fig.suptitle('Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
+                     horizontalalignment='left', verticalalignment='top', fontweight='book', style='italic')
+
+        # Add page number at the top-right corner of the page
+        fig.text(x=0.99, y=0.99, s=int(_tuple[0]) + 1, ha='right', va='top', fontsize=4)
+
+        #plt.tight_layout()
+
+        plt.subplots_adjust(hspace=0.7, wspace=0.2)
 
 
+        _pdfObj.savefig(fig)
 
-    
+    _pdfObj.close()
+
+    return None
+
 
 if __name__ == "__main__":
     
@@ -560,11 +532,11 @@ if __name__ == "__main__":
 
     _op_filename = args.output_filename
 
-
-
+    print("\n")
     print(f"Input File : {_ip_filename}")
     print(f"Output File : {_op_filename}")
     print(f"Background File : {_bgd_filename}")
+    print("\n\n")
 
 
     retroPlotter_main(_ip_filename, _op_filename, _bgd_filename)
