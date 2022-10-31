@@ -1,0 +1,11 @@
+prefix=/home/sdh463/b1063/Gaurav/pyRetroPlotter/pyRetroPlotterEnv2
+exec_prefix=/home/sdh463/b1063/Gaurav/pyRetroPlotter/pyRetroPlotterEnv2
+libdir=/home/sdh463/b1063/Gaurav/pyRetroPlotter/pyRetroPlotterEnv2/lib
+includedir=/home/sdh463/b1063/Gaurav/pyRetroPlotter/pyRetroPlotterEnv2/include
+
+Name: uuid
+Description: Universally unique id library
+Version: 2.32.1
+Requires:
+Cflags: -I${includedir}/uuid
+Libs: -L${libdir} -luuid

@@ -23,7 +23,6 @@ https://conda.anaconda.org/conda-forge/linux-64/libffi-3.2.1-he1b5a44_1006.tar.b
 https://repo.continuum.io/pkgs/main/linux-64/libgcc-ng-8.2.0-hdf63c60_1.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/libgfortran-3.0.0-1.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/libgfortran-ng-7.3.0-hdf63c60_0.tar.bz2
-https://conda.anaconda.org/conda-forge/linux-64/libiconv-1.15-h516909a_1005.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/liblapack-3.8.0-4_openblas.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/libpng-1.6.36-h84994c4_1000.tar.bz2
 https://repo.continuum.io/pkgs/main/linux-64/libstdcxx-ng-8.2.0-hdf63c60_1.tar.bz2
@@ -34,7 +33,6 @@ https://conda.anaconda.org/conda-forge/linux-64/matplotlib-3.0.3-py36_0.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/matplotlib-base-3.0.3-py36h167e16e_0.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.1-hf484d3e_1002.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/numpy-1.16.2-py36h7fc5cc3_0.tar.bz2
-https://conda.anaconda.org/conda-forge/linux-64/openblas-0.3.5-ha44fe06_0.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/openssl-1.1.1b-h14c3975_1.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/pandas-0.24.2-py36hf484d3e_0.tar.bz2
 https://conda.anaconda.org/conda-forge/noarch/patsy-0.5.1-py_0.tar.bz2
