@@ -433,8 +433,8 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos, _f=None):
     _background_df["Input_Size"].plot(kind='hist', bins=_bins, ax=_ax, color='lightgray')
 
     _ax1 = _ax.twinx()
-    _background_df.plot(y="Input_Size", kind='kde', legend=False, ax=_ax1, color='dimgray', mark_right=True, lw=0.7,
-                    alpha=0.8)
+    #_background_df.plot(y="Input_Size", kind='kde', legend=False, ax=_ax1, color='dimgray', mark_right=True, lw=0.7, alpha=0.8)
+    sns.distplot(_background_df["Input_Size"], hist=False, bins=_bins, ax=_ax1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
     _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=3, direction='out', pad=2)
     _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=4, labelleft=True, left=True, direction='out', pad=2)
@@ -601,8 +601,8 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     _axis.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
     _axis1 = _axis.twinx()
-    _retro_df.plot(y=_colname, kind = 'kde', legend = False, ax = _axis1, color = 'dimgray', mark_right = True, lw = 0.7, alpha = 0.8)
-    #sns.distplot(_retro_df["Percent_PostTrim"], hist=False, bins=_bins, ax=_axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
+    #_retro_df.plot(y=_colname, kind = 'kde', legend = False, ax = _axis1, color = 'dimgray', mark_right = True, lw = 0.7, alpha = 0.8)
+    sns.distplot(_retro_df["Percent_PostTrim"], hist=False, bins=_bins, ax=_axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
 
     _axis.set_xlim(59, 103)
@@ -760,8 +760,8 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _axis_plt3.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
     _axis1_plt3 = _axis_plt3.twinx()
-    _retro_df.plot(y=_colname, kind='kde', legend=False, ax=_axis1_plt3, color='dimgray', mark_right=True, lw=0.7, alpha=0.8)
-    #sns.distplot(_retro_df[_colname], hist=False, bins=_bins, ax=_axis1_plt3, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
+    #_retro_df.plot(y=_colname, kind='kde', legend=False, ax=_axis1_plt3, color='dimgray', mark_right=True, lw=0.7, alpha=0.8)
+    sns.distplot(_retro_df[_colname], hist=False, bins=_bins, ax=_axis1_plt3, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
 
     _axis_plt3.set_xlim(0, 105)
@@ -907,8 +907,8 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _axis_plt4.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
     _axis1_plt4 = _axis_plt4.twinx()
-    _retro_df.plot(y=_colname, kind='kde', legend=False, ax=_axis1_plt4, color='dimgray', mark_right=True, lw=0.7, alpha=0.8)
-    #sns.distplot(_retro_df[_colname], hist=False, bins=_bins, ax=_axis1_plt4, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
+    #_retro_df.plot(y=_colname, kind='kde', legend=False, ax=_axis1_plt4, color='dimgray', mark_right=True, lw=0.7, alpha=0.8)
+    sns.distplot(_retro_df[_colname], hist=False, bins=_bins, ax=_axis1_plt4, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
 
     _axis_plt4.set_xlim(0, 105)
@@ -1382,6 +1382,291 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position, _f=None)
     
 
     return _f
+
+
+
+
+
+
+#### Plot 7 : GeneBody Coverage Plot
+
+def plotGC(_ipTuple, _coverage_df, _position, _plot_title, _fig=None):
+    print(_ipTuple[1])
+
+    if not _fig is None:
+        plt.gcf()
+
+    _axis = _fig.add_subplot(4, 2, _position)
+
+
+    # Calculate mean GeneBody Coverage for the entire library
+    _mean_df = pd.DataFrame()
+    _mean_df['gc_mean'] = _coverage_df.mean(axis=1)
+    # print(_mean_df)
+
+    # Statistical Tests: Wilcoxon signed rank test, Kolmogorov-Smirnov 2-sample test and Pearson Correlation
+    _wilcox_stat, _wilcox_pval = stats.wilcoxon(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'], correction=True)
+    print(_wilcox_stat, _wilcox_pval)
+
+    ## KS-2sample test
+    _ks_stat, _ks_pval = stats.ks_2samp(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'])
+    print("KS-2samp test")
+    print(_ks_stat, _ks_pval)
+
+    _pearson_corr = _coverage_df[_ipTuple[1]].corr(_mean_df['gc_mean'])
+    print("PEARSON CORR :", _pearson_corr)
+
+    ### Calculate Confidence Interval for the mean GC line
+    # _sigma = stats.t.interval(0.05, len(_mean_df['gc_mean'])-1, loc=_mean_df['gc_mean'], scale=stats.sem(_mean_df['gc_mean']))
+    _err = stats.sem(_mean_df['gc_mean']) * stats.t.ppf((1 + 0.95) / 2, len(_mean_df) - 1)
+    print(_err)
+
+    # Plot current sample with library mean
+    _x = np.arange(1, 101, 1)
+
+    _axis.plot(_x, _coverage_df[_ipTuple[1]], color='red', linewidth=0.5, linestyle='-', alpha=0.8)
+    _axis.plot(_x, _mean_df['gc_mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8)
+
+    _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
+
+    _axis.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=3,
+                      direction='out', pad=2)
+    _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=3, labelleft=True, left=True,
+                      direction='out', pad=2)
+
+    _axis.set_xlim(0, 105)
+    _axis.set_title(_plot_title, fontsize=4.4)
+
+    _uni_arrw = u"\u2192"
+    _axis.set_xlabel("Gene Percentile (5' " + _uni_arrw + " 3')", fontsize=3, labelpad=2)
+    _axis.set_ylabel("Coverage", fontsize=3, labelpad=2)
+
+    _axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(np.arange(0, 101, 1)[0::5]))
+    _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
+    # _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    _axis.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_cov))
+
+    _axis.spines['top'].set_visible(False)
+    _axis.spines['right'].set_visible(False)
+    _axis.spines['left'].set_visible(True)
+    _axis.spines['bottom'].set_visible(True)
+    _axis.spines['left'].set_color('black')
+    _axis.spines['bottom'].set_color('black')
+    _axis.spines['bottom'].set_linewidth(0.55)
+    _axis.spines['left'].set_linewidth(0.55)
+
+    ## KS-2sample flagging
+    if _ks_pval <= 0.05:
+        print("KS-2samp Test : FAILED!\n")
+        insert_flag_fail(_axis)
+    elif _ks_pval <= 0.1:
+        print("KS-2samp Test : WARNING!\n")
+        insert_flag_warn(_axis)
+    else:
+        print("KS-2samp Test : PASSED!\n")
+        pass
+
+    ### Wilcoxon flagging
+    # if _wilcox_pval <= 0.05:
+    #    print("Wilcoxon Test : FAILED!\n")
+    #    insert_flag_fail(_axis)
+    # elif _wilcox_pval <= 0.1:
+    #    print("Wilcoxon Test: WARNING!\n")
+    #    insert_flag_warn(_axis)
+    # else:
+    #    print("Wilcoxon Test : PASSED!\n")
+    #    pass
+
+    _current_sample_line = matplotlib.lines.Line2D([0], [0], color="red", linewidth=0.5, linestyle='-', alpha=0.8)
+    _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
+
+    _extra_confidenceInterval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='yellow', fill=True,
+                                                             edgecolor='yellow', linewidth=1.2, alpha=0.5)
+    _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
+    # _extra_wilcox = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
+
+    _axis.legend([_current_sample_line, _library_line, _extra_confidenceInterval, _extra_ksPval],
+                 ["Current Sample", "Library Mean",
+                  "95% Confidence Interval", "KS-2sample Pvalue: " + str(round(_ks_pval, 5))],
+                 loc='best', frameon=False, fontsize=3, ncol=1)
+
+    return _fig
+
+
+
+#### Plot 8 : Gene Expression Distribution Plot 
+def plotNegBin(_ipTuple, _hist_df, _user_df, _pos, _plot_title, _f=None):
+    _index_array = _hist_df.iloc[:, 0]
+    print(_index_array)
+
+    _low_vals = []
+    _high_vals = []
+
+    for _i in _index_array:
+        # print(_i.strip('(').strip(']').split(','))
+        _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
+        _high_vals.append(float(_i.strip('(').strip(']').split(',')[1]))
+
+    print(_low_vals)
+
+    _col_index = pd.IntervalIndex.from_arrays(_low_vals, _high_vals, closed='right')
+    print(len(_col_index))
+
+    _col_index = _col_index[:25]
+
+    print(_col_index)
+
+    # _x_vals = np.arange(0, len(_col_index) / 2, 0.5)
+    _x_vals = np.arange(0, len(_col_index) / 2, 0.5)
+    print(_x_vals)
+    print(len(_x_vals))
+
+    ## Preparing the data_df and libMean_df for all bins
+    _data_df = _hist_df.drop(['Unnamed: 0'], axis=1)
+    _libMean_df = pd.DataFrame()
+    _libMean_df['Mean'] = _data_df.iloc[:, :-1].mean(numeric_only=True, axis=1)
+    print(_libMean_df)
+
+    ## Dropping the last 8 bins from data_df and libMean_df to get focused resolution
+    _data_df_dropped = _data_df.drop(_data_df.tail(8).index)
+    _mean_df_dropped = _libMean_df.drop(_libMean_df.tail(8).index)
+
+    _max_df = pd.DataFrame()
+
+    # print(_mean_df)
+    # _mean_df['hist_mean'] = _data_df.mean(axis=0)
+
+    # print(_mean_df)
+    # _mean_df.drop(_mean_df.tail(8).index, inplace=True)
+
+    _max_df['max_val'] = _data_df.max(axis=1)
+    print(_max_df['max_val'].max())
+
+    ### Statistical Tests
+    # Wilcoxon signed rank test
+    # _wilcox_stat, _wilcox_pval = stats.wilcoxon(_data_df[_ipTuple[1]], _mean_df['hist_mean'], correction=True)
+    # print(_wilcox_stat, _wilcox_pval)
+
+    # Kolmogorov-Smirnov 2-sample test for comparing the current distribution to the mean of the library
+    # _ksTest_stat, _ksTest_pval = stats.ks_2samp(_data_df[_ipTuple[1]], _mean_df['hist_mean'])
+    # print("KS 2sample Test :")
+    # print(_ksTest_stat, _ksTest_pval)
+
+    ## Expressed genes correlation test Pearson's Correlation
+    _mean_array = _mean_df_dropped.Mean.values
+    _current_samp_array = _data_df_dropped[_ipTuple[1]].values
+
+    print(_mean_array)
+    print(_current_samp_array)
+
+    ## Zscore calculated for each sample in the dataframe
+    # _zscore_data_df = _data_df_dropped.apply(stats.zscore)
+    # print(_zscore_data_df)
+
+    ## ZTest for mean and current sample against the normal distribution to get pvalue
+    _ztest_stat_raw, _ztest_pval_raw = ztest_prob(_current_samp_array, _mean_array, 0)
+
+    # _ztest_stat_1samp, _ztest_pval_1samp = ztest_prob(_current_samp_dist, None, 0)
+
+    # _ztest_pval_zscore = ztest_prob(_zscore_data_df[_ipTuple[1]].values, _zscore_mean_df.hist_mean.values)
+    # print(_zscore_mean_df)
+
+    # print(_zscore_data_df.loc[:,_ipTuple[1]])
+    # print(_zscore_mean_df)
+    # print(_current_samp_dist)
+
+    # _pearson_corr = _data_df[_ipTuple[1]].corr(_mean_df['hist_mean'])
+    # _pearson_corr, _pearson_pval = stats.stats.pearsonr(_current_samp_hist, _mean_hist)
+    # print("Pearson P-value : ", _pearson_pval)
+
+    if not _f is None:
+        plt.gcf()
+
+    _ax = _f.add_subplot(4, 2, _pos)
+
+    _col_names = [_cl for _cl in _data_df_dropped.columns]
+    print(_col_names)
+
+    ## Plotting all current library distributions with the current sample highlighted on each page
+    for _col in _col_names:
+
+        if _col == _ipTuple[1]:
+            plt.plot(_x_vals, _data_df_dropped[_col], color='red', linewidth=0.5, linestyle='-', zorder=24)
+        else:
+            plt.plot(_x_vals, _data_df_dropped[_col], color='silver', linewidth=0.5, linestyle='-')
+
+    # Removed plotting current line separately since the above loop
+    # _ax.plot(_x_vals, _data_df_dropped[_ipTuple[1]], color='red', linewidth=0.5, linestyle='-', alpha=0.8)
+
+    ## Plotting the mean distribution
+    _ax.plot(_x_vals, _mean_df_dropped['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
+
+    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelrotation=60, labelbottom=True, bottom=True,
+                    labelsize=2, direction='out', pad=1)
+    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=3, labelleft=True, left=True,
+                    direction='out', pad=2)
+
+    # _ax.set_xlim(0, (len(_x_vals) / 2) + 1)
+    _ax.set_xlim(0, 14)
+
+    _ax.set_ylim(0, 4000)
+    # _ax.set_ylim(0, _max_df['max_val'].max() + 300)
+
+    _ax.set_title(_plot_title, fontsize=4.4)
+
+    _ax.set_xlabel("Gene Expression Value (log2(CPM)+1)", fontsize=3, labelpad=2)
+    _ax.set_ylabel("Frequency", fontsize=3, labelpad=2)
+
+    _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_x_vals))
+    _ax.xaxis.set_major_formatter(matplotlib.ticker.FixedFormatter(_col_index))
+    _ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(500))
+    _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
+
+    # _ax.xticklabels(str(_col_index), fontsize=3)
+
+    _ax.spines['top'].set_visible(False)
+    _ax.spines['right'].set_visible(False)
+    _ax.spines['left'].set_visible(True)
+    _ax.spines['bottom'].set_visible(True)
+
+    _ax.spines['left'].set_color('black')
+    _ax.spines['left'].set_linewidth(0.55)
+    # _ax.spines['left'].set_smart_bounds(True)
+
+    _ax.spines['bottom'].set_color('black')
+    _ax.spines['bottom'].set_linewidth(0.55)
+    # _ax.spines['bottom'].set_smart_bounds(True)
+
+    ## Flagging based on Ztest
+    if _ztest_pval_raw <= 0.05:
+        print("ZTest : FAILED!")
+        insert_flag_fail(_ax)
+    elif _ztest_pval_raw <= 0.1:
+        print("ZTest : WARNING!")
+        insert_flag_warn(_ax)
+    else:
+        pass
+
+    _current_samp_line = matplotlib.lines.Line2D([0], [0], color="red", linewidth=0.5, linestyle='-', alpha=0.8)
+    _lib_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
+
+    # _extra_wilcox_stat = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',linewidth=0)
+    # _extra_wilcox_pval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
+    # _extra_ksStat = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
+    # _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
+
+    _extra_Ztest_stat = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
+                                                     linewidth=0)
+    _extra_Ztest_Pval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
+                                                     linewidth=0)
+
+    _ax.legend([_current_samp_line, _lib_line, _extra_Ztest_Pval],
+               ["Current Sample", "Library Mean", "ZTest Pvalue : " + str(round(_ztest_pval_raw, 5))], loc='best',
+               frameon=False, fontsize=3, ncol=1)
+
+    return _f
+
+
 
 
 
