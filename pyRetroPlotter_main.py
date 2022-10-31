@@ -59,7 +59,10 @@ _exonMapping_cutoff_warn = 50
 _riboScatter_cutoff_warn = 0.35
 _violin_cutoff_warn = 0.5
 _violin_cutoff_adapter_warn = 0.5
-_violin_cutoff_overrep_warn = 0.5
+_violin_cutoff_overrep_warn = 0.5.
+
+
+
 
 required_modules = ['python/anaconda']
 _notification_email = "gaurav.gadhvi@northwestern.edu"
@@ -335,29 +338,6 @@ def rest_Dev():
 
 
 
-'''
-def patient_mapper(_project_dir, _sample_id):
-    _pat_dict = {}
-    os.chdir(_project_dir)
-
-    for _f in glob.glob("*DirMap.csv"):
-
-        with open(_f, "r") as _patMap_file:
-            _readr = csv.reader(_patMap_file, delimiter=',')
-            for _row in _readr:
-                _pat_dict[_row[1]] = _row[0]
-
-    # print(_pat_dict[_sample_id])
-
-    # print (_pat_dict)
-
-    if _sample_id == "Library_Mean":
-        return "Library_Mean"
-    else:
-        return _pat_dict[_sample_id]
-
-'''
-
 
 
 
@@ -366,53 +346,6 @@ def patient_mapper(_project_dir, _sample_id):
 ## Python/anaconda3.6
 ## Matplotlib/3.0.0
 ## Pandas : ????
-
-### Function for calling the RetroPlotter from the pipeline orchestration
-def runRetro(_project_dir, _project_name, _gc_data, _hist_data, _plotOutDir):
-
-    os.chdir(_project_dir + "/Output/4-htseqCounts/All_Htseq_scripts")
-
-    script_name = "retroPlot_Caller.sh"
-    script_f = open(script_name, "w+")
-
-    script = ""
-    script += "#!/bin/bash\n"
-    script += "#SBATCH -A b1042\n"
-    script += "#SBATCH -p genomics\n"
-    script += "#SBATCH -t 24:00:00\n"
-    script += "#SBATCH --mail-type=FAIL\n"
-    script += "#SBATCH --mail-user=" + _notification_email + "\n"
-    script += "#SBATCH --output=%x.%j.out\n"
-    script += "#SBATCH --job-name=retroPlot_Wrapper\n"
-    script += "#SBATCH -N 1\n"
-    script += "#SBATCH -n 6\n\n"
-
-    for module in required_modules:
-        script += "module load " + module + "\n"
-
-    script += "source activate pyMat3\n\n"
-
-    script += "cd " + _pipeline_dir + "\n\n"
-
-    script += "python helper_retroPlotter_DEV.py -pdir " + _project_dir + " -pname " + _project_name + " -gc " + _gc_data + " -hist " + _hist_data + " -out " + _plotOutDir + "\n\n"
-
-    script_f.write(script)
-    script_f.close()
-
-    time.sleep(5)
-
-    subprocess.call(['sbatch', script_name])
-
-    print("RetroPlot script submitted for processing!\n\n")
-
-    while not os.path.exists(_plotOutDir + "/" + _project_name + "_retroPlot.pdf"):
-
-        print("Waiting for retro-Plotter to finish plotting. . .  .    .     .      .         .\n\n")
-        time.sleep(5)
-        pass
-    else:
-        time.sleep(300)
-        return True
 
 
 ####### RetroPlotter caller function for reading data and passing it to individual plotters ########
@@ -463,22 +396,29 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file):
         fig = plt.figure(frameon=False)
 
         # Plotting figure 1: Input Size
-        fig = helper_retroFunctions.plotHist_ipSize_old(_tuple, _user_df, _bgd_df, 3, fig)
+        fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1, fig)
 
         # Plotting figure 2: Percentage of Reads after Trimming
-        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 4, fig)
+        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2, fig)
 
         # Plotting figure 3: Percentage of Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 1, fig)
+        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3, fig)
 
         # Plotting figure 4: Percentage of Reads Mapped to Exons
-        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 2, fig)
+        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4, fig)
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
-        #fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5, fig)
+        fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5, fig)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
-        #fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6, fig)
+        fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6, fig)
+
+        # Plotting figure 7: GeneBody Coverage Distribution Plot
+        #fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution", fig)
+
+        # Plotting figure 8: Gene Expression Distribution Plot
+        #fig = helper_retroFunctions.plotNegBin()
+
 
         # Add sample name at the top-left corner of the page
         fig.suptitle('Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
@@ -515,12 +455,12 @@ if __name__ == "__main__":
                         help="[REQUIRED] Use the SCRIPT historical background data.\n -bgd ,\t--background-data \n")
 
 
-    '''
-    parser.add_argument("-gc", "--genecoverage-data", type=str, required=True,
-                        help="[REQUIRED] Provide the name of the Gene Coverage Data file containing the GC data to be plotted\n -gc [GC-DATA],\t--genecoverage-data [GC-DATA]\n")
-    parser.add_argument("-hist", "--histogram-data", required=True, type=str,
-                        help="[REQUIRED] Provide the name of the Histogram Data file containing the gene expression histogram data to be plotted.\n-hist [HIST-DATA],\t--histogram-data [HIST-DATA]\n")
-    '''
+
+    parser.add_argument("-gc", "--genecoverage-data", type=str, required=False,
+                        help="[OPTIONAL] Provide the name of the Gene Coverage Data file containing the GC data to be plotted\n -gc [GC-DATA],\t--genecoverage-data [GC-DATA]\n")
+    parser.add_argument("-hist", "--histogram-data", required=False, type=str,
+                        help="[OPTIONAL] Provide the name of the Histogram Data file containing the gene expression histogram data to be plotted.\n-hist [HIST-DATA],\t--histogram-data [HIST-DATA]\n")
+    
     
 
     args = parser.parse_args()
@@ -531,6 +471,9 @@ if __name__ == "__main__":
         _bgd_filename = _script_bgdFile
 
     _op_filename = args.output_filename
+
+    _gc_file = args.genecoverage_data
+    _hist_file = args.histogram_data
 
     print("\n")
     print(f"Input File : {_ip_filename}")
