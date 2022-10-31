@@ -59,13 +59,13 @@ _exonMapping_cutoff_warn = 50
 _riboScatter_cutoff_warn = 0.35
 _violin_cutoff_warn = 0.5
 _violin_cutoff_adapter_warn = 0.5
-_violin_cutoff_overrep_warn = 0.5.
+_violin_cutoff_overrep_warn = 0.5
 
 
 
 
 required_modules = ['python/anaconda']
-_notification_email = "gaurav.gadhvi@northwestern.edu"
+_notification_email = "samuelhamilton2024@u.northwestern.edu"
 
 
 def join_levels(_df):
@@ -351,7 +351,7 @@ def rest_Dev():
 ####### RetroPlotter caller function for reading data and passing it to individual plotters ########
 
 #### Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions
-def retroPlotter_main(_input_file, _output_file, _bgd_file):
+def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file):
     ### Read input file and load USER data
     _user_df = pd.read_csv(_input_file, sep=",")
 
@@ -384,6 +384,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file):
 
     #print(_bgd_df.iloc[262,])
 
+    ## Read Gene Coverage Data
+    _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
+
+    ## Adding the Library Mean column at the end of the GC dataframe
+    _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
+
     ###### Begin Plotting process ######
 
     ## Open the given PDF output file
@@ -414,7 +420,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file):
         fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6, fig)
 
         # Plotting figure 7: GeneBody Coverage Distribution Plot
-        #fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution", fig)
+        fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution", fig)
 
         # Plotting figure 8: Gene Expression Distribution Plot
         #fig = helper_retroFunctions.plotNegBin()
@@ -482,7 +488,7 @@ if __name__ == "__main__":
     print("\n\n")
 
 
-    retroPlotter_main(_ip_filename, _op_filename, _bgd_filename)
+    retroPlotter_main(_ip_filename, _op_filename, _bgd_filename,_gc_file)
 
 
     
