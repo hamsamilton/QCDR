@@ -351,7 +351,7 @@ def rest_Dev():
 ####### RetroPlotter caller function for reading data and passing it to individual plotters ########
 
 #### Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions
-def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file):
+def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_data):
     ### Read input file and load USER data
     _user_df = pd.read_csv(_input_file, sep=",")
 
@@ -389,7 +389,11 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file):
 
     ## Adding the Library Mean column at the end of the GC dataframe
     _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
+     
+    # Read Histogram data
 
+    _negBin_df = pd.read_csv(_hist_data, index_col=False)
+    _negBin_df["Library_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
     ###### Begin Plotting process ######
 
     ## Open the given PDF output file
@@ -421,10 +425,8 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file):
 
         # Plotting figure 7: GeneBody Coverage Distribution Plot
         fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution", fig)
-
         # Plotting figure 8: Gene Expression Distribution Plot
-        #fig = helper_retroFunctions.plotNegBin()
-
+        fig = plotNegBin(_tuple, _negBin_df, _user_df, 8, "Distribution of Gene Expression", fig)
 
         # Add sample name at the top-left corner of the page
         fig.suptitle('Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
