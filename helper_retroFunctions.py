@@ -32,17 +32,16 @@ from datetime import datetime
 from statsmodels.stats.weightstats import ztest
 
 
-
 # Define FAIL/WARN thresholds for plots
 ##FAIL
-_ipReads_cutoff_fail = 5
-_trimmedReads_cutoff_fail = 80
-_uniqAligned_cutoff_fail = 50
-_exonMapping_cutoff_fail = 40
-_riboScatter_cutoff_fail = 0.50
+#_ipReads_cutoff_fail = 5
+#_trimmedReads_cutoff_fail = 80
+#_uniqAligned_cutoff_fail = 50
+#_exonMapping_cutoff_fail = 40
+#_riboScatter_cutoff_fail = 0.50
 _violin_cutoff_fail = 1
-_violin_cutoff_adapter_fail = 1
-_violin_cutoff_overrep_fail = 1
+#_violin_cutoff_adapter_fail = 1
+#_violin_cutoff_overrep_fail = 1
 
 
 ##WARN
@@ -55,7 +54,48 @@ _violin_cutoff_warn = 0.5
 _violin_cutoff_adapter_warn = 0.5
 _violin_cutoff_overrep_warn = 0.5
 
+# The goal of this function is to return the upper or lower bound of a ci given a vec
+def get_ci_bound(_vec,_alph,_uppr_lwr):
+    ci_bnd = stats.norm.interval(alpha = _alph,
+                        loc=np.mean(_vec),
+                        scale = stats.sem(_vec))
+    if _uppr_lwr == "upper": 
+        ci_bnd = ci_bnd[1]
+    if _uppr_lwr == "lower":
+        ci_bnd = ci_bnd[0]
+    return(ci_bnd)
 
+
+# The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
+def gen_cutoffs(_bgd_df,_alph):
+
+    _ipReads_cutoff =  get_ci_bound(_vec = _bgd_df.loc[:,"Input_Size"],
+                                    _alph = _alph,
+                                    _uppr_lwr = "lower")
+    _trimmedReads_cutoff = get_ci_bound(_vec = _bgd_df.loc[:,"Percent_PostTrim"],
+                                        _alph = _alph,
+                                        _uppr_lwr = "lower")
+    _uniqAligned_cutoff  = get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Uniquely_Aligned"],
+                                        _alph = _alph,
+                                        _uppr_lwr = "lower")
+    _exonMapping_cutoff  = get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Exonic"],
+                                        _alph = _alph,
+                                        _uppr_lwr = "lower")
+    _riboScatter_cutoff  = get_ci_bound(_vec = _bgd_df.loc[:,"Num_Uniquely_Aligned_rRNA"],
+                                        _alph = _alph,
+                                        _uppr_lwr = "upper")
+    _violin_cutoff_overrep=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Overrepresented_Seq_Untrimmed"],
+                                        _alph = _alph,
+                                        _uppr_lwr = "upper")
+    _violin_cutoff_adapter=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Untrimmed"],
+                                        _alph = _alph,
+                                        _uppr_lwr = "upper")
+    return(_ipReads_cutoff,_trimmedReads_cutoff,_uniqAligned_cutoff,_exonMapping_cutoff,_riboScatter_cutoff,
+           _violin_cutoff_overrep,_violin_cutoff_adapter)
+
+                                        
+    
+                                                        
 
 
 
@@ -383,7 +423,7 @@ def plotHist_ipSize_old(_in_tuple, _slaveDf, _master_df, _pos, _f=None):
 
 
 #### Plot 1: Input Size ####
-def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos, _f=None):
+def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutoff_warn,_f=None):
     # print(_background_df.Input_Size)
     bin = np.arange(0, 100 + 1, 1)
 
@@ -485,12 +525,12 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos, _f=None):
         _rotation_mean = 270
 
     ### Adding cutoff markers
-    _ax.plot(_ipReads_cutoff_fail, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='red')
-    _ax.text(_ipReads_cutoff_fail, _ax.get_ylim()[1] - 0.4, 'Fail', fontsize=2, color='red',
+    _ax.plot(_cutoff_fail, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='red')
+    _ax.text(_cutoff_fail, _ax.get_ylim()[1] - 0.4, 'Fail', fontsize=2, color='red',
              horizontalalignment='center')
 
-    _ax.plot(_ipReads_cutoff_warn, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='gold')
-    _ax.text(_ipReads_cutoff_warn, _ax.get_ylim()[1] - 0.4, 'Warn', fontsize=2, color='gold',
+    _ax.plot(_cutoff_warn, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='gold')
+    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - 0.4, 'Warn', fontsize=2, color='gold',
              horizontalalignment='center')
 
     # Current Sample Line and Label
@@ -520,11 +560,11 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos, _f=None):
 
 
     # Flagging for FAILURE/WARNING
-    if _current_sample <= _ipReads_cutoff_fail:
+    if _current_sample <= _cutoff_fail:
         print("Sample flagged for FAILURE!!!")
         insert_flag_fail(_ax)
 
-    elif (_current_sample <= _ipReads_cutoff_warn) and (_current_sample > _ipReads_cutoff_fail):
+    elif (_current_sample <= _cutoff_warn) and (_current_sample > _cutoff_fail):
         print("Sample flagged for WARNING!!!")
         insert_flag_warn(_ax)
 
@@ -539,7 +579,7 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos, _f=None):
 
 
 #### Plot 2 : Trimming Percentage ####
-def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position, _figure=None):
+def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figure=None):
     
     
     bin_data = np.arange(0, 100 + 1, 1)
@@ -620,11 +660,11 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     if _colname == "Percent_PostTrim":
         _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize=3)
 
-        if _current_sample <= _trimmedReads_cutoff_fail:
+        if _current_sample <= _cutoff_fail:
             print("Sample flagged for FAILURE!!!")
             insert_flag_fail(_axis)
 
-        elif (_current_sample > _trimmedReads_cutoff_fail) and (_current_sample <= _trimmedReads_cutoff_warn):
+        elif (_current_sample > _cutoff_fail) and (_current_sample <= _cutoff_warn):
             print("Sample flagged for WARNING!!!")
             insert_flag_warn(_axis)
 
@@ -633,14 +673,14 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
             pass
 
         ### Adding cutoff markers
-        _axis.plot(_trimmedReads_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 10), marker='v', ms=0.8,
+        _axis.plot(_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 10), marker='v', ms=0.8,
                    c='red')
-        _axis.text(_trimmedReads_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Fail', fontsize=2,
+        _axis.text(_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Fail', fontsize=2,
                    color='red', horizontalalignment='center')
 
-        _axis.plot(_trimmedReads_cutoff_warn, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 10), marker='v', ms=0.8,
+        _axis.plot(_cutoff_warn, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 10), marker='v', ms=0.8,
                    c='gold')
-        _axis.text(_trimmedReads_cutoff_warn, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Warn', fontsize=2,
+        _axis.text(_cutoff_warn, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Warn', fontsize=2,
                    color='gold', horizontalalignment='center')
 
 
@@ -717,7 +757,7 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
 
 
 #### Plot 3: Alignment Percentage ####
-def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position, _figure=None):
+def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn, _figure=None):
     bin_data = np.arange(0, 100 + 1, 1)
 
     _retro_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"].clip(lower=60)
@@ -779,11 +819,11 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
     _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize=3)
 
-    if _current_sample <= _uniqAligned_cutoff_fail:
+    if _current_sample <= _cutoff_fail:
         print("Sample flagged for FAILURE!!!")
         insert_flag_fail(_axis_plt3)
 
-    elif (_current_sample > _uniqAligned_cutoff_fail) and (_current_sample <= _uniqAligned_cutoff_warn):
+    elif (_current_sample > _cutoff_fail) and (_current_sample <= _cutoff_warn):
         print("Sample flagged for WARNING!!!")
         insert_flag_warn(_axis_plt3)
 
@@ -792,11 +832,11 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
         pass
 
     ### Adding cutoff markers
-    _axis_plt3.plot(_uniqAligned_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
-    _axis_plt3.text(_uniqAligned_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Fail', fontsize=2, color='red', horizontalalignment='center')
+    _axis_plt3.plot(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
+    _axis_plt3.text(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Fail', fontsize=2, color='red', horizontalalignment='center')
 
-    _axis_plt3.plot(_uniqAligned_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c='gold')
-    _axis_plt3.text(_uniqAligned_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Warn', fontsize=2, color='gold', horizontalalignment='center')
+    _axis_plt3.plot(_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c='gold')
+    _axis_plt3.text(_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Warn', fontsize=2, color='gold', horizontalalignment='center')
 
 
 
@@ -865,7 +905,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
 
 #### Plot 4: Gene Exon Mapping ####
-def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position, _figure=None):
+def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figure=None):
     bin_data = np.arange(0, 100 + 1, 1)
 
     _retro_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"].clip(lower=60)
@@ -924,11 +964,11 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
 
     _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=3)
 
-    if _current_sample <= _exonMapping_cutoff_fail:
+    if _current_sample <= _cutoff_fail:
         print("Sample flagged for FAILURE!!!")
         insert_flag_fail(_axis_plt4)
 
-    elif (_current_sample > _exonMapping_cutoff_fail) and (_current_sample <= _exonMapping_cutoff_warn):
+    elif (_current_sample > _cutoff_fail) and (_current_sample <= _cutoff_warn):
         print("Sample flagged for WARNING!!!")
         insert_flag_warn(_axis_plt4)
 
@@ -937,11 +977,11 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
         pass
 
     ### Adding cutoff markers
-    _axis_plt4.plot(_exonMapping_cutoff_fail, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
-    _axis_plt4.text(_exonMapping_cutoff_fail, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 20), 'Fail', fontsize=2, color='red', horizontalalignment='center')
+    _axis_plt4.plot(_cutoff_fail, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
+    _axis_plt4.text(_cutoff_fail, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 20), 'Fail', fontsize=2, color='red', horizontalalignment='center')
 
-    _axis_plt4.plot(_exonMapping_cutoff_warn, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 10), marker='v', ms=0.8, c='gold')
-    _axis_plt4.text(_exonMapping_cutoff_warn, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 20), 'Warn', fontsize=2, color='gold', horizontalalignment='center')
+    _axis_plt4.plot(_cutoff_warn, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 10), marker='v', ms=0.8, c='gold')
+    _axis_plt4.text(_cutoff_warn, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 20), 'Warn', fontsize=2, color='gold', horizontalalignment='center')
 
     _axis_plt4.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize=3)
@@ -1008,7 +1048,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
 
 
 #### Plot 5: rRNA Scatter ####
-def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos, _f=None):
+def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff_warn,_f=None):
     print(_in_tup)
 
     # print(min(_background_df['Num_Uniquely_Aligned_rRNA']))
@@ -1088,10 +1128,10 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos, _f=None):
     _slope_current = float(_in_tup[7] / _in_tup[4])
     print(_slope_current)
 
-    if _slope_current >= _riboScatter_cutoff_fail:
+    if _slope_current >= _cutoff_fail:
         print("Sample FAILED!")
         insert_flag_fail(_ax)
-    elif _slope_current >= _riboScatter_cutoff_warn:
+    elif _slope_current >= _cutoff_warn:
         print("WARNING!!!")
         insert_flag_warn(_ax)
     else:
@@ -1159,7 +1199,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos, _f=None):
 
 
 #### Plot 6: Sequence Contamination - Violin Plot ####
-def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position, _f=None):
+def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_fail,_cutoff_warn, _f=None):
     
     
     ## Load the sequence contamination levels for the background data
@@ -1282,10 +1322,10 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position, _f=None)
     _y_bottom, _y_top = _axis.get_ylim()
     print(_y_bottom, _y_top)
 
-    if (_current_overrep_trim or _current_adapter_trim) >= _violin_cutoff_fail:
+    if (_current_overrep_trim or _current_adapter_trim) >= _cutoff_fail:
         print("FAILED!")
         insert_flag_fail(_axis)
-    elif (_current_overrep_trim or _current_adapter_trim) >= _violin_cutoff_warn:
+    elif (_current_overrep_trim or _current_adapter_trim) >= _cutoff_warn:
         print("WARNING!!!")
         insert_flag_warn(_axis)
     else:
@@ -1328,11 +1368,11 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position, _f=None)
 
     _axis3.set_ylim(_axis2.get_ylim()[0], _axis2.get_ylim()[1])
 
-    _axis3.plot(_violin_cutoff_fail, -0.7, marker='v', ms=1, c='red', clip_on=False)
-    _axis3.text(_violin_cutoff_fail, -0.88, 'Fail', fontsize=3, color='red', horizontalalignment='center')
+    _axis3.plot(_cutoff_fail, -0.7, marker='v', ms=1, c='red', clip_on=False)
+    _axis3.text(_cutoff_fail, -0.88, 'Fail', fontsize=3, color='red', horizontalalignment='center')
 
-    _axis3.plot(_violin_cutoff_warn, -0.7, marker='v', ms=1, c='gold', clip_on=False)
-    _axis3.text(_violin_cutoff_warn, -0.88, 'Warn', fontsize=3, color='gold', horizontalalignment='center')
+    _axis3.plot(_cutoff_warn, -0.7, marker='v', ms=1, c='gold', clip_on=False)
+    _axis3.text(_cutoff_warn, -0.88, 'Warn', fontsize=3, color='gold', horizontalalignment='center')
 
     _axis3.spines['top'].set_visible(False)
     _axis3.spines['right'].set_visible(False)
@@ -1496,6 +1536,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title, _fig=None):
 
 #### Plot 8 : Gene Expression Distribution Plot 
 def plotNegBin(_ipTuple, _hist_df, _user_df, _pos, _plot_title, _f=None):
+    print("PLOTTING GENE EXPRESSION DIST PLOT ########################")
     _index_array = _hist_df.iloc[:, 0]
     print(_index_array)
 
@@ -1503,7 +1544,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df, _pos, _plot_title, _f=None):
     _high_vals = []
 
     for _i in _index_array:
-        # print(_i.strip('(').strip(']').split(','))
         _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
         _high_vals.append(float(_i.strip('(').strip(']').split(',')[1]))
 
@@ -1511,12 +1551,14 @@ def plotNegBin(_ipTuple, _hist_df, _user_df, _pos, _plot_title, _f=None):
 
     _col_index = pd.IntervalIndex.from_arrays(_low_vals, _high_vals, closed='right')
     print(len(_col_index))
-
+    print("THIS IS THE COL INDEX OF BUGFIXING CONCERN")
+    print(_col_index)
     _col_index = _col_index[:25]
 
     print(_col_index)
-
-    # _x_vals = np.arange(0, len(_col_index) / 2, 0.5)
+    _x_vals_test = _high_vals.insert(0,0)
+    print(_high_vals)
+    print("THiS IS MY POTENTIAL REPLACEMENT FOR XVALS",_x_vals_test)
     _x_vals = np.arange(0, len(_col_index) / 2, 0.5)
     print(_x_vals)
     print(len(_x_vals))
@@ -1591,6 +1633,9 @@ def plotNegBin(_ipTuple, _hist_df, _user_df, _pos, _plot_title, _f=None):
     for _col in _col_names:
 
         if _col == _ipTuple[1]:
+            print("current focus of bugfixing")
+            print(_x_vals)
+            print(_data_df_dropped[_col])
             plt.plot(_x_vals, _data_df_dropped[_col], color='red', linewidth=0.5, linestyle='-', zorder=24)
         else:
             plt.plot(_x_vals, _data_df_dropped[_col], color='silver', linewidth=0.5, linestyle='-')
