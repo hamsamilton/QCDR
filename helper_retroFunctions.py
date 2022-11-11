@@ -464,7 +464,7 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     if not _f is None:
         plt.gcf()
 
-    _ax = _f.add_subplot(3, 2, _pos)
+    _ax = _f.add_subplot(4, 2, _pos)
 
     # _ax = _background_df['Input_Size'].plot(kind='hist', bins=_bins, ax=plt.gca())
     # _ax1 = _background_df.plot(y='Input_Size', kind='kde', secondary_y=True, mark_right=True, legend=False, lw=0.5, ax=_ax, color='magenta')
@@ -633,7 +633,7 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     if not _figure is None:
         plt.gcf()
 
-    _axis = _figure.add_subplot(3, 2, _position)
+    _axis = _figure.add_subplot(4,2, _position)
 
     # _axis = _retro_df[_colname].plot(kind='hist', bins=_bins, ax=_axis)
     # _axis1 = _retro_df.plot(y=_colname, kind='kde', secondary_y=True, mark_right=False, legend=False, lw=0.4,color='magenta', ax=_axis)
@@ -792,7 +792,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     if not _figure is None:
         plt.gcf()
 
-    _axis_plt3 = _figure.add_subplot(3, 2, _position)
+    _axis_plt3 = _figure.add_subplot(4, 2, _position)
 
     # _axis_plt3 = _retro_df[_colname].plot(kind='hist', bins=_bins, ax=_axis_plt3)
     # _axis_plt31 = _retro_df.plot(y=_colname, kind='kde', secondary_y=True, mark_right=False, legend=False, lw=0.4,color='magenta', ax=_axis_plt3)
@@ -939,7 +939,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     if not _figure is None:
         plt.gcf()
 
-    _axis_plt4 = _figure.add_subplot(3, 2, _position)
+    _axis_plt4 = _figure.add_subplot(4, 2, _position)
 
     # _axis_plt4 = _retro_df[_colname].plot(kind='hist', bins=_bins, ax=_axis_plt4)
     # _axis1_plt4 = _retro_df.plot(y=_colname, kind='kde', secondary_y=True, mark_right=False, legend=False, lw=0.4,color='magenta', ax=_axis_plt4)
@@ -1550,18 +1550,12 @@ def plotNegBin(_ipTuple, _hist_df, _user_df, _pos, _plot_title, _f=None):
     print(_low_vals)
 
     _col_index = pd.IntervalIndex.from_arrays(_low_vals, _high_vals, closed='right')
-    print(len(_col_index))
-    print("THIS IS THE COL INDEX OF BUGFIXING CONCERN")
-    print(_col_index)
     _col_index = _col_index[:25]
-
-    print(_col_index)
+     
+    # of bugfixing concern i am adding a 0 at the beginning but then removing an index from the last? perhaps lowvals is a better index then highvals?
+    # It's a bit unclear how to fix this at the moment.
     _x_vals_test = _high_vals.insert(0,0)
-    print(_high_vals)
-    print("THiS IS MY POTENTIAL REPLACEMENT FOR XVALS",_x_vals_test)
-    _x_vals = np.arange(0, len(_col_index) / 2, 0.5)
-    print(_x_vals)
-    print(len(_x_vals))
+    _x_vals = _high_vals[:-1]
 
     ## Preparing the data_df and libMean_df for all bins
     _data_df = _hist_df.drop(['Unnamed: 0'], axis=1)
@@ -1570,8 +1564,8 @@ def plotNegBin(_ipTuple, _hist_df, _user_df, _pos, _plot_title, _f=None):
     print(_libMean_df)
 
     ## Dropping the last 8 bins from data_df and libMean_df to get focused resolution
-    _data_df_dropped = _data_df.drop(_data_df.tail(8).index)
-    _mean_df_dropped = _libMean_df.drop(_libMean_df.tail(8).index)
+    _data_df_dropped = _data_df#.drop(_data_df.tail(8).index)
+    _mean_df_dropped = _libMean_df#.drop(_libMean_df.tail(8).index)
 
     _max_df = pd.DataFrame()
 
