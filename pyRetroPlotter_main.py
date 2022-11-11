@@ -427,6 +427,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Plotting figure 7: GeneBody Coverage Distribution Plot
         fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",fig)
+
         # Plotting figure 8: Gene Expression Distribution Plot
         fig = helper_retroFunctions.plotNegBin(_tuple, _negBin_df, _user_df, 8, "Distribution of Gene Expression", fig)
 
