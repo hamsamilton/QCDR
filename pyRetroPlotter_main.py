@@ -52,14 +52,14 @@ _violin_cutoff_fail = 1
 #_violin_cutoff_overrep_fail = 1
 
 ##WARN
-_ipReads_cutoff_warn = 10
-_trimmedReads_cutoff_warn = 90
-_uniqAligned_cutoff_warn = 60
-_exonMapping_cutoff_warn = 50
-_riboScatter_cutoff_warn = 0.35
+#_ipReads_cutoff_warn = 10
+#_trimmedReads_cutoff_warn = 90
+#_uniqAligned_cutoff_warn = 60
+#_exonMapping_cutoff_warn = 50
+#_riboScatter_cutoff_warn = 0.35
 _violin_cutoff_warn = 0.5
-_violin_cutoff_adapter_warn = 0.5
-_violin_cutoff_overrep_warn = 0.5
+#_violin_cutoff_adapter_warn = 0.5
+#_violin_cutoff_overrep_warn = 0.5
 
 
 
@@ -383,15 +383,17 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
 
     # testing custom cutoffs for warn/fail
-    _ipReads_cutoff_fail,_trimmedReads_cutoff_fail,_uniqAligned_cutoff_fail,_exonMapping_cutoff_fail,_riboScatter_cutoff_fail,_violin_cutoff_overrep_fail,_violin_cutoff_adapter_fail = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .05)
-
-    _ipReads_cutoff_warn,_trimmedReads_cutoff_warn,_uniqAligned_cutoff_warn,_exonMapping_cutoff_warn,_riboScatter_cutoff_warn,_violin_cutoff_overrep_warn,_violin_cutoff_adapter_warn = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .1)
+    print("MAKING CUTOFFFFSSSSSSSSSS")
+    _ipReads_cutoff_fail,_trimmedReads_cutoff_fail,_uniqAligned_cutoff_fail,_exonMapping_cutoff_fail,_riboScatter_cutoff_fail,_violin_cutoff_overrep_fail,_violin_cutoff_adapter_fail = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .99)
+    print(_ipReads_cutoff_fail,_trimmedReads_cutoff_fail)
+    _ipReads_cutoff_warn,_trimmedReads_cutoff_warn,_uniqAligned_cutoff_warn,_exonMapping_cutoff_warn,_riboScatter_cutoff_warn,_violin_cutoff_overrep_warn,_violin_cutoff_adapter_warn = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .95)
+    print(_ipReads_cutoff_warn)
     ## Read Gene Coverage Data
     _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
 
     ## Adding the Library Mean column at the end of the GC dataframe
     _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
-     
+
     # Read Histogram data
 
     _negBin_df = pd.read_csv(_hist_file, index_col=False)
