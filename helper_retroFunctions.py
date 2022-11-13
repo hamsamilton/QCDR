@@ -275,56 +275,37 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
 
 #### Plot 1: Input Size ####
 def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutoff_warn,_f=None):
-    # print(_background_df.Input_Size)
+    print("plotting input size!")
     bin = np.arange(0, 100 + 1, 1)
-
-    print(_background_df)
-    print(_background_df.columns)
 
     ### Add a hard-clip limit of 60 million reads to the master['Input_Size']
     _background_df.loc[:, 'Input_Size'] = _background_df.loc[:, 'Input_Size'].clip(upper=40)
     print(_background_df.Input_Size)
 
     ### CDF cutoff
-    #cdf_prob(_background_df.Input_Size)
-
-
-
 
     print(_in_tuple)
 
     _userDf.loc[:, "Input_Size"] = _userDf.loc[:, "Input_Size"].clip(upper=40000000)
     print(_userDf)
-    print(_userDf.Input_Size)
 
     _out, _bins = pd.cut(_background_df['Input_Size'], bins=bin, retbins=True, right=True, include_lowest=False)
-    print(_out)
-    print(_bins)
     _xlabs = [str(xt) for xt in _bins[0::5]]
 
     print(_in_tuple)
 
     _ip_norm = _userDf.loc[:, 'Input_Size'].apply(byMillion)
-    # print(_ip_norm[_in_tuple.Index])
-
     _lib_mean = _ip_norm.mean()
     _current_sample = _ip_norm[_in_tuple.Index]
-
-    # print(_lib_mean)
 
     if not _f is None:
         plt.gcf()
 
     _ax = _f.add_subplot(4, 2, _pos)
 
-    # _ax = _background_df['Input_Size'].plot(kind='hist', bins=_bins, ax=plt.gca())
-    # _ax1 = _background_df.plot(y='Input_Size', kind='kde', secondary_y=True, mark_right=True, legend=False, lw=0.5, ax=_ax, color='magenta')
-
-    # _ax.hist(_background_df['Input_Size'], bins=_bins)
     _background_df["Input_Size"].plot(kind='hist', bins=_bins, ax=_ax, color='lightgray')
 
     _ax1 = _ax.twinx()
-    #_background_df.plot(y="Input_Size", kind='kde', legend=False, ax=_ax1, color='dimgray', mark_right=True, lw=0.7, alpha=0.8)
     sns.distplot(_background_df["Input_Size"], hist=False, bins=_bins, ax=_ax1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
     _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=3, direction='out', pad=2)
@@ -335,17 +316,19 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5]))
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_million))
 
-    _ax.set_title("Sequencing Depth", fontsize=4.4)
-    _ax.set_xlabel('Total Reads (Millions)', labelpad=1, fontsize=3.5)
+    _ax.set_title("Sequencing Depth", fontsize=6)
+    _ax.set_xlabel('Total Reads (Millions)', labelpad=1, fontsize=5)
 
     _ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _ax.set_ylabel('Frequency', labelpad=2, fontsize=3.5)
+    _ax.set_ylabel('Frequency', labelpad=2, fontsize=5)
 
     _ax.set_facecolor('white')
 
+    for label in (_ax.get_xticklabels() + _ax.get_yticklabels()):
+        label.set_fontsize(4)
+
     _ax1.yaxis.set_ticks([])
     _ax1.yaxis.label.set_visible(False)
-    # _ax1.set_ylabel("Kernel Density Estimate", fontsize=4, labelpad=3)
 
     _ax.spines['top'].set_visible(False)
     _ax.spines['right'].set_visible(False)
@@ -377,11 +360,11 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
 
     ### Adding cutoff markers
     _ax.plot(_cutoff_fail, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='red')
-    _ax.text(_cutoff_fail, _ax.get_ylim()[1] - 0.4, 'Fail', fontsize=2, color='red',
+    _ax.text(_cutoff_fail, _ax.get_ylim()[1] - 0.4, 'Fail', fontsize=4, color='red',
              horizontalalignment='center')
 
     _ax.plot(_cutoff_warn, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='gold')
-    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - 0.4, 'Warn', fontsize=2, color='gold',
+    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - 0.4, 'Warn', fontsize=4, color='gold',
              horizontalalignment='center')
 
     # Current Sample Line and Label
@@ -390,40 +373,36 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
 
     if _adj_flag:
         _ax.text(_current_sample + 0.5, (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
-                 rotation=_rotation_current, fontsize=2.5, zorder=2)
+                 rotation=_rotation_current, fontsize=3, zorder=2)
     else:
-        _ax.text(_current_sample - 2, (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
-                 rotation=_rotation_current, fontsize=2.5, zorder=2)
+        _ax.text(_current_sample - 1, (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
+                 rotation=_rotation_current, fontsize=3, zorder=2)
 
     # Current Library Mean Line and Label
     _line2 = _ax.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
                          label='{:2.2f}M'.format(_lib_mean))
     if _adj_flag:
         _ax.text(_lib_mean - 2, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation=_rotation_mean,
-                 fontsize=2.5, zorder=2)
+                 fontsize=3, zorder=2)
     else:
         _ax.text(_lib_mean + 0.5, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation=_rotation_mean,
-                 fontsize=2.5, zorder=2)
+                 fontsize=3, zorder=2)
 
     _kde_line = matplotlib.lines.Line2D([0], [0], color="gray", linewidth=0.5, linestyle='-')
-    _ax.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=3)
+    _ax.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4)
 
 
 
     # Flagging for FAILURE/WARNING
     if _current_sample <= _cutoff_fail:
-        print("Sample flagged for FAILURE!!!")
         insert_flag_fail(_ax)
 
     elif (_current_sample <= _cutoff_warn) and (_current_sample > _cutoff_fail):
-        print("Sample flagged for WARNING!!!")
         insert_flag_warn(_ax)
 
     else:
-        print("Sample PASSED cutoffs!")
 
-    plt.box(on=None)
-
+        plt.box(on=None)
 
     return _f
 
@@ -432,31 +411,17 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
 #### Plot 2 : Trimming Percentage ####
 def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figure=None):
     
-    
     bin_data = np.arange(0, 100 + 1, 1)
 
     _retro_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"].clip(lower=60)
     _user_df.loc[:, "Percent_PostTrim"] = _user_df.loc[:, "Percent_PostTrim"].clip(lower=60)
 
-    # print(_retro_df.Percent_PostTrim)
-    # print(_ip_tuple[3])
-    #print(_user_df.Percent_PostTrim)
-
     _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
-    # print(_out.value_counts(sort=True).index.categories.tolist())
-    # print(_bins)
     _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
-    # LabelEncoder().fit([x for y in _xtick_labels.get_values() for x in y])
-    # print(_xtick_labels.get_values())
 
     _xtick_labs = [str(xt) for xt in _bins[0::5]]
-    # _xtick_labs = _xtick_labs.tolist()
 
     _user_minusBatchMean_df = _user_df.drop(_user_df.tail(1).index)
-
-    #print(_user_minusBatchMean_df)
-    
-    
 
     if _colname == "Percent_PostTrim":
 
@@ -474,25 +439,14 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
         _lib_mean = 0
         print("Not a legitimate metric!\n")
 
-
-    #print(_ip_tuple)
-    #print(_current_sample)
-    #print(_lib_mean)
-
-
-
     if not _figure is None:
         plt.gcf()
 
     _axis = _figure.add_subplot(4,2, _position)
 
-    # _axis = _retro_df[_colname].plot(kind='hist', bins=_bins, ax=_axis)
-    # _axis1 = _retro_df.plot(y=_colname, kind='kde', secondary_y=True, mark_right=False, legend=False, lw=0.4,color='magenta', ax=_axis)
-
     _axis.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
     _axis1 = _axis.twinx()
-    #_retro_df.plot(y=_colname, kind = 'kde', legend = False, ax = _axis1, color = 'dimgray', mark_right = True, lw = 0.7, alpha = 0.8)
     sns.distplot(_retro_df["Percent_PostTrim"], hist=False, bins=_bins, ax=_axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
 
@@ -506,40 +460,37 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=4, labelleft=True, left=True,
                       direction='out', pad=2)
 
-    _axis.set_title(_plot_label, fontsize=4.4)
+    _axis.set_title(_plot_label, fontsize=6)
 
     if _colname == "Percent_PostTrim":
-        _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize=3)
+        _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize=5)
 
         if _current_sample <= _cutoff_fail:
-            print("Sample flagged for FAILURE!!!")
             insert_flag_fail(_axis)
 
         elif (_current_sample > _cutoff_fail) and (_current_sample <= _cutoff_warn):
-            print("Sample flagged for WARNING!!!")
             insert_flag_warn(_axis)
 
         else:
-            print("Sample PASSED cutoffs!")
             pass
 
         ### Adding cutoff markers
         _axis.plot(_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 10), marker='v', ms=0.8,
                    c='red')
-        _axis.text(_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Fail', fontsize=2,
+        _axis.text(_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Fail', fontsize=4,
                    color='red', horizontalalignment='center')
 
         _axis.plot(_cutoff_warn, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 10), marker='v', ms=0.8,
                    c='gold')
-        _axis.text(_cutoff_warn, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Warn', fontsize=2,
+        _axis.text(_cutoff_warn, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Warn', fontsize=4,
                    color='gold', horizontalalignment='center')
-
-
-
 
     
     _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _axis.set_ylabel('Frequency', labelpad=2, fontsize=3)
+    _axis.set_ylabel('Frequency', labelpad=2, fontsize=5)
+
+    for label in (_axis.get_xticklabels() + _axis.get_yticklabels()):
+        label.set_fontsize(4)
 
     # SECONDARY AXIS FOR KDE
     _axis1.get_yaxis().set_ticks([])
@@ -560,9 +511,6 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     _axis1.spines['left'].set_visible(False)
     _axis1.spines['bottom'].set_visible(False)
 
-    # _axis.grid(b=False)
-    # _axis1.grid(b=False)
-
     if _current_sample > _lib_mean:
         _adj_flag = True
         _rotation_current = 270
@@ -582,10 +530,10 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
 
     if _adj_flag:
         _axis.text(_current_sample + 0.5, (_axis.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample),
-                   rotation=_rotation_current, fontsize=2.5, zorder=2)
+                   rotation=_rotation_current, fontsize=3, zorder=2)
     else:
-        _axis.text(_current_sample - 2, (_axis.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample),
-                   rotation=_rotation_current, fontsize=2.5, zorder=2)
+        _axis.text(_current_sample - 1, (_axis.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample),
+                   rotation=_rotation_current, fontsize=3, zorder=2)
 
     # Current Library Mean Line and Label
     _line2 = _axis.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
@@ -593,15 +541,15 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
 
     if _adj_flag:
         _axis.text(_lib_mean - 2, ((_axis.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean),
-                   rotation=_rotation_mean, fontsize=2.5, zorder=2)
+                   rotation=_rotation_mean, fontsize=3, zorder=2)
     else:
         _axis.text(_lib_mean + 0.5, ((_axis.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean),
-                   rotation=_rotation_mean, fontsize=2.5, zorder=2)
+                   rotation=_rotation_mean, fontsize=3, zorder=2)
 
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
-    _axis.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=3, ncol=1)
+    _axis.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
     _axis.set_facecolor('white')
 
     return _figure
@@ -615,19 +563,14 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _user_df.loc[:, "Percent_PostTrim"] = _user_df.loc[:, "Percent_PostTrim"].clip(lower=60)
 
     _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
-    # print(_out.value_counts(sort=True).index.categories.tolist())
-    # print(_bins)
+   
     _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
     # LabelEncoder().fit([x for y in _xtick_labels.get_values() for x in y])
-    # print(_xtick_labels.get_values())
 
     _xtick_labs = [str(xt) for xt in _bins[0::5]]
     # _xtick_labs = _xtick_labs.tolist()
 
     _user_minusBatchMean_df = _user_df.drop(_user_df.tail(1).index)
-
-    #print(_user_minusBatchMean_df)
-
 
     if _colname == "Percent_Uniquely_Aligned":
         _current_sample = _ip_tuple.Percent_Uniquely_Aligned
@@ -645,9 +588,6 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
     _axis_plt3 = _figure.add_subplot(4, 2, _position)
 
-    # _axis_plt3 = _retro_df[_colname].plot(kind='hist', bins=_bins, ax=_axis_plt3)
-    # _axis_plt31 = _retro_df.plot(y=_colname, kind='kde', secondary_y=True, mark_right=False, legend=False, lw=0.4,color='magenta', ax=_axis_plt3)
-
     _axis_plt3.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
     _axis1_plt3 = _axis_plt3.twinx()
@@ -663,41 +603,37 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _axis_plt3.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=3, direction='out', pad=2)
     _axis_plt3.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=4, labelleft=True, left=True, direction='out', pad=2)
 
-    _axis_plt3.set_title(_plot_label, fontsize=4.4)
+    _axis_plt3.set_title(_plot_label, fontsize=6)
 
+    _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize=5)
 
-
-
-    _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize=3)
+    for label in (_axis_plt3.get_xticklabels() + _axis_plt3.get_yticklabels()):
+        label.set_fontsize(4)
 
     if _current_sample <= _cutoff_fail:
-        print("Sample flagged for FAILURE!!!")
         insert_flag_fail(_axis_plt3)
 
     elif (_current_sample > _cutoff_fail) and (_current_sample <= _cutoff_warn):
-        print("Sample flagged for WARNING!!!")
         insert_flag_warn(_axis_plt3)
 
     else:
-        print("Sample PASSED cutoffs!")
         pass
 
     ### Adding cutoff markers
     _axis_plt3.plot(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
-    _axis_plt3.text(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Fail', fontsize=2, color='red', horizontalalignment='center')
+    _axis_plt3.text(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Fail', fontsize=4, color='red', horizontalalignment='center')
 
     _axis_plt3.plot(_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c='gold')
-    _axis_plt3.text(_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Warn', fontsize=2, color='gold', horizontalalignment='center')
+    _axis_plt3.text(_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Warn', fontsize=4, color='gold', horizontalalignment='center')
 
 
 
     _axis_plt3.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize=3)
+    _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize=5)
 
     # SECONDARY AXIS FOR KDE
     _axis1_plt3.get_yaxis().set_ticks([])
     _axis1_plt3.yaxis.label.set_visible(False)
-    # _axis1_plt3.set_ylabel('Kernel Density Estimate', fontsize=4, labelpad=3)
 
     _axis_plt3.spines['top'].set_visible(False)
     _axis_plt3.spines['right'].set_visible(False)
@@ -712,9 +648,6 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _axis1_plt3.spines['right'].set_visible(False)
     _axis1_plt3.spines['left'].set_visible(False)
     _axis1_plt3.spines['bottom'].set_visible(False)
-
-    # _axis_plt3.grid(b=False)
-    # _axis1_plt3.grid(b=False)
 
     if _current_sample > _lib_mean:
         _adj_flag = True
@@ -733,22 +666,22 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _line1 = _axis_plt3.axvline(x=_current_sample, alpha=0.8, color='red', linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
 
     if _adj_flag:
-        _axis_plt3.text(_current_sample + 0.5, (_axis_plt3.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=2.5, zorder=2)
+        _axis_plt3.text(_current_sample + 0.5, (_axis_plt3.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=4, zorder=2)
     else:
-        _axis_plt3.text(_current_sample - 2, (_axis_plt3.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=2.5, zorder=2)
+        _axis_plt3.text(_current_sample - 1, (_axis_plt3.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=4, zorder=2)
 
     # Current Library Mean Line and Label
     _line2 = _axis_plt3.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5, label='{:2.2f}%'.format(_lib_mean))
 
     if _adj_flag:
-        _axis_plt3.text(_lib_mean - 2, ((_axis_plt3.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=2.5, zorder=2)
+        _axis_plt3.text(_lib_mean - 1, ((_axis_plt3.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=4, zorder=2)
     else:
-        _axis_plt3.text(_lib_mean + 0.5, ((_axis_plt3.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=2.5, zorder=2)
+        _axis_plt3.text(_lib_mean + 0.5, ((_axis_plt3.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=4, zorder=2)
 
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
-    _axis_plt3.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=3, ncol=1)
+    _axis_plt3.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
     _axis_plt3.set_facecolor('white')
 
     return _figure
@@ -805,15 +738,12 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=5)
 
     if _current_sample <= _cutoff_fail:
-        print("Sample flagged for FAILURE!!!")
         insert_flag_fail(_axis_plt4)
 
     elif (_current_sample > _cutoff_fail) and (_current_sample <= _cutoff_warn):
-        print("Sample flagged for WARNING!!!")
         insert_flag_warn(_axis_plt4)
 
     else:
-        print("Sample PASSED cutoffs!")
         pass
 
     ### Adding cutoff markers
@@ -826,6 +756,9 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _axis_plt4.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize=4)
 
+
+    for label in (_axis_plt4.get_xticklabels() + _axis_plt4.get_yticklabels()):
+        label.set_fontsize(4)
     # SECONDARY AXIS FOR KDE
     _axis1_plt4.get_yaxis().set_ticks([])
     _axis1_plt4.yaxis.label.set_visible(False)
@@ -864,17 +797,17 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _line1 = _axis_plt4.axvline(x=_current_sample, alpha=0.8, color='red', linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
 
     if _adj_flag:
-        _axis_plt4.text(_current_sample + 0.5, (_axis_plt4.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=4, zorder=2)
+        _axis_plt4.text(_current_sample + 0.5, (_axis_plt4.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=3, zorder=2)
     else:
-        _axis_plt4.text(_current_sample - 2, (_axis_plt4.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=4, zorder=2)
+        _axis_plt4.text(_current_sample - 2, (_axis_plt4.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=3, zorder=2)
 
     # Current Library Mean Line and Label
     _line2 = _axis_plt4.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5, label='{:2.2f}%'.format(_lib_mean))
 
     if _adj_flag:
-        _axis_plt4.text(_lib_mean - 2, ((_axis_plt4.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=4, zorder=2)
+        _axis_plt4.text(_lib_mean - 2, ((_axis_plt4.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=3, zorder=2)
     else:
-        _axis_plt4.text(_lib_mean + 0.5, ((_axis_plt4.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=4, zorder=2)
+        _axis_plt4.text(_lib_mean + 0.5, ((_axis_plt4.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=3, zorder=2)
 
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
@@ -1413,7 +1346,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df, _pos, _plot_title, _f=None):
 
     ## Zscore calculated for each sample in the dataframe
     # _zscore_data_df = _data_df_dropped.apply(stats.zscore)
-    # print(_zscore_data_df)
 
     ## ZTest for mean and current sample against the normal distribution to get pvalue
     _ztest_stat_raw, _ztest_pval_raw = ztest_prob(_current_samp_array, _mean_array, 0)
@@ -1421,11 +1353,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df, _pos, _plot_title, _f=None):
     # _ztest_stat_1samp, _ztest_pval_1samp = ztest_prob(_current_samp_dist, None, 0)
 
     # _ztest_pval_zscore = ztest_prob(_zscore_data_df[_ipTuple[1]].values, _zscore_mean_df.hist_mean.values)
-    # print(_zscore_mean_df)
-
-    # print(_zscore_data_df.loc[:,_ipTuple[1]])
-    # print(_zscore_mean_df)
-    # print(_current_samp_dist)
 
     # _pearson_corr = _data_df[_ipTuple[1]].corr(_mean_df['hist_mean'])
     # _pearson_corr, _pearson_pval = stats.stats.pearsonr(_current_samp_hist, _mean_hist)
