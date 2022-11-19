@@ -32,37 +32,13 @@ from datetime import datetime
 # from pandas.plotting import register_matplotlib_converters
 from statsmodels.stats.weightstats import ztest
 
-
-
-
-
 _script_bgdFile = "/projects/b1063/Gaurav/pyRetroPlotter/data/SCRIPTretro_masterStatistics_allBatches.csv"
 _masterDB = "/projects/b1079/tools/U19_masterDB_dev/U19_masterDB.sqlite"
 _pipeline_dir = "/projects/b1079/U19_RNAseq_Pipeline_SLURM_v01"
 
 # Define FAIL/WARN thresholds for plots
-##FAIL
-#_ipReads_cutoff_fail = 5
-#_trimmedReads_cutoff_fail = 80
-#_uniqAligned_cutoff_fail = 50
-#_exonMapping_cutoff_fail = 40
-#_riboScatter_cutoff_fail = 0.50
 _violin_cutoff_fail = 1
-#_violin_cutoff_adapter_fail = 1
-#_violin_cutoff_overrep_fail = 1
-
-##WARN
-#_ipReads_cutoff_warn = 10
-#_trimmedReads_cutoff_warn = 90
-#_uniqAligned_cutoff_warn = 60
-#_exonMapping_cutoff_warn = 50
-#_riboScatter_cutoff_warn = 0.35
 _violin_cutoff_warn = 0.5
-#_violin_cutoff_adapter_warn = 0.5
-#_violin_cutoff_overrep_warn = 0.5
-
-
-
 
 required_modules = ['python/anaconda']
 _notification_email = "samuelhamilton2024@u.northwestern.edu"
@@ -71,12 +47,7 @@ _notification_email = "samuelhamilton2024@u.northwestern.edu"
 def join_levels(_df):
     for i, col in enumerate(_df.columns.levels):
         columns = np.where(col.str.contains('Unnamed'), '', col)
-        #print(columns)
-
         _df.columns.set_levels(columns, level=i, inplace=True)
-
-    # print([' '.join(col).strip() for col in _df.columns.values])
-    # print(_df.columns)
 
     _df.columns = [' '.join(_col).strip() for _col in _df.columns.values]
 
@@ -91,16 +62,7 @@ def create_connection(_db_file):
 
     return None
 
-
-
-
-
-
-
-
 def rest_Dev():
-
-    
     '''{BEGIN Current Batch Input from USER'''
 
     ######## Take this input from user (using specified format/columns) #######
@@ -140,8 +102,6 @@ def rest_Dev():
     _currBatch_stat.loc[:, 'Num_expressed_genes'] = pd.to_numeric(_currBatch_stat['Num_expressed_genes'])
     _currBatch_stat.loc[:, 'Date'] = pd.to_datetime(_currBatch_stat['Date'], format='%m-%d-%Y').dt.date.astype('O')
 
-    # print(_currBatch_stat)
-
     ## Read UntrimmedQC stats as a separate DataFrame and merge with _currBatch_stat
     _currBatch_qc_untrim = pd.read_excel(
         _projectDir + "/Output/1-UntrimmedQC/QC_Table/" + _projectName + "_Untrimmed_FastQC_Table.xlsx",
@@ -151,7 +111,6 @@ def rest_Dev():
     # _currBatch_qc_untrim = join_levels_mat3(_currBatch_qc_untrim)
     _currBatch_qc_untrim = join_levels(_currBatch_qc_untrim)
 
-    # print(_currBatch_qc_untrim.columns)
 
     _currBatch_qc_untrim = _currBatch_qc_untrim.loc[:,
                            ['Sample', 'Overrepresented Sequences [% of Total Sequences]', '% of Adapter Content']]
@@ -163,8 +122,6 @@ def rest_Dev():
     _currBatch_qc_untrim.loc[:, 'Percent_Adapter_Content_Untrimmed'] = pd.to_numeric(
         _currBatch_qc_untrim['Percent_Adapter_Content_Untrimmed'].str.strip("%"))
 
-    # print(_currBatch_qc_untrim)
-
     ## Read TrimmedQC stats as a separate DataFrame and merge with _currBatch_stat
     _currBatch_qc_trim = pd.read_excel(
         _projectDir + "/Output/2-TrimmoQC/QC_Table/" + _projectName + "_Trimmed_FastQC_Table.xlsx",
@@ -173,8 +130,6 @@ def rest_Dev():
     # _currBatch_qc = join_levels(_currBatch_qc)
     # _currBatch_qc_trim = join_levels_mat3(_currBatch_qc_trim)
     _currBatch_qc_trim = join_levels(_currBatch_qc_trim)
-
-    # print(_currBatch_qc_trim.columns)
 
     _currBatch_qc_trim = _currBatch_qc_trim.loc[:,
                          ['Sample', 'Overrepresented Sequences [% of Total Sequences]', '% of Adapter Content']]
@@ -185,24 +140,13 @@ def rest_Dev():
     _currBatch_qc_trim.loc[:, 'Percent_Adapter_Content_Trimmed'] = pd.to_numeric(
         _currBatch_qc_trim['Percent_Adapter_Content_Trimmed'].str.strip("%"))
 
-    # print(_currBatch_qc_trim)
-
     _currBatch_qc = pd.merge(_currBatch_qc_untrim, _currBatch_qc_trim, on='Sample', how='left')
-    # print(_currBatch_qc.columns)
 
     _currBatch_df = pd.merge(_currBatch_stat, _currBatch_qc, on='Sample', how='left')
 
-    print(_currBatch_df)
-    # print(_currBatch_df.iloc[0, 8])
-    # print(_currBatch_df.columns)
-    # print(_currBatch_df.Input_Size.mean())
-
     '''END of Current/Batch Input from USER}'''
 
-
-
     ## Adding last row in the dataframe with current library's mean values to be plotted on the final summary page
-    # _currBatch_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"].clip(lower=60)
     _currBatch_summary_df = ["Library_Mean",
                              _currBatch_df.Input_Size.mean(),
                              _currBatch_df.Percent_PostTrim.mean(),
@@ -218,10 +162,7 @@ def rest_Dev():
                              _currBatch_df.Percent_Overrepresented_Seq_Trimmed.mean(),
                              _currBatch_df.Percent_Adapter_Content_Trimmed.mean()]
 
-    print(_currBatch_summary_df)
     _currBatch_df.loc[len(_currBatch_df)] = _currBatch_summary_df
-
-    print(_currBatch_df)
 
     '''{ REMOVE GC and HISTOGRAM data input for the FIRST ITERATION'''
 
@@ -230,16 +171,11 @@ def rest_Dev():
 
     ## Adding the Library Mean column at the end of the GC dataframe
     _gc_df["Library_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
-    print(_gc_df)
 
     ## Read Histogram Distribution data
     _negBin_df = pd.read_csv(_hist_data, index_col=False)
 
     _negBin_df["Library_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
-    print(_negBin_df)
-    # print(_negBin_df.iloc[: ,1:])
-
-    # print(next(_currBatch_df.iterrows())[1]['Sample'])
 
     '''END of GC and HISTOGRAM data USER input}'''
 
@@ -255,28 +191,13 @@ def rest_Dev():
     _master_stat = pd.read_sql_query("Select * from MasterMetrics", con=_conn)
     _conn.close()
 
-    print(_master_stat['Date'])
-
-    # _master_stat.loc[:, 'Date'] = pd.to_datetime(_master_stat['Date']).dt.date
-    # _master_stat.loc[:, 'Date'] = pd.to_datetime(_master_stat['Date'], format='%Y-%m-%d')
     _master_stat['Date'] = pd.to_datetime(_master_stat['Date']).dt.date.astype('O')
     _master_stat['Date'] = pd.to_datetime(_master_stat['Date']).dt.date.astype('O')
-
-    print(_master_stat.loc[2, 'Date'])
-
-    # _master_stat.loc[:, 'Date'] = _master_stat.loc[:, 'Date'].apply(lambda t: t.strftime('%Y-%m-%d'))
     _master_stat.loc[:, 'Input_Size'] = _master_stat.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
-
-    print(_master_stat.columns)
-
-    print(_master_stat.Date.dtype)
-    print(_currBatch_df.Date.dtype)
 
     _currBatch_df_violin = _currBatch_df.drop('Date', axis=1)
     _master_stat_violin = _master_stat.drop('Date', axis=1)
 
-    print(_currBatch_df_violin.columns)
-    print(_master_stat_violin.columns)
 
     '''END of Historical data input/formatting}'''
 
@@ -373,9 +294,6 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     ## Add Batch mean as the last row of the USER dataframe
     _user_df.loc[len(_user_df)] = _batch_summary_df
 
-    #print(_user_df.iloc[20:, ])
-    # print(_user_df.columns)
-
     ## Read Background file and load HISTORICAL background data
     _bgd_df = pd.read_csv(_bgd_file, sep=",")
 
@@ -383,11 +301,9 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
 
     # testing custom cutoffs for warn/fail
-    print("MAKING CUTOFFFFSSSSSSSSSS")
-    _ipReads_cutoff_fail,_trimmedReads_cutoff_fail,_uniqAligned_cutoff_fail,_exonMapping_cutoff_fail,_riboScatter_cutoff_fail,_violin_cutoff_overrep_fail,_violin_cutoff_adapter_fail = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .99)
-    print(_ipReads_cutoff_fail,_trimmedReads_cutoff_fail)
-    _ipReads_cutoff_warn,_trimmedReads_cutoff_warn,_uniqAligned_cutoff_warn,_exonMapping_cutoff_warn,_riboScatter_cutoff_warn,_violin_cutoff_overrep_warn,_violin_cutoff_adapter_warn = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .95)
-    print(_ipReads_cutoff_warn)
+    _ipReads_cutoff_fail,_trimmedReads_cutoff_fail,_uniqAligned_cutoff_fail,_exonMapping_cutoff_fail,_riboScatter_cutoff_fail,_violin_cutoff_overrep_fail,_violin_cutoff_adapter_fail = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .9)
+    _ipReads_cutoff_warn,_trimmedReads_cutoff_warn,_uniqAligned_cutoff_warn,_exonMapping_cutoff_warn,_riboScatter_cutoff_warn,_violin_cutoff_overrep_warn,_violin_cutoff_adapter_warn = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .7)
+    
     ## Read Gene Coverage Data
     _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
 
@@ -404,7 +320,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _pdfObj = PdfPages(_output_file)
 
     for _tuple in _user_df.itertuples():
-        print(_tuple)
+        print("THIS IS THE IN TUPLE",_tuple)
 
         # Create empty figure
         fig = plt.figure(frameon=False)
@@ -431,7 +347,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",fig)
 
         # Plotting figure 8: Gene Expression Distribution Plot
-        fig = helper_retroFunctions.plotNegBin(_tuple, _negBin_df, _user_df, 8, "Distribution of Gene Expression", fig)
+        fig = helper_retroFunctions.plotNegBin(_ipTuple = _tuple,_hist_df=_negBin_df,_user_df=_user_df, _pos=8,_plot_title="Distribution of Gene Expression", _f=fig)
 
         # Add sample name at the top-left corner of the page
         fig.suptitle('Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
@@ -440,10 +356,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         # Add page number at the top-right corner of the page
         fig.text(x=0.99, y=0.99, s=int(_tuple[0]) + 1, ha='right', va='top', fontsize=4)
 
-        #plt.tight_layout()
-
         plt.subplots_adjust(hspace=0.7, wspace=0.2)
-
 
         _pdfObj.savefig(fig)
 
