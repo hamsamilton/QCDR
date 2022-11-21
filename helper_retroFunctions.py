@@ -38,6 +38,32 @@ _violin_cutoff_warn = 0.5
 warn_color = "gold"
 _curr_sample_color = "lightseagreen"
 # The goal of this function is to return the upper or/and lower bound of a ci given a vec
+
+# the goal of this function is to determine if a plot needs a fail or warn box and then call the according
+# helper function
+def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lower):
+    
+    if higher_lower == "lower":
+        # Flagging for FAILURE/WARNING
+        if _current_sample <= _cutoff_fail:
+            insert_flag_fail(_ax)
+
+        elif (_current_sample <= _cutoff_warn):
+            insert_flag_warn(_ax)
+
+        return(_ax)
+
+    
+    if higher_lower == "upper":
+        # Flagging for FAILURE/WARNING
+        if _current_sample >= _cutoff_fail:
+            insert_flag_fail(_ax)
+
+        elif (_current_sample >= _cutoff_warn):
+            insert_flag_warn(_ax)
+
+        return(_ax)
+
 def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
     ci_bnd = stats.norm.interval(alpha = _alph,
                         loc=np.mean(_vec),
@@ -370,17 +396,7 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _ax.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4)
 
 
-
-    # Flagging for FAILURE/WARNING
-    if _current_sample <= _cutoff_fail:
-        insert_flag_fail(_ax)
-
-    elif (_current_sample <= _cutoff_warn) and (_current_sample > _cutoff_fail):
-        insert_flag_warn(_ax)
-
-    else:
-
-        plt.box(on=None)
+    _ax = needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
 
     return _f
 
@@ -442,12 +458,6 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
 
     if _colname == "Percent_PostTrim":
         _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize=5)
-
-        if _current_sample <= _cutoff_fail:
-            insert_flag_fail(_axis)
-
-        elif (_current_sample > _cutoff_fail) and (_current_sample <= _cutoff_warn):
-            insert_flag_warn(_axis)
 
         ### Adding cutoff markers
         _axis.plot(_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 10), marker='v', ms=0.8,
@@ -525,7 +535,10 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
 
     _axis.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
     _axis.set_facecolor('white')
+   
 
+ 
+    _axis = needs_fail_or_warn(_axis,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
     return _figure
 
 
@@ -581,14 +594,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     for label in (_axis_plt3.get_xticklabels() + _axis_plt3.get_yticklabels()):
         label.set_fontsize(4)
 
-    if _current_sample <= _cutoff_fail:
-        insert_flag_fail(_axis_plt3)
-
-    elif (_current_sample > _cutoff_fail) and (_current_sample <= _cutoff_warn):
-        insert_flag_warn(_axis_plt3)
-
-    else:
-        pass
+        
 
     ### Adding cutoff markers
     _axis_plt3.plot(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
@@ -655,6 +661,8 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _axis_plt3.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
     _axis_plt3.set_facecolor('white')
 
+    _axis_plt3 = needs_fail_or_warn(_axis_plt3,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
+    
     return _figure
 
 
@@ -707,15 +715,6 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
 
 
     _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=5)
-
-    if _current_sample <= _cutoff_fail:
-        insert_flag_fail(_axis_plt4)
-
-    elif (_current_sample > _cutoff_fail) and (_current_sample <= _cutoff_warn):
-        insert_flag_warn(_axis_plt4)
-
-    else:
-        pass
 
     ### Adding cutoff markers
     _axis_plt4.plot(_cutoff_fail, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
@@ -786,6 +785,8 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _axis_plt4.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
     _axis_plt4.set_facecolor('white')
 
+    _axis_plt4 = needs_fail_or_warn(_axis_plt4,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
+    
     return _figure
 
 
@@ -841,11 +842,6 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     _slope_fail = _cutoff_fail
     _slope_current = float(_in_tup[7] / _in_tup[4])
 
-    if _slope_current >= _cutoff_fail:
-        insert_flag_fail(_ax)
-    elif _slope_current >= _cutoff_warn:
-        insert_flag_warn(_ax)
-
     xmin, xmax = _ax.get_xlim()
     line_x0 = 0
     line_x1 = xmax
@@ -895,7 +891,9 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     _regression_gradient = matplotlib.lines.Line2D([0], [0], color='black', linewidth=0.6)
 
     _ax.legend([_curr_samp, _curr_lib], ['Current Sample', 'Batch Samples'], loc='best', frameon=False, ncol=1, fontsize=3)
-
+    
+    print("the slope is" ,_slope_current,"fail is",_slope_fail,"warn is",_slope_warn)
+    _ax = needs_fail_or_warn(_ax,_slope_current,_slope_fail,_slope_warn,"upper")
     return _f
 
 #### Plot 6: Sequence Contamination - Violin Plot ####
@@ -1009,38 +1007,6 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
     _y_bottom, _y_top = _axis.get_ylim()
 
-    if (_current_overrep_trim or _current_adapter_trim) >= _cutoff_fail:
-        insert_flag_fail(_axis)
-    elif (_current_overrep_trim or _current_adapter_trim) >= _cutoff_warn:
-        insert_flag_warn(_axis)
-    else:
-        pass
-
-    '''
-    
-    ### For separating the cutoffs for Overrepresented and Adapter ###
-    if _current_overrep_trim >= _violin_cutoff_overrep_fail:
-        print("Overrepresented FAILED!")
-        insert_flag_fail(_axis)
-    elif _current_overrep_trim >= _violin_cutoff_overrep_warn:
-        print("Overrepresented WARNING!!!")
-        insert_flag_warn(_axis)
-    else:
-        print("PASSED!!")
-        pass
-
-    if _current_adapter_trim >= _violin_cutoff_adapter_fail:
-        print("Adapter FAILED!")
-        insert_flag_fail(_axis)
-    elif _current_adapter_trim >= _violin_cutoff_adapter_warn:
-        print("Adapter WARNING!!!")
-        insert_flag_warn(_axis)
-    else:
-        print("PASSED!!")
-        pass
-    '''
-
-
     ### Adding cutoff markers
     _axis3 = _axis2.twinx()
 
@@ -1113,12 +1079,12 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     _axis2.set_facecolor('white')
     
     plt.subplots_adjust(hspace=0)
+
+    _axis = needs_fail_or_warn(_axis,_current_overrep_trim,_cutoff_fail,_cutoff_warn,"upper")
     
+    _axis = needs_fail_or_warn(_axis,_current_adapter_trim,_cutoff_fail,_cutoff_warn,"upper")
 
     return _f
-
-
-
 
 
 
@@ -1186,14 +1152,6 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title, _fig=None):
     _axis.spines['bottom'].set_linewidth(0.55)
     _axis.spines['left'].set_linewidth(0.55)
 
-    ## KS-2sample flagging
-    if _ks_pval <= 0.05:
-        insert_flag_fail(_axis)
-    elif _ks_pval <= 0.1:
-        insert_flag_warn(_axis)
-    else:
-        pass
-
     _current_sample_line = matplotlib.lines.Line2D([0], [0], color=_curr_sample_color, linewidth=0.5, linestyle='-', alpha=0.8)
     _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
 
@@ -1207,6 +1165,9 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title, _fig=None):
                   "95% Confidence Interval", "KS-2sample Pvalue: " + str(round(_ks_pval, 5))],
                  loc='best', frameon=False, fontsize=4, ncol=1)
 
+
+    _axis = needs_fail_or_warn(_axis,_ks_pval,.05,.1,"lower")
+    
     return _fig
 
 
@@ -1253,8 +1214,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
     
 ## ZTest for mean and current sample against the normal distribution to get pvalue
     _ztest_stat_raw, _ztest_pval_raw = ztest_prob(_current_samp_array, _mean_array, 0)
-
-    ## Get pvalue for numExpressedGenesDetected, which is stored in a different column and therefore requires some setup
 
     if not _f is None:
         plt.gcf()
@@ -1311,14 +1270,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
     _ax.spines['bottom'].set_linewidth(0.55)
     # _ax.spines['bottom'].set_smart_bounds(True)
     
-    ## Flagging based on Ztest
-    if _ztest_pval_raw <= 0.05:
-        insert_flag_fail(_ax)
-    elif _ztest_pval_raw <= 0.1:
-        insert_flag_warn(_ax)
-    else:
-        pass
-
     _current_samp_line = matplotlib.lines.Line2D([0], [0], color=_curr_sample_color, linewidth=0.5, linestyle='-', alpha=0.8)
     _lib_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
 
@@ -1336,6 +1287,9 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
                ["Current Sample", "Library Mean", "ZTest Pvalue : " + str(round(_curr_pval.item(), 3))], loc='best',
                frameon=False, fontsize=4, ncol=1)
 
+    _ax = needs_fail_or_warn(_ax,_curr_pval,.05,.1,"lower")
+    
+    
     return _f
 
 
