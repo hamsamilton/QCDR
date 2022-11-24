@@ -38,6 +38,26 @@ _violin_cutoff_warn = 0.5
 warn_color = "gold"
 _curr_sample_color = "lightseagreen"
 
+# This function calculates whether the current sample label orientation needs 
+# to be adjusted and returns the required vars
+def adjust_flag(_ax,_current_sample,_lib_mean):
+    if _current_sample >=  _lib_mean:
+        # plot the current sample line
+        _ax.text(_current_sample + 0.5, (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
+                 rotation= 270, fontsize=3, zorder=2)
+  
+        # plot the library mean line
+        _ax.text(_lib_mean - 2, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation=90,
+                 fontsize=3, zorder=2)
+    else:
+        # plot the current sample line
+        _ax.text(_current_sample - 1, (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
+                 rotation= 90, fontsize=3, zorder=2)
+        # plot the library mean line
+        _ax.text(_lib_mean + 0.5, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation= 270,
+                 fontsize=3, zorder=2)
+    return(_ax)
+
 # the goal of this function is to set which axes of the regular axis and the Kernel density axis 
 def mk_axes(_plt_ax,_kd_ax = None):
     
@@ -354,14 +374,7 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _ax.set_ylabel('Frequency', labelpad=2, fontsize=5)
 
-    if _current_sample > _lib_mean:
-        _adj_flag = True
-        _rotation_current = 270
-        _rotation_mean = 90
-    else:
-        _adj_flag = False
-        _rotation_current = 90
-        _rotation_mean = 270
+    _ax = adjust_flag(_ax,_current_sample,_lib_mean)
 
     ### Adding cutoff markers
     _ax.plot(_cutoff_fail, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='red')
@@ -376,22 +389,9 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _line1 = _ax.axvline(x=_current_sample, alpha=0.8, color=_curr_sample_color, linestyle='-', linewidth=0.5,
                          label='{:2.2f}M'.format(_current_sample))
 
-    if _adj_flag:
-        _ax.text(_current_sample + 0.5, (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
-                 rotation=_rotation_current, fontsize=3, zorder=2)
-    else:
-        _ax.text(_current_sample - 1, (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
-                 rotation=_rotation_current, fontsize=3, zorder=2)
-
     # Current Library Mean Line and Label
     _line2 = _ax.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
                          label='{:2.2f}M'.format(_lib_mean))
-    if _adj_flag:
-        _ax.text(_lib_mean - 2, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation=_rotation_mean,
-                 fontsize=3, zorder=2)
-    else:
-        _ax.text(_lib_mean + 0.5, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation=_rotation_mean,
-                 fontsize=3, zorder=2)
 
     _kde_line = matplotlib.lines.Line2D([0], [0], color="gray", linewidth=0.5, linestyle='-')
     _ax.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4)
@@ -476,36 +476,15 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis.set_ylabel('Frequency', labelpad=2, fontsize=5)
 
-    if _current_sample >=  _lib_mean:
-        _adj_flag = True
-        _rotation_current = 270
-        _rotation_mean = 90
-    else:
-        _adj_flag = False
-        _rotation_current = 90
-        _rotation_mean = 270
+    _axis = adjust_flag(_axis,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
     _line1 = _axis.axvline(x=_current_sample, alpha=0.8, color=_curr_sample_color, linestyle='-', linewidth=0.5,
                            label='{:2.2f}%'.format(_current_sample))
 
-    if _adj_flag:
-        _axis.text(_current_sample + 0.5, (_axis.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample),
-                   rotation=_rotation_current, fontsize=3, zorder=2)
-    else:
-        _axis.text(_current_sample - 1, (_axis.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample),
-                   rotation=_rotation_current, fontsize=3, zorder=2)
-
     # Current Library Mean Line and Label
     _line2 = _axis.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
                            label='{:2.2f}%'.format(_lib_mean))
-
-    if _adj_flag:
-        _axis.text(_lib_mean - 2, ((_axis.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean),
-                   rotation=_rotation_mean, fontsize=3, zorder=2)
-    else:
-        _axis.text(_lib_mean + 0.5, ((_axis.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean),
-                   rotation=_rotation_mean, fontsize=3, zorder=2)
 
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
@@ -575,35 +554,16 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _axis_plt3.plot(_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c=warn_color)
     _axis_plt3.text(_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Warn', fontsize=4, color=warn_color, horizontalalignment='center')
 
-
-
     _axis_plt3.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize=5)
 
-    if _current_sample >= _lib_mean:
-        _adj_flag = True
-        _rotation_current = 270
-        _rotation_mean = 90
-    else:
-        _adj_flag = False
-        _rotation_current = 90
-        _rotation_mean = 270
+    _axis_plt3 = adjust_flag(_axis_plt3,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
     _line1 = _axis_plt3.axvline(x=_current_sample, alpha=0.8, color=_curr_sample_color, linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
 
-    if _adj_flag:
-        _axis_plt3.text(_current_sample + 0.5, (_axis_plt3.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=4, zorder=2)
-    else:
-        _axis_plt3.text(_current_sample - 1, (_axis_plt3.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=4, zorder=2)
-
     # Current Library Mean Line and Label
     _line2 = _axis_plt3.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5, label='{:2.2f}%'.format(_lib_mean))
-
-    if _adj_flag:
-        _axis_plt3.text(_lib_mean - 1, ((_axis_plt3.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=4, zorder=2)
-    else:
-        _axis_plt3.text(_lib_mean + 0.5, ((_axis_plt3.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=4, zorder=2)
 
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
@@ -677,30 +637,13 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _axis_plt4.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize=4)
 
-    if _current_sample >= _lib_mean:
-        _adj_flag = True
-        _rotation_current = 270
-        _rotation_mean = 90
-    else:
-        _adj_flag = False
-        _rotation_current = 90
-        _rotation_mean = 270
+    _axis_plt4 = adjust_flag(_axis_plt4,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
     _line1 = _axis_plt4.axvline(x=_current_sample, alpha=0.8, color=_curr_sample_color, linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
 
-    if _adj_flag:
-        _axis_plt4.text(_current_sample + 0.5, (_axis_plt4.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=3, zorder=2)
-    else:
-        _axis_plt4.text(_current_sample - 2, (_axis_plt4.get_ylim()[1] / 2), '{:2.2f}%'.format(_current_sample), rotation=_rotation_current, fontsize=3, zorder=2)
-
     # Current Library Mean Line and Label
     _line2 = _axis_plt4.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5, label='{:2.2f}%'.format(_lib_mean))
-
-    if _adj_flag:
-        _axis_plt4.text(_lib_mean - 2, ((_axis_plt4.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=3, zorder=2)
-    else:
-        _axis_plt4.text(_lib_mean + 0.5, ((_axis_plt4.get_ylim()[1] / 2) + 1), '{:2.2f}%'.format(_lib_mean), rotation=_rotation_mean, fontsize=3, zorder=2)
 
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
