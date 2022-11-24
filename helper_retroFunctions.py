@@ -37,7 +37,38 @@ _violin_cutoff_warn = 0.5
 
 warn_color = "gold"
 _curr_sample_color = "lightseagreen"
-# The goal of this function is to return the upper or/and lower bound of a ci given a vec
+
+# the goal of this function is to set which axes of the regular axis and the Kernel density axis 
+def mk_axes(_plt_ax,_kd_ax = None):
+    
+
+    for label in (_plt_ax.get_xticklabels() + _plt_ax.get_yticklabels()):
+        label.set_fontsize(4)
+    # set the plot axis
+    _plt_ax.spines['top'].set_visible(False)
+    _plt_ax.spines['right'].set_visible(False)
+    _plt_ax.spines['left'].set_visible(True)
+    _plt_ax.spines['bottom'].set_visible(True)
+    _plt_ax.spines['left'].set_color('black')
+    _plt_ax.spines['bottom'].set_color('black')
+
+    _plt_ax.spines['left'].set_linewidth(0.55)
+    _plt_ax.spines['bottom'].set_linewidth(0.55)
+    _plt_ax.set_facecolor('white')
+    
+    if _kd_ax != None: 
+        # set the kernel density axis to be invisible 
+        _kd_ax.yaxis.set_ticks([])
+        _kd_ax.yaxis.label.set_visible(False)
+
+        _kd_ax.spines['top'].set_visible(False)
+        _kd_ax.spines['right'].set_visible(False)
+        _kd_ax.spines['bottom'].set_visible(False)
+        _kd_ax.spines['left'].set_visible(False)
+
+        return(_plt_ax,_kd_ax)
+    else:
+        return(_plt_ax)
 
 # the goal of this function is to determine if a plot needs a fail or warn box and then call the according
 # helper function
@@ -64,6 +95,8 @@ def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lowe
 
         return(_ax)
 
+
+# The goal of this function is to return the upper or/and lower bound of a ci given a vec
 def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
     ci_bnd = stats.norm.interval(alpha = _alph,
                         loc=np.mean(_vec),
@@ -215,10 +248,8 @@ def ztest_prob(dist_current, dist_mean, val):
 
 def cdf_prob(df):
 
-
     df_cdf = df.apply(lambda x: 1 - stats.norm.cdf(x))
     df_pvalue = df.apply(lambda x: stats.norm.sf(x))
-    print(df_pvalue)
 
     return df_cdf
 
@@ -289,11 +320,8 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _xmax = _background_df.loc[:,"Input_Size"].max()
 
     bin  = np.arange(_xmin,_xmax, .5)
-    ### Add a hard-clip limit of 60 million reads to the master['Input_Size']
-    _background_df.loc[:, 'Input_Size'] = _background_df.loc[:, 'Input_Size'].clip(upper=40)
-    ### CDF cutoff
     
-    _userDf.loc[:, "Input_Size"] = _userDf.loc[:, "Input_Size"].clip(upper=40000000)
+    _userDf.loc[:, "Input_Size"] = _userDf.loc[:, "Input_Size"]
 
     _out, _bins = pd.cut(_background_df['Input_Size'], bins=bin, retbins=True, right=True, include_lowest=False)
     _xlabs = [str(xt) for xt in _bins[0::5]]
@@ -326,37 +354,10 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _ax.set_ylabel('Frequency', labelpad=2, fontsize=5)
 
-    _ax.set_facecolor('white')
-
-    for label in (_ax.get_xticklabels() + _ax.get_yticklabels()):
-        label.set_fontsize(4)
-
-    _ax1.yaxis.set_ticks([])
-    _ax1.yaxis.label.set_visible(False)
-
-    _ax.spines['top'].set_visible(False)
-    _ax.spines['right'].set_visible(False)
-    _ax.spines['left'].set_visible(True)
-    _ax.spines['bottom'].set_visible(True)
-    _ax.spines['left'].set_color('black')
-    _ax.spines['bottom'].set_color('black')
-
-    _ax.spines['left'].set_linewidth(0.55)
-    _ax.spines['bottom'].set_linewidth(0.55)
-
-    _ax1.spines['top'].set_visible(False)
-    _ax1.spines['right'].set_visible(False)
-    _ax1.spines['bottom'].set_visible(False)
-    _ax1.spines['left'].set_visible(False)
-
     if _current_sample > _lib_mean:
         _adj_flag = True
         _rotation_current = 270
         _rotation_mean = 90
-    elif _current_sample < _lib_mean:
-        _adj_flag = False
-        _rotation_current = 90
-        _rotation_mean = 270
     else:
         _adj_flag = False
         _rotation_current = 90
@@ -395,7 +396,8 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _kde_line = matplotlib.lines.Line2D([0], [0], color="gray", linewidth=0.5, linestyle='-')
     _ax.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4)
 
-
+    #set axes to be visible or not
+    _ax,_ax1 =  mk_axes(_ax,_ax1)
     _ax = needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
 
     return _f
@@ -474,35 +476,10 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis.set_ylabel('Frequency', labelpad=2, fontsize=5)
 
-    for label in (_axis.get_xticklabels() + _axis.get_yticklabels()):
-        label.set_fontsize(4)
-
-    # SECONDARY AXIS FOR KDE
-    _axis1.get_yaxis().set_ticks([])
-    _axis1.yaxis.label.set_visible(False)
-
-    _axis.spines['top'].set_visible(False)
-    _axis.spines['right'].set_visible(False)
-    _axis.spines['left'].set_visible(True)
-    _axis.spines['bottom'].set_visible(True)
-    _axis.spines['left'].set_color('black')
-    _axis.spines['bottom'].set_color('black')
-    _axis.spines['bottom'].set_linewidth(0.55)
-    _axis.spines['left'].set_linewidth(0.55)
-
-    _axis1.spines['top'].set_visible(False)
-    _axis1.spines['right'].set_visible(False)
-    _axis1.spines['left'].set_visible(False)
-    _axis1.spines['bottom'].set_visible(False)
-
-    if _current_sample > _lib_mean:
+    if _current_sample >=  _lib_mean:
         _adj_flag = True
         _rotation_current = 270
         _rotation_mean = 90
-    elif _current_sample < _lib_mean:
-        _adj_flag = False
-        _rotation_current = 90
-        _rotation_mean = 270
     else:
         _adj_flag = False
         _rotation_current = 90
@@ -534,10 +511,10 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
     _axis.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
-    _axis.set_facecolor('white')
    
 
  
+    _axis,_axis1 =  mk_axes(_axis,_axis1)
     _axis = needs_fail_or_warn(_axis,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
     return _figure
 
@@ -591,11 +568,6 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
     _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize=5)
 
-    for label in (_axis_plt3.get_xticklabels() + _axis_plt3.get_yticklabels()):
-        label.set_fontsize(4)
-
-        
-
     ### Adding cutoff markers
     _axis_plt3.plot(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
     _axis_plt3.text(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Fail', fontsize=4, color='red', horizontalalignment='center')
@@ -608,32 +580,10 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _axis_plt3.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize=5)
 
-    # SECONDARY AXIS FOR KDE
-    _axis1_plt3.get_yaxis().set_ticks([])
-    _axis1_plt3.yaxis.label.set_visible(False)
-
-    _axis_plt3.spines['top'].set_visible(False)
-    _axis_plt3.spines['right'].set_visible(False)
-    _axis_plt3.spines['left'].set_visible(True)
-    _axis_plt3.spines['bottom'].set_visible(True)
-    _axis_plt3.spines['left'].set_color('black')
-    _axis_plt3.spines['bottom'].set_color('black')
-    _axis_plt3.spines['bottom'].set_linewidth(0.55)
-    _axis_plt3.spines['left'].set_linewidth(0.55)
-
-    _axis1_plt3.spines['top'].set_visible(False)
-    _axis1_plt3.spines['right'].set_visible(False)
-    _axis1_plt3.spines['left'].set_visible(False)
-    _axis1_plt3.spines['bottom'].set_visible(False)
-
-    if _current_sample > _lib_mean:
+    if _current_sample >= _lib_mean:
         _adj_flag = True
         _rotation_current = 270
         _rotation_mean = 90
-    elif _current_sample < _lib_mean:
-        _adj_flag = False
-        _rotation_current = 90
-        _rotation_mean = 270
     else:
         _adj_flag = False
         _rotation_current = 90
@@ -661,6 +611,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _axis_plt3.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
     _axis_plt3.set_facecolor('white')
 
+    _axis_plt3,_axis1_plt3 =  mk_axes(_axis_plt3,_axis1_plt3)
     _axis_plt3 = needs_fail_or_warn(_axis_plt3,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
     
     return _figure
@@ -726,38 +677,10 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _axis_plt4.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize=4)
 
-
-    for label in (_axis_plt4.get_xticklabels() + _axis_plt4.get_yticklabels()):
-        label.set_fontsize(4)
-    # SECONDARY AXIS FOR KDE
-    _axis1_plt4.get_yaxis().set_ticks([])
-    _axis1_plt4.yaxis.label.set_visible(False)
-
-    _axis_plt4.spines['top'].set_visible(False)
-    _axis_plt4.spines['right'].set_visible(False)
-    _axis_plt4.spines['left'].set_visible(True)
-    _axis_plt4.spines['bottom'].set_visible(True)
-    _axis_plt4.spines['left'].set_color('black')
-    _axis_plt4.spines['bottom'].set_color('black')
-    _axis_plt4.spines['bottom'].set_linewidth(0.55)
-    _axis_plt4.spines['left'].set_linewidth(0.55)
-
-    _axis1_plt4.spines['top'].set_visible(False)
-    _axis1_plt4.spines['right'].set_visible(False)
-    _axis1_plt4.spines['left'].set_visible(False)
-    _axis1_plt4.spines['bottom'].set_visible(False)
-
-    # _axis_plt4.grid(b=False)
-    # _axis1_plt4.grid(b=False)
-
-    if _current_sample > _lib_mean:
+    if _current_sample >= _lib_mean:
         _adj_flag = True
         _rotation_current = 270
         _rotation_mean = 90
-    elif _current_sample < _lib_mean:
-        _adj_flag = False
-        _rotation_current = 90
-        _rotation_mean = 270
     else:
         _adj_flag = False
         _rotation_current = 90
@@ -785,6 +708,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _axis_plt4.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
     _axis_plt4.set_facecolor('white')
 
+    _axis_plt4,_axis1_plt4 =  mk_axes(_axis_plt4,_axis1_plt4)
     _axis_plt4 = needs_fail_or_warn(_axis_plt4,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
     
     return _figure
@@ -862,26 +786,11 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     # Set axes margins for padding on both axes
     _ax.margins(0.01)
 
-    # _ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=False))
     _ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(2500000))
-    # _ax.xaxis.set_major_locator(matplotlib.ticker.IndexLocator(base=2500000, offset=0))
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
 
     _ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(2500000))
-    # _ax.yaxis.set_major_locator(matplotlib.ticker.IndexLocator(base=2500000, offset=0))
     _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
-
-    _ax.spines['top'].set_visible(False)
-    _ax.spines['bottom'].set_visible(True)
-    _ax.spines['bottom'].set_color('black')
-    _ax.spines['right'].set_visible(False)
-
-    _ax.spines['left'].set_visible(True)
-    _ax.spines['left'].set_color('black')
-
-    _ax.spines['left'].set_linewidth(0.55)
-    _ax.spines['bottom'].set_linewidth(0.55)
-    _ax.set_facecolor('white')
 
     _ax.set_aspect('auto', adjustable='box', anchor='SW')
 
@@ -891,8 +800,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     _regression_gradient = matplotlib.lines.Line2D([0], [0], color='black', linewidth=0.6)
 
     _ax.legend([_curr_samp, _curr_lib], ['Current Sample', 'Batch Samples'], loc='best', frameon=False, ncol=1, fontsize=3)
-    
-    print("the slope is" ,_slope_current,"fail is",_slope_fail,"warn is",_slope_warn)
+    _ax = mk_axes(_ax) 
     _ax = needs_fail_or_warn(_ax,_slope_current,_slope_fail,_slope_warn,"upper")
     return _f
 
@@ -1140,18 +1048,6 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title, _fig=None):
     # _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_cov))
 
-
-    for label in (_axis.get_xticklabels() + _axis.get_yticklabels()):
-        label.set_fontsize(4)
-    _axis.spines['top'].set_visible(False)
-    _axis.spines['right'].set_visible(False)
-    _axis.spines['left'].set_visible(True)
-    _axis.spines['bottom'].set_visible(True)
-    _axis.spines['left'].set_color('black')
-    _axis.spines['bottom'].set_color('black')
-    _axis.spines['bottom'].set_linewidth(0.55)
-    _axis.spines['left'].set_linewidth(0.55)
-
     _current_sample_line = matplotlib.lines.Line2D([0], [0], color=_curr_sample_color, linewidth=0.5, linestyle='-', alpha=0.8)
     _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
 
@@ -1165,7 +1061,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title, _fig=None):
                   "95% Confidence Interval", "KS-2sample Pvalue: " + str(round(_ks_pval, 5))],
                  loc='best', frameon=False, fontsize=4, ncol=1)
 
-
+    _axis = mk_axes(_axis) 
     _axis = needs_fail_or_warn(_axis,_ks_pval,.05,.1,"lower")
     
     return _fig
@@ -1253,23 +1149,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
     _ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(500))
     _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
 
-
-    for label in (_ax.get_xticklabels() + _ax.get_yticklabels()):
-        label.set_fontsize(4)
-
-    _ax.spines['top'].set_visible(False)
-    _ax.spines['right'].set_visible(False)
-    _ax.spines['left'].set_visible(True)
-    _ax.spines['bottom'].set_visible(True)
-
-    _ax.spines['left'].set_color('black')
-    _ax.spines['left'].set_linewidth(0.55)
-    # _ax.spines['left'].set_smart_bounds(True)
-
-    _ax.spines['bottom'].set_color('black')
-    _ax.spines['bottom'].set_linewidth(0.55)
-    # _ax.spines['bottom'].set_smart_bounds(True)
-    
     _current_samp_line = matplotlib.lines.Line2D([0], [0], color=_curr_sample_color, linewidth=0.5, linestyle='-', alpha=0.8)
     _lib_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
 
@@ -1286,7 +1165,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
     _ax.legend([_current_samp_line, _lib_line, _extra_Ztest_Pval],
                ["Current Sample", "Library Mean", "ZTest Pvalue : " + str(round(_curr_pval.item(), 3))], loc='best',
                frameon=False, fontsize=4, ncol=1)
-
+    _ax = mk_axes(_ax) 
     _ax = needs_fail_or_warn(_ax,_curr_pval,.05,.1,"lower")
     
     
