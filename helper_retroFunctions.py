@@ -38,6 +38,17 @@ _violin_cutoff_warn = 0.5
 warn_color = "gold"
 _curr_sample_color = "lightseagreen"
 
+# This function physically adds the warn and fail markers
+def add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn):
+    _ax.plot(_cutoff_fail, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='red')
+    _ax.text(_cutoff_fail, _ax.get_ylim()[1] - 0.4, 'Fail', fontsize=4, color='red',
+             horizontalalignment='center')
+
+    _ax.plot(_cutoff_warn, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c=warn_color)
+    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - 0.4, 'Warn', fontsize=4, color=warn_color,
+             horizontalalignment='center')
+    return(_ax)
+   
 # This function calculates whether the current sample label orientation needs 
 # to be adjusted and returns the required vars
 def adjust_flag(_ax,_current_sample,_lib_mean):
@@ -377,13 +388,7 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _ax = adjust_flag(_ax,_current_sample,_lib_mean)
 
     ### Adding cutoff markers
-    _ax.plot(_cutoff_fail, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='red')
-    _ax.text(_cutoff_fail, _ax.get_ylim()[1] - 0.4, 'Fail', fontsize=4, color='red',
-             horizontalalignment='center')
-
-    _ax.plot(_cutoff_warn, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c=warn_color)
-    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - 0.4, 'Warn', fontsize=4, color=warn_color,
-             horizontalalignment='center')
+    _ax = add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn)
 
     # Current Sample Line and Label
     _line1 = _ax.axvline(x=_current_sample, alpha=0.8, color=_curr_sample_color, linestyle='-', linewidth=0.5,
@@ -407,6 +412,8 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
 #### Plot 2 : Trimming Percentage ####
 def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figure=None):
     
+    _xmin = _retro_df.loc[:,"Percent_PostTrim"].min()
+    _xmax = _retro_df.loc[:,"Percent_PostTrim"].max()
     bin_data = np.arange(0, 100 + 1, 1)
 
     _retro_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"]
@@ -419,21 +426,9 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
 
     _user_minusBatchMean_df = _user_df.drop(_user_df.tail(1).index)
 
-    if _colname == "Percent_PostTrim":
 
-        _current_sample = _ip_tuple.Percent_PostTrim
-
-        if _current_sample < 60:
-            _current_sample = 60
-        else:
-            pass
-
-        _lib_mean = _user_minusBatchMean_df[_colname].mean()
-
-    else:
-        _current_sample = 0
-        _lib_mean = 0
-        print("Not a legitimate metric!\n")
+    _current_sample = _ip_tuple.Percent_PostTrim
+    _lib_mean = _user_minusBatchMean_df[_colname].mean()
 
     if not _figure is None:
         plt.gcf()
@@ -446,7 +441,7 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     sns.distplot(_retro_df["Percent_PostTrim"], hist=False, bins=_bins, ax=_axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
 
-    _axis.set_xlim(_retro_df.loc[:,"Percent_PostTrim"].min(), 103)
+    _axis.set_xlim(_xmin, _xmax)
 
     _axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5]))
     _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
@@ -458,20 +453,10 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
 
     _axis.set_title(_plot_label, fontsize=6)
 
-    if _colname == "Percent_PostTrim":
-        _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize=5)
+    _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize=5)
 
-        ### Adding cutoff markers
-        _axis.plot(_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 10), marker='v', ms=0.8,
-                   c='red')
-        _axis.text(_cutoff_fail, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Fail', fontsize=4,
-                   color='red', horizontalalignment='center')
-
-        _axis.plot(_cutoff_warn, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 10), marker='v', ms=0.8,
-                   c=warn_color)
-        _axis.text(_cutoff_warn, _axis.get_ylim()[1] - (_axis.get_ylim()[1] / 20), 'Warn', fontsize=4,
-                   color=warn_color, horizontalalignment='center')
-
+    ### Adding cutoff markers
+    _axis = add_warn_fail_markers(_axis,_cutoff_fail,_cutoff_warn)
     
     _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis.set_ylabel('Frequency', labelpad=2, fontsize=5)
@@ -495,16 +480,14 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
  
     _axis,_axis1 =  mk_axes(_axis,_axis1)
     _axis = needs_fail_or_warn(_axis,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
+
     return _figure
 
 
 #### Plot 3: Alignment Percentage ####
 def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn, _figure=None):
+
     bin_data = np.arange(0, 100 + 1, 1)
-
-    _retro_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"].clip(lower=60)
-    _user_df.loc[:, "Percent_PostTrim"] = _user_df.loc[:, "Percent_PostTrim"].clip(lower=60)
-
     _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
    
     _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
@@ -514,14 +497,8 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
     _user_minusBatchMean_df = _user_df.drop(_user_df.tail(1).index)
 
-    if _colname == "Percent_Uniquely_Aligned":
-        _current_sample = _ip_tuple.Percent_Uniquely_Aligned
-        _lib_mean = _user_minusBatchMean_df[_colname].mean()
-
-    else:
-        _current_sample = 0
-        _lib_mean = 0
-        print("Not a legitimate metric!\n")
+    _current_sample = _ip_tuple.Percent_Uniquely_Aligned
+    _lib_mean = _user_minusBatchMean_df[_colname].mean()
 
     if not _figure is None:
         plt.gcf()
@@ -548,11 +525,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize=5)
 
     ### Adding cutoff markers
-    _axis_plt3.plot(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
-    _axis_plt3.text(_cutoff_fail, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Fail', fontsize=4, color='red', horizontalalignment='center')
-
-    _axis_plt3.plot(_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 10), marker='v', ms=0.8, c=warn_color)
-    _axis_plt3.text(_cutoff_warn, _axis_plt3.get_ylim()[1] - (_axis_plt3.get_ylim()[1] / 20), 'Warn', fontsize=4, color=warn_color, horizontalalignment='center')
+    _axis_plt3 = add_warn_fail_markers(_axis_plt3,_cutoff_fail,_cutoff_warn)
 
     _axis_plt3.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize=5)
@@ -569,7 +542,6 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
     _axis_plt3.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
-    _axis_plt3.set_facecolor('white')
 
     _axis_plt3,_axis1_plt3 =  mk_axes(_axis_plt3,_axis1_plt3)
     _axis_plt3 = needs_fail_or_warn(_axis_plt3,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
@@ -580,27 +552,18 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
 #### Plot 4: Gene Exon Mapping ####
 def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figure=None):
+    
     bin_data = np.arange(0, 100 + 1, 1)
-
-    _retro_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"].clip(lower=60)
-    _user_df.loc[:, "Percent_PostTrim"] = _user_df.loc[:, "Percent_PostTrim"].clip(lower=60)
 
     _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
     _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
-    # LabelEncoder().fit([x for y in _xtick_labels.get_values() for x in y])
 
     _xtick_labs = [str(xt) for xt in _bins[0::5]]
 
     _user_minusBatchMean_df = _user_df.drop(_user_df.tail(1).index)
 
-    if _colname == "Percent_Exonic":
-        _current_sample = _ip_tuple.Percent_Exonic
-        _lib_mean = _user_minusBatchMean_df[_colname].mean()
-
-    else:
-        _current_sample = 0
-        _lib_mean = 0
-        print("Not a legitimate metric!\n")
+    _current_sample = _ip_tuple.Percent_Exonic
+    _lib_mean = _user_minusBatchMean_df[_colname].mean()
 
     if not _figure is None:
         plt.gcf()
@@ -628,11 +591,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=5)
 
     ### Adding cutoff markers
-    _axis_plt4.plot(_cutoff_fail, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 10), marker='v', ms=0.8, c='red')
-    _axis_plt4.text(_cutoff_fail, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 20), 'Fail', fontsize=4, color='red', horizontalalignment='center')
-
-    _axis_plt4.plot(_cutoff_warn, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 10), marker='v', ms=0.8, c=warn_color)
-    _axis_plt4.text(_cutoff_warn, _axis_plt4.get_ylim()[1] - (_axis_plt4.get_ylim()[1] / 20), 'Warn', fontsize=4, color=warn_color, horizontalalignment='center')
+    _axis_plt4 = add_warn_fail_markers(_axis_plt4,_cutoff_fail,_cutoff_warn)
 
     _axis_plt4.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize=4)
@@ -649,7 +608,6 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
     _axis_plt4.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
-    _axis_plt4.set_facecolor('white')
 
     _axis_plt4,_axis1_plt4 =  mk_axes(_axis_plt4,_axis1_plt4)
     _axis_plt4 = needs_fail_or_warn(_axis_plt4,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
@@ -745,6 +703,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     _ax.legend([_curr_samp, _curr_lib], ['Current Sample', 'Batch Samples'], loc='best', frameon=False, ncol=1, fontsize=3)
     _ax = mk_axes(_ax) 
     _ax = needs_fail_or_warn(_ax,_slope_current,_slope_fail,_slope_warn,"upper")
+
     return _f
 
 #### Plot 6: Sequence Contamination - Violin Plot ####
@@ -798,8 +757,6 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
                    inner=None,
                    ax=_axis, linewidth=0.3, orient="h", scale="count")
 
-    # _axis2 = _axis.twiny()
-
     sns.violinplot(x="Percent", y="Contamination_Metric", data=_contaminant_melt_trim, palette=_contaminant_pal,
                    inner=None,
                    ax=_axis2, linewidth=0.3, orient="h", scale="count")
@@ -832,27 +789,9 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     _axis.set_yticklabels(['Overrepresented', 'Adapter'])
     _axis2.set_yticklabels(['Overrepresented', 'Adapter'])
 
-    _axis.spines['top'].set_visible(False)
-    _axis.spines['bottom'].set_visible(True)
-    _axis.spines['bottom'].set_color('black')
-    _axis.spines['right'].set_visible(False)
-
-    _axis.spines['left'].set_visible(True)
-    _axis.spines['left'].set_color('black')
-
-    _axis.spines['left'].set_linewidth(0.55)
-    _axis.spines['bottom'].set_linewidth(0.55)
-
-    _axis2.spines['top'].set_visible(False)
-    _axis2.spines['bottom'].set_visible(True)
-    _axis2.spines['bottom'].set_color('black')
-    _axis2.spines['right'].set_visible(False)
-
-    _axis2.spines['left'].set_visible(True)
-    _axis2.spines['left'].set_color('black')
-
-    _axis2.spines['left'].set_linewidth(0.55)
-    _axis2.spines['bottom'].set_linewidth(0.55)
+    
+    _axis  = mk_axes(_axis)
+    _axis2 = mk_axes(_axis2)
 
     _x_bottom, _x_top = _axis.get_xlim()
 
@@ -861,12 +800,18 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     ### Adding cutoff markers
     _axis3 = _axis2.twinx()
 
+    _axis2,_axis3 = mk_axes(_axis2,_axis3)
     _axis3.yaxis.set_ticks([])
 
     _axis3.xaxis.label.set_visible(False)
-    _axis3.yaxis.label.set_visible(False)
 
     _axis3.set_ylim(_axis2.get_ylim()[0], _axis2.get_ylim()[1])
+
+    _axis.plot(_cutoff_fail, -0.7, marker='v', ms=1, c='red', clip_on=False)
+    _axis.text(_cutoff_fail, -0.88, 'Fail', fontsize=5, color='red', horizontalalignment='center')
+
+    _axis.plot(_cutoff_warn, -0.7, marker='v', ms=1, c=warn_color, clip_on=False)
+    _axis.text(_cutoff_warn, -0.88, 'Warn', fontsize=5, color=warn_color, horizontalalignment='center')
 
     _axis3.plot(_cutoff_fail, -0.7, marker='v', ms=1, c='red', clip_on=False)
     _axis3.text(_cutoff_fail, -0.88, 'Fail', fontsize=5, color='red', horizontalalignment='center')
@@ -874,26 +819,9 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     _axis3.plot(_cutoff_warn, -0.7, marker='v', ms=1, c=warn_color, clip_on=False)
     _axis3.text(_cutoff_warn, -0.88, 'Warn', fontsize=5, color=warn_color, horizontalalignment='center')
 
-    _axis3.spines['top'].set_visible(False)
-    _axis3.spines['right'].set_visible(False)
-    _axis3.spines['bottom'].set_visible(False)
-    _axis3.spines['left'].set_visible(False)
-
-
-
-
-    for label in (_axis3.get_xticklabels() + _axis3.get_yticklabels()):
-        label.set_fontsize(4)
-
-    for label in (_axis2.get_xticklabels() + _axis2.get_yticklabels()):
-        label.set_fontsize(4)
-
-    for label in (_axis.get_xticklabels() + _axis.get_yticklabels()):
-        label.set_fontsize(4)
-
-    _line_overrep_untrim = _axis.axvline(x=_current_overrep_untrim, ymin=0.55, ymax=0.95, alpha=0.8, color=_curr_sample_color,
+    _line_overrep_untrim = _axis.axvline(x=_current_overrep_untrim, ymin=0.5, ymax=0.95, alpha=0.8, color=_curr_sample_color,
                                          linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_overrep_untrim))
-    _line_mean_overrep_untrim = _axis.axvline(x=_mean_overrep_untrim, ymin=0.55, ymax=0.95, alpha=0.8, color='indigo',
+    _line_mean_overrep_untrim = _axis.axvline(x=_mean_overrep_untrim, ymin=0.5, ymax=0.95, alpha=0.8, color='indigo',
                                               linestyle='--', linewidth=0.35,
                                               label='{:.2f}%'.format(_mean_overrep_untrim))
 
@@ -925,15 +853,11 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     _axis.legend([_line_overrep_trim, _line_mean_overrep_trim], ["Current Sample", "Batch Mean"], loc='best',
                  frameon=False, ncol=1, fontsize=4)
 
-
-    _axis.set_facecolor('white')
-    _axis2.set_facecolor('white')
-    
     plt.subplots_adjust(hspace=0)
 
     _axis = needs_fail_or_warn(_axis,_current_overrep_trim,_cutoff_fail,_cutoff_warn,"upper")
     
-    _axis = needs_fail_or_warn(_axis,_current_adapter_trim,_cutoff_fail,_cutoff_warn,"upper")
+    _axis2 = needs_fail_or_warn(_axis2,_current_adapter_trim,_cutoff_fail,_cutoff_warn,"upper")
 
     return _f
 
