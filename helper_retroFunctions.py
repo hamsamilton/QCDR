@@ -31,10 +31,6 @@ from datetime import datetime
 #from pandas.plotting import register_matplotlib_converters
 from statsmodels.stats.weightstats import ztest
 
-
-_violin_cutoff_fail = 1
-_violin_cutoff_warn = 0.5
-
 warn_color = "gold"
 _curr_sample_color = "lightseagreen"
 
@@ -72,7 +68,6 @@ def adjust_flag(_ax,_current_sample,_lib_mean):
 # the goal of this function is to set which axes of the regular axis and the Kernel density axis 
 def mk_axes(_plt_ax,_kd_ax = None):
     
-
     for label in (_plt_ax.get_xticklabels() + _plt_ax.get_yticklabels()):
         label.set_fontsize(4)
     # set the plot axis
@@ -102,30 +97,24 @@ def mk_axes(_plt_ax,_kd_ax = None):
         return(_plt_ax)
 
 # the goal of this function is to determine if a plot needs a fail or warn box and then call the according
-# helper function
+# helper function 
 def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lower):
     
     if higher_lower == "lower":
-        # Flagging for FAILURE/WARNING
+        
         if _current_sample <= _cutoff_fail:
             insert_flag_fail(_ax)
-
         elif (_current_sample <= _cutoff_warn):
             insert_flag_warn(_ax)
-
         return(_ax)
 
-    
     if higher_lower == "upper":
-        # Flagging for FAILURE/WARNING
+       
         if _current_sample >= _cutoff_fail:
             insert_flag_fail(_ax)
-
         elif (_current_sample >= _cutoff_warn):
             insert_flag_warn(_ax)
-
         return(_ax)
-
 
 # The goal of this function is to return the upper or/and lower bound of a ci given a vec
 def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
@@ -150,6 +139,26 @@ def calc_zscore(_newval,_comparevec):
     
     return(_zscr)
 
+# Not certain of the purpose of this, leftover from Gaurav days. Moved here as a part of code cleanup
+def create_connection(_db_file):
+    try:
+        _conn = sqlite3.connect(_db_file)
+        return _conn
+    except Error as e:
+        print(e)
+
+    return None
+
+# Not sure what to do here, I found it in the Main file so I am migrating it here as a part of a code cleanup
+def join_levels(_df):
+    for i, col in enumerate(_df.columns.levels):
+        columns = np.where(col.str.contains('Unnamed'), '', col)
+        _df.columns.set_levels(columns, level=i, inplace=True)
+
+    _df.columns = [' '.join(_col).strip() for _col in _df.columns.values]
+
+    return _df
+
 # The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
 def gen_cutoffs(_bgd_df,_alph):
 
@@ -168,15 +177,20 @@ def gen_cutoffs(_bgd_df,_alph):
     _riboScatter_cutoff  = get_ci_bound(_vec = (_bgd_df.loc[:,"Num_Uniquely_Aligned_rRNA"] / _bgd_df.loc[:,"Num_Uniquely_Aligned"]),
                                         _alph = _alph,
                                         _uppr_lwr = "upper")
-    _violin_cutoff_overrep=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Overrepresented_Seq_Untrimmed"],
+    _violin_cutoff_overrep_untrimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Overrepresented_Seq_Untrimmed"],
                                         _alph = _alph,
                                         _uppr_lwr = "upper")
-    _violin_cutoff_adapter=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Untrimmed"],
+    _violin_cutoff_adapter_untrimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Untrimmed"],
                                         _alph = _alph,
                                         _uppr_lwr = "upper")
-
+    _violin_cutoff_overrep_trimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Overrepresented_Seq_Trimmed"],
+                                        _alph = _alph,
+                                        _uppr_lwr = "upper")
+    _violin_cutoff_adapter_trimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Trimmed"],
+                                        _alph = _alph,
+                                        _uppr_lwr = "upper")
     return(_ipReads_cutoff,_trimmedReads_cutoff,_uniqAligned_cutoff,_exonMapping_cutoff,_riboScatter_cutoff,
-           _violin_cutoff_overrep,_violin_cutoff_adapter)
+           _violin_cutoff_overrep_untrimmed,_violin_cutoff_adapter_untrimmed,_violin_cutoff_overrep_trimmed,_violin_cutoff_adapter_trimmed)
 
 # Add all the data loading, cleaning and other helper functions here ##########
 
@@ -185,7 +199,6 @@ def fmt_number(number, pos=None):
         return '0M'
 
     else:
-
         magnitude = 0
         while abs(number) >= 1000:
             magnitude += 1
@@ -199,7 +212,6 @@ def fmt_scatter_million(_x, _pos):
 
 def fmt_interval(_x, _pos):
     return '0:.0s%'.format(_x)
-
 
 def fmt_million(_x, _pos):
     # return '{0:.0f}M'.format(_x)
@@ -246,10 +258,7 @@ def insert_flag_fail(ax=None):
                                                   bbox_to_anchor=(0., 1.03),
                                                   bbox_transform=ax.transAxes)
 
-    # anch_text.patch.set_boxstyle=("round")
-
     ax.add_artist(anch_text)
-
     return None
 
 
@@ -283,8 +292,6 @@ def cdf_prob(df):
     df_pvalue = df.apply(lambda x: stats.norm.sf(x))
 
     return df_cdf
-
-
 
 
 def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center_baseline'):
@@ -338,10 +345,6 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
     ax.set_ylim(ylim)
     return text
 
-
-
-
-####### Add all the plotting functions here for all panels ########
 
 #### Plot 1: Input Size ####
 def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutoff_warn,_f=None):
@@ -406,7 +409,6 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _ax = needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
 
     return _f
-
 
 
 #### Plot 2 : Trimming Percentage ####
@@ -707,7 +709,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     return _f
 
 #### Plot 6: Sequence Contamination - Violin Plot ####
-def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_fail,_cutoff_warn, _f=None):
+def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_fail_overrep_untrimmed,_cutoff_fail_adapter_untrimmed,_cutoff_warn_overrep_untrimmed,_cutoff_warn_adapter_untrimmed,_cutoff_fail_overrep_trimmed,_cutoff_fail_adapter_trimmed,_cutoff_warn_overrep_trimmed,_cutoff_warn_adapter_trimmed,_f=None):
     
     ## Load the sequence contamination levels for the background data
     _contaminant_df_untrim = _background_df[["Percent_Overrepresented_Seq_Untrimmed", "Percent_Adapter_Content_Untrimmed"]]
@@ -719,16 +721,14 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     _contaminant_melt_untrim = pd.melt(_contaminant_df_untrim, var_name="Contamination_Metric", value_name="Percent")
     _contaminant_melt_trim = pd.melt(_contaminant_df_trim, var_name="Contamination_Metric", value_name="Percent")
 
-    _current_overrep_untrim = _input_tup[8]
+    _current_overrep_untrim = _input_tup[8] # if these are hard referencing column indices this has the potational to be a huge issue
     _current_adapter_untrim = _input_tup[9]
 
     _current_overrep_trim = _input_tup[10]
     _current_adapter_trim = _input_tup[11]
 
-
     ## Remove the current batch mean from the USER dataframe
     _user_minusBatchMean_df = _userDf.drop(_userDf.tail(1).index)
-    
 
     _mean_overrep_untrim = _user_minusBatchMean_df.loc[:, 'Percent_Overrepresented_Seq_Untrimmed'].mean()
     _mean_adapter_untrim = _user_minusBatchMean_df.loc[:, 'Percent_Adapter_Content_Untrimmed'].mean()
@@ -741,8 +741,9 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     ## Define color palette
     _contaminant_pal = {"Overrepresented": "lightgray", "Adapter": "gray"}
 
-    if not _f is None:
-        plt.gcf()
+    if not _f is None: # i think this is a useful piece of code but i'm not sure it belongs in each individual figure call
+        plt.gcf() # I think it should just load the figure at the beginning. I honestly don't know however as I'm not the most fluent in
+                        # matplotlib style and syntax
 
 
     _gridsp = matplotlib.gridspec.GridSpec(8, 2, figure=_f)
@@ -750,7 +751,6 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
     _axis = _f.add_subplot(_gridsp[4, 1:])
     _axis2 = _f.add_subplot(_gridsp[5, 1:])
-
 
 
     sns.violinplot(x="Percent", y="Contamination_Metric", data=_contaminant_melt_untrim, palette=_contaminant_pal,
@@ -775,7 +775,6 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     _axis2.set_xlabel("Post-trim (%)", fontsize=5, labelpad=0.5)
     _axis2.set_ylabel("")
 
-    # _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_contaminant))
     _axis.set_xlim(_axis.get_xlim()[0] + 1, _axis.get_xlim()[1] + 5)
 
     _axis2.set_xlim(_axis2.get_xlim()[0], _axis2.get_xlim()[1] + 2)
@@ -794,7 +793,6 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     _axis2 = mk_axes(_axis2)
 
     _x_bottom, _x_top = _axis.get_xlim()
-
     _y_bottom, _y_top = _axis.get_ylim()
 
     ### Adding cutoff markers
@@ -807,17 +805,21 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
     _axis3.set_ylim(_axis2.get_ylim()[0], _axis2.get_ylim()[1])
 
-    _axis.plot(_cutoff_fail, -0.7, marker='v', ms=1, c='red', clip_on=False)
-    _axis.text(_cutoff_fail, -0.88, 'Fail', fontsize=5, color='red', horizontalalignment='center')
+    _markers = [
+    (_axis, _cutoff_fail_overrep_untrimmed, -0.7, 'Fail', 'red'),
+    (_axis, _cutoff_warn_overrep_untrimmed, -0.7, 'Warn', warn_color),
+    (_axis3, _cutoff_fail_overrep_trimmed, -0.7, 'Fail', 'red'),
+    (_axis3, _cutoff_warn_overrep_trimmed, -0.7,'Warn', warn_color),
+    
+    # adapter 
+    (_axis, _cutoff_fail_adapter_untrimmed, .7, 'Fail', 'red'),
+    (_axis, _cutoff_warn_adapter_untrimmed, .7, 'Warn', warn_color),
+    (_axis3, _cutoff_fail_adapter_trimmed, .7, 'Fail', "red"),
+    (_axis3, _cutoff_warn_adapter_trimmed, .7, 'Warn', warn_color)]
 
-    _axis.plot(_cutoff_warn, -0.7, marker='v', ms=1, c=warn_color, clip_on=False)
-    _axis.text(_cutoff_warn, -0.88, 'Warn', fontsize=5, color=warn_color, horizontalalignment='center')
-
-    _axis3.plot(_cutoff_fail, -0.7, marker='v', ms=1, c='red', clip_on=False)
-    _axis3.text(_cutoff_fail, -0.88, 'Fail', fontsize=5, color='red', horizontalalignment='center')
-
-    _axis3.plot(_cutoff_warn, -0.7, marker='v', ms=1, c=warn_color, clip_on=False)
-    _axis3.text(_cutoff_warn, -0.88, 'Warn', fontsize=5, color=warn_color, horizontalalignment='center')
+    for _axs, _cutoff, yloc,label, color in _markers:
+        _axs.plot(_cutoff, yloc, marker='v', ms=1, c=color, clip_on=False)
+        _axs.text(_cutoff, yloc - .1 , label, fontsize=4, color=color, horizontalalignment='center')
 
     _line_overrep_untrim = _axis.axvline(x=_current_overrep_untrim, ymin=0.5, ymax=0.95, alpha=0.8, color=_curr_sample_color,
                                          linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_overrep_untrim))
@@ -855,9 +857,18 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
     plt.subplots_adjust(hspace=0)
 
-    _axis = needs_fail_or_warn(_axis,_current_overrep_trim,_cutoff_fail,_cutoff_warn,"upper")
-    
-    _axis2 = needs_fail_or_warn(_axis2,_current_adapter_trim,_cutoff_fail,_cutoff_warn,"upper")
+    if(_current_overrep_trim > _cutoff_fail_overrep_trimmed  or _current_overrep_untrim > _cutoff_fail_overrep_untrimmed \
+     or _current_adapter_trim > _cutoff_fail_adapter_trimmed or _current_adapter_untrim > _cutoff_fail_adapter_untrimmed):
+        insert_flag_fail(_axis)
+    elif(_current_overrep_trim > _cutoff_warn_overrep_trimmed  or _current_overrep_untrim > _cutoff_warn_overrep_untrimmed \
+     or _current_adapter_trim > _cutoff_warn_adapter_trimmed or _current_adapter_untrim > _cutoff_warn_adapter_untrimmed):
+        insert_flag_warn(_axis)
+
+#axis = needs_fail_or_warn(_axis,_current_overrep_trim,_cutoff_fail_overrep_untrimmed,_cutoff_warn_overrep_untrimmed,"upper")
+#   insert_flag_fail(_axis) 
+
+
+    _axis2 = needs_fail_or_warn(_axis2,_current_adapter_trim,_cutoff_fail_overrep_untrimmed,_cutoff_warn_overrep_untrimmed,"upper")
 
     return _f
 
@@ -876,7 +887,6 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title, _fig=None):
     # Calculate mean GeneBody Coverage for the entire library
     _mean_df = pd.DataFrame()
     _mean_df['gc_mean'] = _coverage_df.mean(axis=1)
-    # print(_mean_df)
 
     # Statistical Tests: Wilcoxon signed rank test, Kolmogorov-Smirnov 2-sample test and Pearson Correlation
     _wilcox_stat, _wilcox_pval = stats.wilcoxon(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'], correction=True)
@@ -921,11 +931,10 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title, _fig=None):
     _extra_confidenceInterval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='yellow', fill=True,
                                                              edgecolor='yellow', linewidth=1.2, alpha=0.5)
     _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
-    # _extra_wilcox = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
 
     _axis.legend([_current_sample_line, _library_line, _extra_confidenceInterval, _extra_ksPval],
                  ["Current Sample", "Library Mean",
-                  "95% Confidence Interval", "KS-2sample Pvalue: " + str(round(_ks_pval, 5))],
+                  "95% Confidence Interval", "KS-2sample Pvalue: " + str(round(_ks_pval, 3))],
                  loc='best', frameon=False, fontsize=4, ncol=1)
 
     _axis = mk_axes(_axis) 
@@ -937,7 +946,6 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title, _fig=None):
 
 #### Plot 8 : Gene Expression Distribution Plot 
 def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
-    print("PLOTTING GENE EXPRESSION DIST PLOT ########################")
     _index_array = _hist_df.iloc[:, 0]
 
     _low_vals = []
@@ -975,7 +983,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
     _pvals  = stats.norm.sf(abs(_zscore))
     _curr_pval = _pvals[_curr_ndx]
     
-## ZTest for mean and current sample against the normal distribution to get pvalue
+    # ZTest for mean and current sample against the normal distribution to get pvalue
     _ztest_stat_raw, _ztest_pval_raw = ztest_prob(_current_samp_array, _mean_array, 0)
 
     if not _f is None:
@@ -1001,10 +1009,8 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
     _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=3, labelleft=True, left=True,
                     direction='out', pad=2)
 
-    # _ax.set_xlim(0, (len(_x_vals) / 2) + 1)
     _ax.set_xlim(0, 10)
-
-    _ax.set_ylim(0, _max_df['max_val'].max() + 300)
+    _ax.set_ylim(0, _max_df['max_val'].max())
 
     _ax.set_title(_plot_title, fontsize=6)
 
@@ -1019,11 +1025,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
     _current_samp_line = matplotlib.lines.Line2D([0], [0], color=_curr_sample_color, linewidth=0.5, linestyle='-', alpha=0.8)
     _lib_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
 
-    # _extra_wilcox_stat = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',linewidth=0)
-    # _extra_wilcox_pval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
-    # _extra_ksStat = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
-    # _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
-
     _extra_Ztest_stat = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
                                                      linewidth=0)
     _extra_Ztest_Pval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
@@ -1033,7 +1034,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title, _f=None):
                ["Current Sample", "Library Mean", "ZTest Pvalue : " + str(round(_curr_pval.item(), 3))], loc='best',
                frameon=False, fontsize=4, ncol=1)
     _ax = mk_axes(_ax) 
-    _ax = needs_fail_or_warn(_ax,_curr_pval,.05,.1,"lower")
+    _ax = needs_fail_or_warn(_ax,_curr_pval,.1,.2,"lower")
     
     
     return _f
