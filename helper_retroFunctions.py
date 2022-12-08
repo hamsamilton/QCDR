@@ -189,8 +189,13 @@ def gen_cutoffs(_bgd_df,_alph):
     _violin_cutoff_adapter_trimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Trimmed"],
                                         _alph = _alph,
                                         _uppr_lwr = "upper")
-    return(_ipReads_cutoff,_trimmedReads_cutoff,_uniqAligned_cutoff,_exonMapping_cutoff,_riboScatter_cutoff,
-           _violin_cutoff_overrep_untrimmed,_violin_cutoff_adapter_untrimmed,_violin_cutoff_overrep_trimmed,_violin_cutoff_adapter_trimmed)
+   # _cutoff_list = [_ipReads_cutoff,_trimmedReads_cutoff,_uniqAligned_cutoff,_exonMapping_cutoff,_riboScatter_cutoff,
+   #                _violin_cutoff_overrep_untrimmed,_violin_cutoff_adapter_untrimmed,_violin_cutoff_overrep_trimmed,
+   #                 _violin_cutoff_adapter_trimmed]
+    _cutoffs_dict  = locals() 
+    del _cutoffs_dict["_bgd_df"]
+    del _cutoffs_dict["_alph"]
+    return(_cutoffs_dict)
 
 # Add all the data loading, cleaning and other helper functions here ##########
 
@@ -233,6 +238,16 @@ def fmt_cov(_x, _pos):
 
 def byMillion(_lib):
     return _lib / 1000000
+# This is a simple function designed to take a list of variables and transform it into a dictionary with the variable names as keys and their
+# associated values as values
+def varlist_2dict(_list):
+    _dict = {}
+    for item in _list:
+        print(str(item))
+        print(item)
+        _dict.update({str(item),item})
+    
+    return(_dict)
 
 
 def insert_flag_image(_image, loc=3, ax=None, zoom=1, **kw):
