@@ -66,12 +66,18 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
     # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
     _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
+    # Make standard cutoffs for warn/fail
+    _fail_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .9)
 
-    # testing custom cutoffs for warn/fail
-    _ipReads_cutoff_fail,_trimmedReads_cutoff_fail,_uniqAligned_cutoff_fail,_exonMapping_cutoff_fail,_riboScatter_cutoff_fail,_violin_cutoff_overrep_untrimmed_fail,_violin_cutoff_adapter_untrimmed_fail,_violin_cutoff_overrep_trimmed_fail,_violin_cutoff_adapter_trimmed_fail = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .9)
-
-    _ipReads_cutoff_warn,_trimmedReads_cutoff_warn,_uniqAligned_cutoff_warn,_exonMapping_cutoff_warn,_riboScatter_cutoff_warn,_violin_cutoff_overrep_untrimmed_warn,_violin_cutoff_adapter_untrimmed_warn,_violin_cutoff_overrep_trimmed_warn,_violin_cutoff_adapter_trimmed_warn = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .7)
+    _warn_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .7)
     
+    print("THESE ARE THE FAIL CUTOFFS",_fail_cutoffs)
+    print("THESE ARE THE WARN CUTOFFS",_warn_cutoffs)
+    if _cutoff_filename != False:
+        _manual_cutoffs = pd.read_excel(_cutoff_filename)
+        print(_manual_cutoffs.to_string())
+        _cutoff_dict = _manual_cutoffs.set_index('column1')['column2'].to_dict()
+ 
     ## Read Gene Coverage Data
     _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
 
@@ -145,33 +151,30 @@ if __name__ == "__main__":
     parser.add_argument("-out", "--output-filename", required=False, type=os.path.abspath, default = "pyRetroPlotter_OutputPlot.pdf",
                         help="[REQUIRED] Provide the name of the PDF output file for the plot.\n -out [OUTPUT-FILENAME.pdf],\t--output-dir [OUTPUT-FILENAME.pdf]\n")
 
-    parser.add_argument("-bgd", "--background-data", type=str,required=False, help="[REQUIRED] Use the SCRIPT historical background data or specify your own.\n -bgd ,\t--background-data \n")
+    parser.add_argument("-bgd", "--background-data", required=False, default = "/projects/b1063/Gaurav/pyRetroPlotter/data/SCRIPTretro_masterStatistics_allBatches.csv", 
+                        help="[OPTIONAL] Use the SCRIPT historical background data or specify your own.")
 
     parser.add_argument("-gc", "--genecoverage-data", type=str, required=False,
                         help="[OPTIONAL] Provide the name of the Gene Coverage Data file containing the GC data to be plotted\n -gc [GC-DATA],\t--genecoverage-data [GC-DATA]\n")
+
     parser.add_argument("-hist", "--histogram-data", required=False, type=str,
                         help="[OPTIONAL] Provide the name of the Histogram Data file containing the gene expression histogram data to be plotted.\n-hist [HIST-DATA],\t--histogram-data [HIST-DATA]\n")
     
-    
+    parser.add_argument("-ctf", "--cutoffs", required=False, default = False,help="[OPTIONAL] Provide optional cutoffs for warn fail cutoffs.\n -ctf [CUTOFF_PATH],\t --cutoff [CUTOFF_PATH] \n")
 
     args = parser.parse_args()
 
     _ip_filename = args.input_filename
-
-    if args.background_data:
-        _bgd_filename = _script_bgdFile
-
     _op_filename = args.output_filename
-
     _gc_file = args.genecoverage_data
     _hist_file = args.histogram_data
-
-    print("\n")
+    _bgd_filename = args.background_data
+    _cutoff_filename = args.cutoffs
+    
     print(f"Input File : {_ip_filename}")
     print(f"Output File : {_op_filename}")
     print(f"Background File : {_bgd_filename}")
-    print("\n\n")
-
+    print(f"cutoffs_provided : {_cutoff_filename}")
 
     retroPlotter_main(_ip_filename, _op_filename, _bgd_filename,_gc_file,_hist_file)
 
