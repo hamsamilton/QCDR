@@ -37,6 +37,13 @@ _pipeline_dir = "/projects/b1079/U19_RNAseq_Pipeline_SLURM_v01"
 required_modules = ['python/anaconda']
 _notification_email = "samuelhamilton2024@u.northwestern.edu"
 
+# Replaces missing values of a dictionary with corresponding values of a second dictionary with matching keys
+def repl_missing_values_indict(_indict,_repldict):
+    for key, value in _indict.items():
+    # If the value is NaN, replace it with the corresponding automatically generated keys
+        if value != value:
+            _indict.update({key: _repldict[key]})
+
 '''RetroPlotter caller function for reading data and passing it to individual plotters. Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions'''
 
 def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file):
@@ -76,8 +83,18 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
         print(_manual_cutoffs.to_string())
-        _cutoff_dict = _manual_cutoffs.set_index('column1')['column2'].to_dict()
+        _man_warn_cutoff_dict = _manual_cutoffs.set_index('cutoff')['Warn'].to_dict()
+        _man_fail_cutoff_dict = _manual_cutoffs.set_index('cutoff')['Fail'].to_dict()
  
+        # for cutoffs with unspecified values, replace with the automatically generated cutoffs
+
+        repl_missing_values_indict(_man_warn_cutoff_dict,_warn_cutoffs)
+        repl_missing_values_indict(_man_fail_cutoff_dict,_fail_cutoffs)
+
+    print("THESE ARE THE MAN FAIL CUTOFFS",_man_fail_cutoff_dict)
+    print("THESE ARE THE MAN WARN CUTOFFS",_man_warn_cutoff_dict)
+    _warn_cutoffs = _man_warn_cutoff_dict
+    _fail_cutoffs = _man_fail_cutoff_dict
     ## Read Gene Coverage Data
     _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
 
@@ -100,23 +117,24 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = plt.figure(frameon=False)
 
         # Plotting figure 1: Input Size
-        fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1,_ipReads_cutoff_fail,_ipReads_cutoff_warn,fig)
+        fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1,_fail_cutoffs["_ipReads_cutoff"],_warn_cutoffs["_ipReads_cutoff"],fig)
 
         # Plotting figure 2: Percentage of Reads after Trimming
-        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2,_trimmedReads_cutoff_fail,_trimmedReads_cutoff_warn,fig)
+        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2,_fail_cutoffs["_trimmedReads_cutoff"],_warn_cutoffs["_trimmedReads_cutoff"],fig)
 
         # Plotting figure 3: Percentage of Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3,_uniqAligned_cutoff_fail,_uniqAligned_cutoff_warn,fig)
+        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3,_fail_cutoffs["_uniqAligned_cutoff"],_warn_cutoffs["_uniqAligned_cutoff"],fig)
 
         # Plotting figure 4: Percentage of Reads Mapped to Exons
-        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4,_exonMapping_cutoff_fail,_exonMapping_cutoff_warn, fig)
+        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4,_fail_cutoffs["_exonMapping_cutoff"],_warn_cutoffs["_exonMapping_cutoff"], fig)
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_riboScatter_cutoff_fail,_riboScatter_cutoff_warn,fig)
+        fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_fail_cutoffs["_riboScatter_cutoff"],_warn_cutoffs["_riboScatter_cutoff"],fig)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
-        fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_violin_cutoff_overrep_untrimmed_fail,
-        _violin_cutoff_adapter_untrimmed_fail,_violin_cutoff_overrep_untrimmed_warn,_violin_cutoff_adapter_untrimmed_warn,_violin_cutoff_overrep_trimmed_fail,_violin_cutoff_adapter_trimmed_fail,_violin_cutoff_overrep_trimmed_warn,_violin_cutoff_adapter_trimmed_warn,fig)
+        fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_fail_cutoffs["_violin_cutoff_overrep_untrimmed"],_fail_cutoffs["_violin_cutoff_adapter_untrimmed"],
+        _warn_cutoffs["_violin_cutoff_overrep_untrimmed"],_warn_cutoffs["_violin_cutoff_adapter_untrimmed"],_fail_cutoffs["_violin_cutoff_overrep_trimmed"],_fail_cutoffs["_violin_cutoff_adapter_trimmed"],
+        _warn_cutoffs["_violin_cutoff_overrep_trimmed"],_warn_cutoffs["_violin_cutoff_adapter_trimmed"],fig)
 
         # Plotting figure 7: GeneBody Coverage Distribution Plot
         fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",fig)

@@ -96,6 +96,13 @@ def mk_axes(_plt_ax,_kd_ax = None):
     else:
         return(_plt_ax)
 
+# Replaces missing values of a dictionary with corresponding values of a second dictionary with matching keys
+def repl_missing_values_indict(_indict,_repldict):
+    for key, value in _indict.items():
+    # If the value is NaN, replace it with the corresponding automatically generated keys
+        if value != value:
+            _indict.update({key: _repldict[key]})
+
 # the goal of this function is to determine if a plot needs a fail or warn box and then call the according
 # helper function 
 def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lower):
@@ -189,9 +196,6 @@ def gen_cutoffs(_bgd_df,_alph):
     _violin_cutoff_adapter_trimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Trimmed"],
                                         _alph = _alph,
                                         _uppr_lwr = "upper")
-   # _cutoff_list = [_ipReads_cutoff,_trimmedReads_cutoff,_uniqAligned_cutoff,_exonMapping_cutoff,_riboScatter_cutoff,
-   #                _violin_cutoff_overrep_untrimmed,_violin_cutoff_adapter_untrimmed,_violin_cutoff_overrep_trimmed,
-   #                 _violin_cutoff_adapter_trimmed]
     _cutoffs_dict  = locals() 
     del _cutoffs_dict["_bgd_df"]
     del _cutoffs_dict["_alph"]
