@@ -47,6 +47,8 @@ def repl_missing_values_indict(_indict,_repldict):
 '''RetroPlotter caller function for reading data and passing it to individual plotters. Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions'''
 
 def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file):
+
+    print(type(_fail_alpha))
     # Read input file and load USER data
     _user_df = pd.read_csv(_input_file, sep=",")
 
@@ -74,12 +76,10 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
     _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
     # Make standard cutoffs for warn/fail
-    _fail_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .9)
+    _fail_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _fail_alpha)
 
-    _warn_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = .7)
+    _warn_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _warn_alpha)
     
-    print("THESE ARE THE FAIL CUTOFFS",_fail_cutoffs)
-    print("THESE ARE THE WARN CUTOFFS",_warn_cutoffs)
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
         print(_manual_cutoffs.to_string())
@@ -91,10 +91,9 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         repl_missing_values_indict(_man_warn_cutoff_dict,_warn_cutoffs)
         repl_missing_values_indict(_man_fail_cutoff_dict,_fail_cutoffs)
 
-    print("THESE ARE THE MAN FAIL CUTOFFS",_man_fail_cutoff_dict)
-    print("THESE ARE THE MAN WARN CUTOFFS",_man_warn_cutoff_dict)
-    _warn_cutoffs = _man_warn_cutoff_dict
-    _fail_cutoffs = _man_fail_cutoff_dict
+        _warn_cutoffs = _man_warn_cutoff_dict
+        _fail_cutoffs = _man_fail_cutoff_dict
+    
     ## Read Gene Coverage Data
     _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
 
@@ -137,13 +136,13 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _warn_cutoffs["_violin_cutoff_overrep_trimmed"],_warn_cutoffs["_violin_cutoff_adapter_trimmed"],fig)
 
         # Plotting figure 7: GeneBody Coverage Distribution Plot
-        fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",fig)
+        fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",_fail_alpha,_warn_alpha,fig)
 
         # Plotting figure 8: Gene Expression Distribution Plot
-        fig = helper_retroFunctions.plotNegBin(_ipTuple = _tuple,_hist_df=_negBin_df,_user_df=_user_df, _pos=8,_plot_title="Distribution of Gene Expression", _f=fig)
+        fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Distribution of Gene Expression",_fail_alpha,_warn_alpha,fig)
 
         # Add sample name at the top-left corner of the page
-        fig.suptitle('Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
+        fig.suptitle('Sample : ' + _tuple[1] + _tuple[13], x=0.01, y=0.99, fontsize=6,
                      horizontalalignment='left', verticalalignment='top', fontweight='book', style='italic')
 
         # Add page number at the top-right corner of the page
@@ -180,20 +179,26 @@ if __name__ == "__main__":
     
     parser.add_argument("-ctf", "--cutoffs", required=False, default = False,help="[OPTIONAL] Provide optional cutoffs for warn fail cutoffs.\n -ctf [CUTOFF_PATH],\t --cutoff [CUTOFF_PATH] \n")
 
+    parser.add_argument("-fla", "--failalpha", required=False, default = .9,help="[OPTIONAL] Provide an alpha cutoff for failure.\n -fla [FAIL_ALPHA],\t--fail-alpha [FAIL_ALPHA]\n") 
+    
+    parser.add_argument("-wrna", "--warnalpha", required=False,type=float, default = .8,help="[OPTIONAL] Provide an alpha cutoff for warn.\n -wrna [WARN_ALPHA],\t--warnalpha [WARN_ALPHA]\n")
+ 
     args = parser.parse_args()
 
-    _ip_filename = args.input_filename
-    _op_filename = args.output_filename
-    _gc_file = args.genecoverage_data
-    _hist_file = args.histogram_data
-    _bgd_filename = args.background_data
+    _ip_filename     = args.input_filename
+    _op_filename     = args.output_filename
+    _gc_file         = args.genecoverage_data
+    _hist_file       = args.histogram_data
+    _bgd_filename    = args.background_data
     _cutoff_filename = args.cutoffs
-    
+    _fail_alpha      = float(args.failalpha)
+    _warn_alpha      = float(args.warnalpha)    
+   
     print(f"Input File : {_ip_filename}")
     print(f"Output File : {_op_filename}")
     print(f"Background File : {_bgd_filename}")
     print(f"cutoffs_provided : {_cutoff_filename}")
-
+    print(f"failalpha : {_fail_alpha}")
     retroPlotter_main(_ip_filename, _op_filename, _bgd_filename,_gc_file,_hist_file)
 
 
@@ -207,5 +212,4 @@ if __name__ == "__main__":
                       "/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11/Output/3-STAROutput_Bam/GeneBody_Coverage/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv",
                       "/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11/Output/4-htseqCounts/Histogram_Plot/CPM_SCRIPT_RNAseq_Batch_11_final_count_bincounts_0.5.csv",
                       "/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11/Output/3-STAROutput_Bam/stats")
-    
     '''
