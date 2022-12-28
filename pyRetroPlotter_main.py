@@ -142,7 +142,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Distribution of Gene Expression",_fail_alpha,_warn_alpha,fig)
 
         # Add sample name at the top-left corner of the page
-        fig.suptitle('Sample : ' + _tuple[1] + _tuple[13], x=0.01, y=0.99, fontsize=6,
+        fig.suptitle('Sample : ' + _tuple[1] + " Batch : " + _tuple[13], x=0.01, y=0.99, fontsize=6,
                      horizontalalignment='left', verticalalignment='top', fontweight='book', style='italic')
 
         # Add page number at the top-right corner of the page
@@ -199,6 +199,8 @@ if __name__ == "__main__":
     print(f"Background File : {_bgd_filename}")
     print(f"cutoffs_provided : {_cutoff_filename}")
     print(f"failalpha : {_fail_alpha}")
+    print(f"warnalpha : {_warn_alpha}")
+    
     retroPlotter_main(_ip_filename, _op_filename, _bgd_filename,_gc_file,_hist_file)
 
 
