@@ -1025,7 +1025,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_fail_alpha,_warn_
                                                      linewidth=0)
 
     _ax.legend([_current_samp_line, _lib_line, _extra_Ztest_Pval],
-               ["Current Sample", "Library Mean", "ZTest Pvalue : " + str(round(_curr_pval.item(), 3))], loc='best',
+               ["Current Sample", "Library Mean", "Pvalue : " + str(round(_curr_pval.item(), 3))], loc='best',
                frameon=False, fontsize=4, ncol=1)
     _ax = mk_axes(_ax) 
     _ax = needs_fail_or_warn(_ax,_curr_pval,1-_fail_alpha,1-_warn_alpha,"lower")
