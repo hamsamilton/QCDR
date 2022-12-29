@@ -37,14 +37,24 @@ _curr_sample_color = "lightseagreen"
 _title_size        = 6
 _label_size        = 5 
 _tick_size         = 4 
+
+# Get the range of an _axis get_y(x)lim object
+def get_axis_range(_axis_lim):
+    _rng = _axis_lim[1] - _axis_lim[0]
+    return(_rng)
+
 # This function physically adds the warn and fail markers
 def add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn):
-    _ax.plot(_cutoff_fail, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='red')
-    _ax.text(_cutoff_fail, _ax.get_ylim()[1] - 0.4, 'Fail', fontsize=4, color='red',
+
+    # calculate a value based on the range that scales values to a % so that the % everything is shifted by is consistent across plots 
+    _plot_scalar = get_axis_range(_ax.get_ylim()) / 100
+   
+    _ax.plot(_cutoff_fail,_ax.get_ylim()[1] - (18 * _plot_scalar), marker='v', ms=0.8, c=_fail_color)
+    _ax.text(_cutoff_fail,_ax.get_ylim()[1] - (13 * _plot_scalar), 'Fail', fontsize=4, color=_fail_color,
              horizontalalignment='center')
 
-    _ax.plot(_cutoff_warn, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c=_warn_color)
-    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - 0.4, 'Warn', fontsize=4, color=_warn_color,
+    _ax.plot(_cutoff_warn, _ax.get_ylim()[1] -  (1 * _plot_scalar), marker='v', ms=0.8, c=_warn_color)
+    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - (.5 * _plot_scalar), 'Warn', fontsize=4, color=_warn_color,
              horizontalalignment='center')
     return(_ax)
 
