@@ -143,11 +143,32 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Add sample name at the top-left corner of the page
         fig.suptitle('Sample : ' + _tuple[1] + " Batch : " + _tuple[13], x=0.01, y=0.99, fontsize=6,
-                     horizontalalignment='left', verticalalignment='top', fontweight='book', style='italic')
-
+                     horizontalalignment='left', verticalalignment='top', fontweight='book',style = 'italic')
+        fig.text(s= ('Warn cutoffs: Default alpha =' + str(_warn_alpha) +
+                    '| Sequencing Depth = ' + str(_warn_cutoffs["_ipReads_cutoff"]) +
+                    '| Trimming = ' + str(_warn_cutoffs["_trimmedReads_cutoff"]) +  
+                    '| Alignment = ' + str(_warn_cutoffs["_uniqAligned_cutoff"]) +  
+                    '| Gene Exon Mapping = ' + str(_warn_cutoffs["_exonMapping_cutoff"]) + 
+                    '| Ribosomal RNA = ' + str(round(_warn_cutoffs["_riboScatter_cutoff"],3)) + 
+                    '| Sequence Contamination = ' + str(_warn_cutoffs["_violin_cutoff_adapter_untrimmed"]) + 
+                    '| Gene Body Coverage = ' + str(_warn_alpha) + 
+                    '| Distribution of Gene Expression = ' + str(_warn_alpha)) , 
+                    x = .01, y = .965, fontsize = 3,
+                     ha='left', va='top',fontweight='book', style = 'italic')
+        fig.text(s= ('Fail cutoffs: Default alpha =' + str(_fail_alpha) +
+                    '| Sequencing Depth = ' + str(_fail_cutoffs["_ipReads_cutoff"]) +
+                    '| Trimming = ' + str(_fail_cutoffs["_trimmedReads_cutoff"]) +  
+                    '| Alignment = ' + str(_fail_cutoffs["_uniqAligned_cutoff"]) +  
+                    '| Gene Exon Mapping = ' + str(_fail_cutoffs["_exonMapping_cutoff"]) + 
+                    '| Ribosomal RNA = ' + str(round(_fail_cutoffs["_riboScatter_cutoff"],3)) + 
+                    '| Sequence Contamination = ' + str(_fail_cutoffs["_violin_cutoff_adapter_untrimmed"]) + 
+                    '| Gene Body Coverage = ' + str(_fail_alpha) + 
+                    '| Distribution of Gene Expression = ' + str(_fail_alpha)) , 
+                    x = .01, y = .95, fontsize = 3,
+                     ha='left', va='top',fontweight='book', style = 'italic')
         # Add page number at the top-right corner of the page
         fig.text(x=0.99, y=0.99, s=int(_tuple[0]) + 1, ha='right', va='top', fontsize=4)
-
+            
         plt.subplots_adjust(hspace=0.7, wspace=0.2)
 
         _pdfObj.savefig(fig)

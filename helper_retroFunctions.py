@@ -29,8 +29,10 @@ import helper_retroFunctions
 import matplotlib.offsetbox
 from datetime import datetime
 from statsmodels.stats.weightstats import ztest
+import matplotlib.patches as mpatches
 
-warn_color = "gold"
+_fail_color = "red"
+_warn_color = "gold"
 _curr_sample_color = "lightseagreen"
 
 
@@ -40,8 +42,8 @@ def add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn):
     _ax.text(_cutoff_fail, _ax.get_ylim()[1] - 0.4, 'Fail', fontsize=4, color='red',
              horizontalalignment='center')
 
-    _ax.plot(_cutoff_warn, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c=warn_color)
-    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - 0.4, 'Warn', fontsize=4, color=warn_color,
+    _ax.plot(_cutoff_warn, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c=_warn_color)
+    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - 0.4, 'Warn', fontsize=4, color=_warn_color,
              horizontalalignment='center')
     return(_ax)
 
@@ -64,6 +66,23 @@ def adjust_flag(_ax,_current_sample,_lib_mean):
         # plot the library mean line
         _ax.text(_lib_mean + 0.5, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation= 270,
                  fontsize=3, zorder=2)
+    return(_ax)
+
+# set the legend for figures with warn / fail IE 1_6)
+def legend_setup_1_6(_ax,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn):
+    _fail_label = mpatches.Patch(color='red', label='Fail Cutoff')   
+    _warn_label=  mpatches.Patch(color=_warn_color, label='Warn Cutoff')    
+    _ax.legend([_line1,
+                    _line2,
+                    _fail_label,
+                    _warn_label],
+                ["Current Sample", 
+                    "Batch Mean",
+                    "Fail (" + str(round(_cutoff_fail,2)) + ")",
+                    "Warn (" + str(round(_cutoff_warn,2)) + ")"],
+                loc='best',
+                frameon=False,
+                fontsize=4)
     return(_ax)
 
 # the goal of this function is to set which axes of the regular axis and the Kernel density axis 
@@ -222,7 +241,6 @@ def fmt_interval(_x, _pos):
     return '0:.0s%'.format(_x)
 
 def fmt_million(_x, _pos):
-    # return '{0:.0f}M'.format(_x)
     return '{0:.0f}'.format(_x)
 
 
@@ -421,7 +439,10 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
                          label='{:2.2f}M'.format(_lib_mean))
 
     _kde_line = matplotlib.lines.Line2D([0], [0], color="gray", linewidth=0.5, linestyle='-')
-    _ax.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4)
+
+    # set up axes
+    
+    _ax = legend_setup_1_6(_ax,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
 
     #set axes to be visible or not
     _ax,_ax1 =  mk_axes(_ax,_ax1)
@@ -493,8 +514,8 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
-    _axis.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
- 
+    _axis = legend_setup_1_6(_axis,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
+
     _axis,_axis1 =  mk_axes(_axis,_axis1)
     _axis = needs_fail_or_warn(_axis,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
 
@@ -559,6 +580,8 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
     _axis_plt3.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
 
+    _axis_plt3 = legend_setup_1_6(_axis_plt3,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
+
     _axis_plt3,_axis1_plt3 =  mk_axes(_axis_plt3,_axis1_plt3)
     _axis_plt3 = needs_fail_or_warn(_axis_plt3,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
     
@@ -622,8 +645,8 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
-    _axis_plt4.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
 
+    _axis_plt4 = legend_setup_1_6(_axis_plt4,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
     _axis_plt4,_axis1_plt4 =  mk_axes(_axis_plt4,_axis1_plt4)
     _axis_plt4 = needs_fail_or_warn(_axis_plt4,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
     
@@ -686,10 +709,10 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     line_y1_warn = _slope_warn * (line_x1 - line_x0) + line_y0
     line_y1_fail = _slope_fail * (line_x1 - line_x0) + line_y0
 
-    _ax.plot([line_x0, line_x1], [line_y0, line_y1_warn], c=warn_color, linewidth=1, linestyle='--', alpha=0.3, label="Warn")
+    _ax.plot([line_x0, line_x1], [line_y0, line_y1_warn], c=_warn_color, linewidth=1, linestyle='--', alpha=0.3, label="Warn")
     _ax.plot([line_x0, line_x1], [line_y0, line_y1_fail], c='r', linewidth=1, linestyle='--', alpha=0.3, label="Fail")
 
-    _ax.annotate('Warn', xy=(line_x1, line_y1_warn), fontsize=4, color=warn_color, ha='right', va='center', rotation=13.5)
+    _ax.annotate('Warn', xy=(line_x1, line_y1_warn), fontsize=4, color=_warn_color, ha='right', va='center', rotation=13.5)
     # arrowprops=dict(arrowstyle='<->', connectionstyle='arc3,rad=0', lw=0.3, ls='-'),
 
     _ax.annotate('Fail', xy=(line_x1, line_y1_fail), fontsize=4, color='r', ha='right', va='center', rotation=17)
@@ -711,7 +734,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     _historic_data = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='darkgray', marker='o', linewidth=1, markersize=3.5)
     _regression_gradient = matplotlib.lines.Line2D([0], [0], color='black', linewidth=0.6)
 
-    _ax.legend([_curr_samp, _curr_lib], ['Current Sample', 'Batch Samples'], loc='best', frameon=False, ncol=1, fontsize=3)
+    _ax = legend_setup_1_6(_ax,_curr_samp,_curr_lib,_fail_color,_warn_color,_slope_fail,_slope_warn)
     _ax = mk_axes(_ax) 
     _ax = needs_fail_or_warn(_ax,_slope_current,_slope_fail,_slope_warn,"upper")
 
@@ -812,14 +835,14 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
     _markers = [
     (_axis, _cutoff_fail_overrep_untrimmed, -0.7, 'Fail', 'red'),
-    (_axis, _cutoff_warn_overrep_untrimmed, -0.7, 'Warn', warn_color),
+    (_axis, _cutoff_warn_overrep_untrimmed, -0.7, 'Warn', _warn_color),
     (_axis3, _cutoff_fail_overrep_trimmed, -0.7, 'Fail', 'red'),
-    (_axis3, _cutoff_warn_overrep_trimmed, -0.7,'Warn', warn_color),
+    (_axis3, _cutoff_warn_overrep_trimmed, -0.7,'Warn', _warn_color),
     # adapter 
     (_axis, _cutoff_fail_adapter_untrimmed, .7, 'Fail', 'red'),
-    (_axis, _cutoff_warn_adapter_untrimmed, .7, 'Warn', warn_color),
+    (_axis, _cutoff_warn_adapter_untrimmed, .7, 'Warn', _warn_color),
     (_axis3, _cutoff_fail_adapter_trimmed, .7, 'Fail', "red"),
-    (_axis3, _cutoff_warn_adapter_trimmed, .7, 'Warn', warn_color)]
+    (_axis3, _cutoff_warn_adapter_trimmed, .7, 'Warn', _warn_color)]
 
     for _axs, _cutoff, yloc,label, color in _markers:
         _axs.plot(_cutoff, yloc, marker='v', ms=1, c=color, clip_on=False)
