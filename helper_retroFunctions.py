@@ -31,11 +31,12 @@ from datetime import datetime
 from statsmodels.stats.weightstats import ztest
 import matplotlib.patches as mpatches
 
-_fail_color = "red"
-_warn_color = "gold"
+_fail_color        = "red"
+_warn_color        = "goldenrod"
 _curr_sample_color = "lightseagreen"
-
-
+_title_size        = 6
+_label_size        = 5 
+_tick_size         = 4 
 # This function physically adds the warn and fail markers
 def add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn):
     _ax.plot(_cutoff_fail, _ax.get_ylim()[1] - 1, marker='v', ms=0.8, c='red')
@@ -411,19 +412,19 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     _ax1 = _ax.twinx()
     sns.distplot(_background_df["Input_Size"], hist=False, bins=_bins, ax=_ax1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
-    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=3, direction='out', pad=2)
-    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=4, labelleft=True, left=True, direction='out', pad=2)
+    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _tick_size, direction='out', pad=2)
+    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True, direction='out', pad=2)
 
 #    _ax.set_xlim(_xmin,_xmax)
 
  #   _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5]))
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_million))
 
-    _ax.set_title("Sequencing Depth", fontsize=6)
-    _ax.set_xlabel('Total Reads (Millions)', labelpad=1, fontsize=5)
+    _ax.set_title("Sequencing Depth",fontsize = _title_size)
+    _ax.set_xlabel('Total Reads (Millions)', labelpad=1, fontsize= _label_size)
 
     _ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _ax.set_ylabel('Frequency', labelpad=2, fontsize=5)
+    _ax.set_ylabel('Frequency', labelpad=2, fontsize= _label_size)
 
     _ax = adjust_flag(_ax,_current_sample,_lib_mean)
 
@@ -486,21 +487,20 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
    # _axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5]))
    # _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
 
-    _axis.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=3,
+    _axis.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _tick_size,
                       direction='out', pad=2)
-    _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=4, labelleft=True, left=True,
+    _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True,
                       direction='out', pad=2)
 
-    _axis.set_title(_plot_label, fontsize=6)
+    _axis.set_title(_plot_label, fontsize= _title_size)
 
-    _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize=5)
+    _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    _axis.set_ylabel('Frequency', labelpad=2, fontsize= _label_size)
+    _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize= _label_size)
 
     ### Adding cutoff markers
     _axis = add_warn_fail_markers(_axis,_cutoff_fail,_cutoff_warn)
     
-    _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _axis.set_ylabel('Frequency', labelpad=2, fontsize=5)
-
     _axis = adjust_flag(_axis,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
@@ -554,19 +554,18 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 #    _axis_plt3.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5], nbins=21))
 #    _axis_plt3.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
 
-    _axis_plt3.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=3, direction='out', pad=2)
-    _axis_plt3.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=4, labelleft=True, left=True, direction='out', pad=2)
+    _axis_plt3.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _tick_size, direction='out', pad=2)
+    _axis_plt3.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True, direction='out', pad=2)
 
-    _axis_plt3.set_title(_plot_label, fontsize=6)
+    _axis_plt3.set_title(_plot_label, fontsize=_title_size)
 
-    _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize=5)
+    # Set labels
+    _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize= _label_size)
+    _axis_plt3.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize= _label_size)
 
     ### Adding cutoff markers
     _axis_plt3 = add_warn_fail_markers(_axis_plt3,_cutoff_fail,_cutoff_warn)
-
-    _axis_plt3.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize=5)
-
     _axis_plt3 = adjust_flag(_axis_plt3,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
@@ -621,18 +620,18 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
  #   _axis_plt4.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5], nbins=21))
  #   _axis_plt4.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
 
-    _axis_plt4.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=3, direction='out', pad=2)
-    _axis_plt4.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=4, labelleft=True, left=True, direction='out', pad=2)
+    _axis_plt4.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=_tick_size, direction='out', pad=2)
+    _axis_plt4.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True, direction='out', pad=2)
 
-    _axis_plt4.set_title(_plot_label, fontsize=6)
+    _axis_plt4.set_title(_plot_label, fontsize=_title_size)
 
-    _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=5)
+    _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=_label_size)
+    _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize= _label_size)
 
     ### Adding cutoff markers
     _axis_plt4 = add_warn_fail_markers(_axis_plt4,_cutoff_fail,_cutoff_warn)
 
     _axis_plt4.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize=4)
 
     _axis_plt4 = adjust_flag(_axis_plt4,_current_sample,_lib_mean)
 
@@ -679,26 +678,18 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
 
     _ax.plot(X, Y_pred, c='dimgray', linewidth=0.7, linestyle='-', alpha=1)
 
-    _ax.set_title("Ribosomal RNA", fontsize=6)
+    _ax.set_title("Ribosomal RNA", fontsize= _title_size)
 
-    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelrotation=0, labelbottom=True, bottom=True, labelsize=3, direction='out', pad=1)
-    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=3, labelleft=True, left=True, direction='out', pad=2)
+    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelrotation=0, labelbottom=True, bottom=True, labelsize=_tick_size, direction='out', pad=1)
+    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True, direction='out', pad=2)
 
-    _ax.set_xlabel("Uniquely Aligned Reads (Millions)", fontsize=6, labelpad=2)
-    _ax.set_ylabel("rRNA Reads (Millions)", fontsize=6, labelpad=2)
+    _ax.set_xlabel("Uniquely Aligned Reads (Millions)", fontsize= _label_size, labelpad=2)
+    _ax.set_ylabel("rRNA Reads (Millions)", fontsize= _label_size, labelpad=2)
 
     x_bottom, x_top = plt.xlim()
     y_bottom, y_top = plt.ylim()
 
-    # Set limits on X-axis
-   # _ax.set_xlim([x_bottom, x_top], emit=True)
-
-    # Set limits on Y-axis
-   # _ax.set_ylim([y_bottom, y_top + 7500000], emit=True)
-
     # Plotting the ratio line 
-    _slope_warn = _cutoff_warn
-    _slope_fail = _cutoff_fail
     _slope_current = float(_in_tup[7] / _in_tup[4])
 
     xmin, xmax = _ax.get_xlim()
@@ -706,8 +697,8 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     line_x1 = xmax
 
     line_y0 = 0
-    line_y1_warn = _slope_warn * (line_x1 - line_x0) + line_y0
-    line_y1_fail = _slope_fail * (line_x1 - line_x0) + line_y0
+    line_y1_warn = _cutoff_warn * (line_x1 - line_x0) + line_y0
+    line_y1_fail = _cutoff_fail * (line_x1 - line_x0) + line_y0
 
     _ax.plot([line_x0, line_x1], [line_y0, line_y1_warn], c=_warn_color, linewidth=1, linestyle='--', alpha=0.3, label="Warn")
     _ax.plot([line_x0, line_x1], [line_y0, line_y1_fail], c='r', linewidth=1, linestyle='--', alpha=0.3, label="Fail")
@@ -734,9 +725,9 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     _historic_data = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='darkgray', marker='o', linewidth=1, markersize=3.5)
     _regression_gradient = matplotlib.lines.Line2D([0], [0], color='black', linewidth=0.6)
 
-    _ax = legend_setup_1_6(_ax,_curr_samp,_curr_lib,_fail_color,_warn_color,_slope_fail,_slope_warn)
+    _ax = legend_setup_1_6(_ax,_curr_samp,_curr_lib,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
     _ax = mk_axes(_ax) 
-    _ax = needs_fail_or_warn(_ax,_slope_current,_slope_fail,_slope_warn,"upper")
+    _ax = needs_fail_or_warn(_ax,_slope_current,_cutoff_fail,_cutoff_warn,"upper")
 
     return _f
 
@@ -796,7 +787,7 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     sns.violinplot(x="Percent", y="Contamination_Metric", data=_contaminant_melt_trim, palette=_contaminant_pal,
                    inner=None,ax=_axis2, linewidth=0.3, orient="h", scale="count")
 
-    _axis.set_title("Sequence Contamination", fontsize=6, pad=0)
+    _axis.set_title("Sequence Contamination", fontsize=_title_size, pad=0)
 
     _axis.tick_params(axis='x', which='both', length=1, width=0.5, labelsize=3, labelbottom=True, bottom=True, direction='out', pad=2)
     _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelrotation=0, labelleft=True, left=True, labelsize=2.5, direction='out', pad=1)
@@ -804,10 +795,10 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     _axis2.tick_params(axis='x', which='both', length=1, width=0.5, labelsize=3, labelbottom=True, bottom=True, direction='out', pad=2)
     _axis2.tick_params(axis='y', which='both', length=1, width=0.5, labelrotation=0, labelleft=True, left=True, labelsize=2.5, direction='out', pad=1)
 
-    _axis.set_xlabel("Pre-trim (%)", fontsize=5, labelpad=0.5)
+    _axis.set_xlabel("Pre-trim (%)", fontsize=_label_size, labelpad=0.5)
     _axis.set_ylabel("")
 
-    _axis2.set_xlabel("Post-trim (%)", fontsize=5, labelpad=0.5)
+    _axis2.set_xlabel("Post-trim (%)", fontsize=_label_size, labelpad=0.5)
     _axis2.set_ylabel("")
 
     _axis.xaxis.set_major_locator(matplotlib.ticker.AutoLocator())
@@ -846,7 +837,7 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
     for _axs, _cutoff, yloc,label, color in _markers:
         _axs.plot(_cutoff, yloc, marker='v', ms=1, c=color, clip_on=False)
-        _axs.text(_cutoff, yloc - .1 , label, fontsize=4, color=color, horizontalalignment='center')
+        _axs.text(_cutoff, yloc - .1 , label, fontsize=_tick_size, color=color, horizontalalignment='center')
 
     _line_overrep_untrim = _axis.axvline(x=_current_overrep_untrim, ymin=0.5, ymax=0.95, alpha=0.8, color=_curr_sample_color,
                                          linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_overrep_untrim))
@@ -893,7 +884,6 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
 
 #### Plot 7 : GeneBody Coverage Plot
-
 def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alpha,_fig=None):
     
     if not _fig is None:
@@ -926,17 +916,17 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alph
 
     _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
 
-    _axis.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=3,
+    _axis.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=_tick_size,
                       direction='out', pad=2)
-    _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=3, labelleft=True, left=True,
+    _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=_tick_size, labelleft=True, left=True,
                       direction='out', pad=2)
 
     _axis.set_xlim(0, 105)
     _axis.set_title(_plot_title, fontsize=6)
 
     _uni_arrw = u"\u2192"
-    _axis.set_xlabel("Gene Percentile (5' " + _uni_arrw + " 3')", fontsize=5, labelpad=2)
-    _axis.set_ylabel("Coverage", fontsize=5, labelpad=2)
+    _axis.set_xlabel("Gene Percentile (5' " + _uni_arrw + " 3')", fontsize=_label_size, labelpad=2)
+    _axis.set_ylabel("Coverage", fontsize=_label_size, labelpad=2)
 
     #_axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(np.arange(0, 101, 1)[0::5]))
     #_axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
@@ -1022,17 +1012,17 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_fail_alpha,_warn_
     _ax.plot(_x_vals, _mean_df_dropped['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
 
     _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelrotation=60, labelbottom=True, bottom=True,
-                    labelsize=2, direction='out', pad=1)
-    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=3, labelleft=True, left=True,
+                    labelsize=_tick_size, direction='out', pad=1)
+    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=_tick_size, labelleft=True, left=True,
                     direction='out', pad=2)
 
     _ax.set_xlim(0, 10)
     _ax.set_ylim(0, _max_df['max_val'].max())
 
-    _ax.set_title(_plot_title, fontsize=6)
+    _ax.set_title(_plot_title, fontsize=_title_size)
 
-    _ax.set_xlabel("Quantity of detected reads (log2(CPM)+1)", fontsize=5, labelpad=2)
-    _ax.set_ylabel("Frequency", fontsize=5, labelpad=2)
+    _ax.set_xlabel("Quantity of detected reads (log2(CPM)+1)", fontsize=_label_size, labelpad=2)
+    _ax.set_ylabel("Frequency", fontsize=_label_size, labelpad=2)
 
     _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_x_vals[::5]))
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FixedFormatter(_x_vals[::5]))
