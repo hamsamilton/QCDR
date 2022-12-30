@@ -139,7 +139,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",_fail_alpha,_warn_alpha,fig)
 
         # Plotting figure 8: Gene Expression Distribution Plot
-        fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Distribution of Gene Expression",_fail_alpha,_warn_alpha,fig)
+        fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_fail_alpha,_warn_alpha,fig)
 
         # Add sample name at the top-left corner of the page
         fig.suptitle('Sample : ' + _tuple[1] + " Batch : " + _tuple[13], x=0.01, y=0.99, fontsize=6,
