@@ -734,8 +734,23 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     _curr_lib = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='indigo', marker='o', linewidth=1, markersize=3.5)
     _historic_data = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='darkgray', marker='o', linewidth=1, markersize=3.5)
     _regression_gradient = matplotlib.lines.Line2D([0], [0], color='black', linewidth=0.6)
+    _mean_label = mpatches.Patch(color='gray', label='Mean Slope')   
+    _fail_label = mpatches.Patch(color='red', label='Fail Cutoff')   
+    _warn_label=  mpatches.Patch(color=_warn_color, label='Warn Cutoff')    
+    _ax.legend([_curr_samp,
+                    _curr_lib,
+                    _fail_label,
+                    _warn_label,
+                    _mean_label],
+                ["Current Sample", 
+                    "Batch Mean",
+                    "Fail (" + str(round(_cutoff_fail,2)) + ")",
+                    "Warn (" + str(round(_cutoff_warn,2)) + ")",
+                    "Mean Slope"],
+                loc='best',
+                frameon=False,
+                fontsize=4)
 
-    _ax = legend_setup_1_6(_ax,_curr_samp,_curr_lib,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
     _ax = mk_axes(_ax) 
     _ax = needs_fail_or_warn(_ax,_slope_current,_cutoff_fail,_cutoff_warn,"upper")
 
@@ -938,11 +953,6 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alph
     _axis.set_xlabel("Gene Percentile (5' " + _uni_arrw + " 3')", fontsize=_label_size, labelpad=2)
     _axis.set_ylabel("Coverage", fontsize=_label_size, labelpad=2)
 
-    #_axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(np.arange(0, 101, 1)[0::5]))
-    #_axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
-    # _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    #_axis.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_cov))
-
     _current_sample_line = matplotlib.lines.Line2D([0], [0], color=_curr_sample_color, linewidth=0.5, linestyle='-', alpha=0.8)
     _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
 
@@ -1031,7 +1041,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_fail_alpha,_warn_
 
     _ax.set_title(_plot_title, fontsize=_title_size)
 
-    _ax.set_xlabel("Quantity of detected reads (log2(CPM)+1)", fontsize=_label_size, labelpad=2)
+    _ax.set_xlabel("Gene Counts (log2(CPM)+1)", fontsize=_label_size, labelpad=2)
     _ax.set_ylabel("Frequency", fontsize=_label_size, labelpad=2)
 
     _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_x_vals[::5]))
