@@ -4,6 +4,7 @@ import os
 import argparse
 matplotlib.use('PDF')
 import seaborn
+import pickle
 import matplotlib.pyplot as plt
 import sqlite3
 import sys
@@ -18,6 +19,7 @@ import subprocess
 import numpy as np
 import pandas as pd
 import xlsxwriter
+from helper_retroFunctions import *
 from sklearn.linear_model import LinearRegression
 from itertools import zip_longest
 from scipy.stats import norm
@@ -25,7 +27,6 @@ from scipy import stats
 from sklearn.preprocessing import LabelEncoder
 from matplotlib.backends.backend_pdf import PdfPages
 from sklearn.preprocessing import MinMaxScaler
-import helper_retroFunctions
 import matplotlib.offsetbox
 from datetime import datetime
 # from pandas.plotting import register_matplotlib_converters
@@ -37,18 +38,10 @@ _pipeline_dir = "/projects/b1079/U19_RNAseq_Pipeline_SLURM_v01"
 required_modules = ['python/anaconda']
 _notification_email = "samuelhamilton2024@u.northwestern.edu"
 
-# Replaces missing values of a dictionary with corresponding values of a second dictionary with matching keys
-def repl_missing_values_indict(_indict,_repldict):
-    for key, value in _indict.items():
-    # If the value is NaN, replace it with the corresponding automatically generated keys
-        if value != value:
-            _indict.update({key: _repldict[key]})
-
 '''RetroPlotter caller function for reading data and passing it to individual plotters. Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions'''
 
 def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file):
 
-    print(type(_fail_alpha))
     # Read input file and load USER data
     _user_df = pd.read_csv(_input_file, sep=",")
 
@@ -75,11 +68,22 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
     # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
     _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
+
+    # create dictionarys to store values in 2 pass 2 helper functions
+    
     # Make standard cutoffs for warn/fail
     _fail_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _fail_alpha)
-
     _warn_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _warn_alpha)
     
+    _figinfo = {}
+    _figinfo["_fail_color"] =  "red"
+    _figinfo["_warn_color"] =  "goldenrod"
+    _figinfo["_curr_sample_color"] = "lightseagreen"
+    _figinfo["_title_size"]         = 6
+    _figinfo["_label_size"]       = 5
+    _figinfo["_tick_size"]        = 4
+    _figinfo["_subplot_rows"]     = 4
+
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
         print(_manual_cutoffs.to_string())
@@ -94,6 +98,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _warn_cutoffs = _man_warn_cutoff_dict
         _fail_cutoffs = _man_fail_cutoff_dict
     
+    _warn_cutoffs = prefix_dict("_warn",_warn_cutoffs)
+    _fail_cutoffs = prefix_dict("_fail",_fail_cutoffs)
+    # add cutoff info
+    _figinfo.update(_fail_cutoffs)
+    _figinfo.update(_warn_cutoffs)
+    print(_figinfo)
     ## Read Gene Coverage Data
     _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
 
@@ -116,30 +126,30 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = plt.figure(frameon=False)
 
         # Plotting figure 1: Input Size
-        fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1,_fail_cutoffs["_ipReads_cutoff"],_warn_cutoffs["_ipReads_cutoff"],fig)
+        fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1,_figinfo,fig)
 
         # Plotting figure 2: Percentage of Reads after Trimming
-        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2,_fail_cutoffs["_trimmedReads_cutoff"],_warn_cutoffs["_trimmedReads_cutoff"],fig)
+        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2,_fail_cutoffs["_trimmedReads_cutoff"],_warn_cutoffs["_trimmedReads_cutoff"],_figinfo,fig)
 
         # Plotting figure 3: Percentage of Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3,_fail_cutoffs["_uniqAligned_cutoff"],_warn_cutoffs["_uniqAligned_cutoff"],fig)
+        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3,_fail_cutoffs["_uniqAligned_cutoff"],_warn_cutoffs["_uniqAligned_cutoff"],_figinfo,fig)
 
         # Plotting figure 4: Percentage of Reads Mapped to Exons
-        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4,_fail_cutoffs["_exonMapping_cutoff"],_warn_cutoffs["_exonMapping_cutoff"], fig)
+        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4,_fail_cutoffs["_exonMapping_cutoff"],_warn_cutoffs["_exonMapping_cutoff"],_figinfo, fig)
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_fail_cutoffs["_riboScatter_cutoff"],_warn_cutoffs["_riboScatter_cutoff"],fig)
+        fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_fail_cutoffs["_riboScatter_cutoff"],_warn_cutoffs["_riboScatter_cutoff"],_figinfo,fig)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
         fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_fail_cutoffs["_violin_cutoff_overrep_untrimmed"],_fail_cutoffs["_violin_cutoff_adapter_untrimmed"],
         _warn_cutoffs["_violin_cutoff_overrep_untrimmed"],_warn_cutoffs["_violin_cutoff_adapter_untrimmed"],_fail_cutoffs["_violin_cutoff_overrep_trimmed"],_fail_cutoffs["_violin_cutoff_adapter_trimmed"],
-        _warn_cutoffs["_violin_cutoff_overrep_trimmed"],_warn_cutoffs["_violin_cutoff_adapter_trimmed"],fig)
+        _warn_cutoffs["_violin_cutoff_overrep_trimmed"],_warn_cutoffs["_violin_cutoff_adapter_trimmed"],_figinfo,fig)
 
         # Plotting figure 7: GeneBody Coverage Distribution Plot
-        fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",_fail_alpha,_warn_alpha,fig)
+        fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",_fail_alpha,_warn_alpha,_figinfo,fig)
 
         # Plotting figure 8: Gene Expression Distribution Plot
-        fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_fail_alpha,_warn_alpha,fig)
+        fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_fail_alpha,_warn_alpha,_figinfo,fig)
 
         # Add sample name at the top-left corner of the page
         fig.suptitle('Sample : ' + _tuple[1] + " Batch : " + _tuple[13], x=0.01, y=0.99, fontsize=6,

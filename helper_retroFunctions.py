@@ -31,20 +31,27 @@ from datetime import datetime
 from statsmodels.stats.weightstats import ztest
 import matplotlib.patches as mpatches
 
-_fail_color        = "red"
-_warn_color        = "goldenrod"
-_curr_sample_color = "lightseagreen"
-_title_size        = 6
-_label_size        = 5 
-_tick_size         = 4 
+# Replaces missing values of a dictionary with corresponding values of a second dictionary with matching keys
+def repl_missing_values_indict(_indict,_repldict):
+    for key, value in _indict.items():
+    # If the value is NaN, replace it with the corresponding automatically generated keys
+        if value != value:
+            _indict.update({key: _repldict[key]})
 
+# adds a prefix to the names of a dictionary
+def prefix_dict(_pre,_dict):
+        
+    _newdict= {_pre + str(key): val for key, val in _dict.items()}
+    
+    return _newdict
+  
 # Get the range of an _axis get_y(x)lim object
 def get_axis_range(_axis_lim):
     _rng = _axis_lim[1] - _axis_lim[0]
-    return(_rng)
+    return _rng
 
 # This function physically adds the warn and fail markers
-def add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn):
+def add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn,_fail_color,_warn_color):
 
     # calculate a value based on the range that scales values to a % so that the % everything is shifted by is consistent across plots 
     _plot_scalar = get_axis_range(_ax.get_ylim()) / 100
@@ -56,7 +63,7 @@ def add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn):
     _ax.plot(_cutoff_warn, _ax.get_ylim()[1] -  (1 * _plot_scalar), marker='v', ms=0.8, c=_warn_color)
     _ax.text(_cutoff_warn, _ax.get_ylim()[1] - (.5 * _plot_scalar), 'Warn', fontsize=4, color=_warn_color,
              horizontalalignment='center')
-    return(_ax)
+    return _ax
 
    
 # This function calculates whether the current sample label orientation needs 
@@ -77,7 +84,7 @@ def adjust_flag(_ax,_current_sample,_lib_mean):
         # plot the library mean line
         _ax.text(_lib_mean + 0.5, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation= 270,
                  fontsize=3, zorder=2)
-    return(_ax)
+    return _ax
 
 # set the legend for figures with warn / fail IE 1_6)
 def legend_setup_1_6(_ax,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn):
@@ -94,7 +101,7 @@ def legend_setup_1_6(_ax,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cut
                 loc='best',
                 frameon=False,
                 fontsize=4)
-    return(_ax)
+    return _ax 
 
 # the goal of this function is to set which axes of the regular axis and the Kernel density axis 
 def mk_axes(_plt_ax,_kd_ax = None):
@@ -123,9 +130,9 @@ def mk_axes(_plt_ax,_kd_ax = None):
         _kd_ax.spines['bottom'].set_visible(False)
         _kd_ax.spines['left'].set_visible(False)
 
-        return(_plt_ax,_kd_ax)
+        return _plt_ax,_kd_ax
     else:
-        return(_plt_ax)
+        return _plt_ax
 
 # Replaces missing values of a dictionary with corresponding values of a second dictionary with matching keys
 def repl_missing_values_indict(_indict,_repldict):
@@ -144,7 +151,7 @@ def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lowe
             insert_flag_fail(_ax)
         elif (_current_sample <= _cutoff_warn):
             insert_flag_warn(_ax)
-        return(_ax)
+        return _ax 
 
     if higher_lower == "upper":
        
@@ -152,7 +159,7 @@ def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lowe
             insert_flag_fail(_ax)
         elif (_current_sample >= _cutoff_warn):
             insert_flag_warn(_ax)
-        return(_ax)
+        return _ax
 
 # The goal of this function is to return the upper or/and lower bound of a ci given a vec
 def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
@@ -163,7 +170,8 @@ def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
         ci_bnd = ci_bnd[1]
     elif _uppr_lwr == "lower":
         ci_bnd = ci_bnd[0]
-    return(ci_bnd)
+
+    return ci_bnd
 
 # writing a custom function to calculate zscores as the implementation in scipi leaves something to be desired
 def calc_zscore(_newval,_comparevec):
@@ -175,7 +183,7 @@ def calc_zscore(_newval,_comparevec):
     # calculate zscore
     _zscr = (_newval - _mn_comparevec) / _std_comparevec
     
-    return(_zscr)
+    return _zscr
 
 # Not certain of the purpose of this, leftover from Gaurav days. Moved here as a part of code cleanup
 def create_connection(_db_file):
@@ -230,7 +238,7 @@ def gen_cutoffs(_bgd_df,_alph):
     _cutoffs_dict  = locals() 
     del _cutoffs_dict["_bgd_df"]
     del _cutoffs_dict["_alph"]
-    return(_cutoffs_dict)
+    return _cutoffs_dict
 
 def fmt_number(number, pos=None):
     if number == 0:
@@ -279,7 +287,7 @@ def varlist_2dict(_list):
         print(item)
         _dict.update({str(item),item})
     
-    return(_dict)
+    return _dict
 
 
 def insert_flag_image(_image, loc=3, ax=None, zoom=1, **kw):
@@ -394,7 +402,7 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
 
 
 #### Plot 1: Input Size ####
-def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutoff_warn,_f=None):
+def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
     
     _xmin_bgd = _background_df.loc[:,"Input_Size"].min()
     _xmax_bgd = _background_df.loc[:,"Input_Size"].max()
@@ -415,34 +423,34 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
     if not _f is None:
         plt.gcf()
 
-    _ax = _f.add_subplot(4, 2, _pos)
+    _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _pos)
 
     _background_df["Input_Size"].plot(kind='hist', bins=_bins, ax=_ax, color='lightgray')
 
     _ax1 = _ax.twinx()
     sns.distplot(_background_df["Input_Size"], hist=False, bins=_bins, ax=_ax1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
-    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _tick_size, direction='out', pad=2)
-    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True, direction='out', pad=2)
+    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _figinfo["_tick_size"], direction='out', pad=2)
+    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _figinfo["_tick_size"], labelleft=True, left=True, direction='out', pad=2)
 
 #    _ax.set_xlim(_xmin,_xmax)
 
  #   _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5]))
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_million))
 
-    _ax.set_title("Sequencing Depth",fontsize = _title_size)
-    _ax.set_xlabel('Total Reads (Millions)', labelpad=1, fontsize= _label_size)
+    _ax.set_title("Sequencing Depth",fontsize = _figinfo["_title_size"])
+    _ax.set_xlabel('Total Reads (Millions)', labelpad=1, fontsize= _figinfo["_label_size"])
 
     _ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _ax.set_ylabel('Frequency', labelpad=2, fontsize= _label_size)
+    _ax.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
 
     _ax = adjust_flag(_ax,_current_sample,_lib_mean)
 
     ### Adding cutoff markers
-    _ax = add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn)
+    _ax = add_warn_fail_markers(_ax,_figinfo["_fail_ipReads_cutoff"],_figinfo["_warn_ipReads_cutoff"],_figinfo["_fail_color"],_figinfo["_warn_color"])
 
     # Current Sample Line and Label
-    _line1 = _ax.axvline(x=_current_sample, alpha=0.8, color=_curr_sample_color, linestyle='-', linewidth=0.5,
+    _line1 = _ax.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
                          label='{:2.2f}M'.format(_current_sample))
 
     # Current Library Mean Line and Label
@@ -453,17 +461,17 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_cutoff_fail,_cutof
 
     # set up axes
     
-    _ax = legend_setup_1_6(_ax,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
+    _ax = legend_setup_1_6(_ax,_line1,_line2,_figinfo["_fail_color"],_figinfo["_warn_color"],_figinfo["_fail_ipReads_cutoff"],_figinfo["_warn_ipReads_cutoff"])
 
     #set axes to be visible or not
     _ax,_ax1 =  mk_axes(_ax,_ax1)
-    _ax = needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
+    _ax = needs_fail_or_warn(_ax,_current_sample,_figinfo["_fail_ipReads_cutoff"],_figinfo["_warn_ipReads_cutoff"],"lower")
 
     return _f
 
 
 #### Plot 2 : Trimming Percentage ####
-def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figure=None):
+def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figinfo,_figure=None):
     _xmin = _retro_df.loc[:,"Percent_PostTrim"].min()
     _xmax = _retro_df.loc[:,"Percent_PostTrim"].max()
     bin_data = np.arange(_xmin,_xmax,(_xmax / _xmin) / 30)
@@ -485,7 +493,7 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     if not _figure is None:
         plt.gcf()
 
-    _axis = _figure.add_subplot(4,2, _position)
+    _axis = _figure.add_subplot(_subplot_rows,2, _position)
 
     _axis.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
@@ -533,7 +541,7 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
 
 
 #### Plot 3: Alignment Percentage ####
-def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn, _figure=None):
+def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figinfo,_figure=None):
     bin_data = np.arange(0, 100 + 1, 1)
     _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
    
@@ -550,7 +558,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     if not _figure is None:
         plt.gcf()
 
-    _axis_plt3 = _figure.add_subplot(4, 2, _position)
+    _axis_plt3 = _figure.add_subplot(_subplot_rows, 2, _position)
 
     _axis_plt3.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
@@ -599,7 +607,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
 
 #### Plot 4: Gene Exon Mapping ####
-def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figure=None):
+def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figinfo,_figure=None):
     
     bin_data = np.arange(0, 100 + 1, 1)
 
@@ -616,7 +624,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     if not _figure is None:
         plt.gcf()
 
-    _axis_plt4 = _figure.add_subplot(4, 2, _position)
+    _axis_plt4 = _figure.add_subplot(_subplot_rows, 2, _position)
 
     _axis_plt4.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
@@ -664,7 +672,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
 
 
 #### Plot 5: rRNA Scatter ####
-def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff_warn,_f=None):
+def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff_warn,_figinfo,_f=None):
     _plotter_df = pd.concat([_background_df, _userDf])
 
     # Assign color for current project's library (all samples in the current project)
@@ -713,12 +721,6 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     _ax.plot([line_x0, line_x1], [line_y0, line_y1_warn], c=_warn_color, linewidth=1, linestyle='--', alpha=0.3, label="Warn")
     _ax.plot([line_x0, line_x1], [line_y0, line_y1_fail], c='r', linewidth=1, linestyle='--', alpha=0.3, label="Fail")
 
-    _ax.annotate('Warn', xy=(line_x1, line_y1_warn), fontsize=4, color=_warn_color, ha='right', va='center', rotation=13.5)
-    # arrowprops=dict(arrowstyle='<->', connectionstyle='arc3,rad=0', lw=0.3, ls='-'),
-
-    _ax.annotate('Fail', xy=(line_x1, line_y1_fail), fontsize=4, color='r', ha='right', va='center', rotation=17)
-    # arrowprops=dict(arrowstyle='<-', connectionstyle='arc3,rad=0', lw=0.4, ls='-'),
-
     # Set axes margins for padding on both axes
     _ax.margins(0.01)
 
@@ -730,9 +732,9 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
 
     _ax.set_aspect('auto', adjustable='box', anchor='SW')
 
-    _curr_samp = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor=_curr_sample_color, marker='o', linewidth=1, markersize=3.5)
-    _curr_lib = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='indigo', marker='o', linewidth=1, markersize=3.5)
     _historic_data = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='darkgray', marker='o', linewidth=1, markersize=3.5)
+    _curr_lib = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='indigo', marker='o', linewidth=1, markersize=3.5)
+    _curr_samp = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor=_curr_sample_color, marker='*', linewidth=1, markersize=5)
     _regression_gradient = matplotlib.lines.Line2D([0], [0], color='black', linewidth=0.6)
     _mean_label = mpatches.Patch(color='gray', label='Mean Slope')   
     _fail_label = mpatches.Patch(color='red', label='Fail Cutoff')   
@@ -757,7 +759,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     return _f
 
 #### Plot 6: Sequence Contamination - Violin Plot ####
-def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_fail_overrep_untrimmed,_cutoff_fail_adapter_untrimmed,_cutoff_warn_overrep_untrimmed,_cutoff_warn_adapter_untrimmed,_cutoff_fail_overrep_trimmed,_cutoff_fail_adapter_trimmed,_cutoff_warn_overrep_trimmed,_cutoff_warn_adapter_trimmed,_f=None):
+def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_fail_overrep_untrimmed,_cutoff_fail_adapter_untrimmed,_cutoff_warn_overrep_untrimmed,_cutoff_warn_adapter_untrimmed,_cutoff_fail_overrep_trimmed,_cutoff_fail_adapter_trimmed,_cutoff_warn_overrep_trimmed,_cutoff_warn_adapter_trimmed,_figinfo,_f=None):
     ## Load the sequence contamination levels for the background data
     _contaminant_df_untrim = _background_df[["Percent_Overrepresented_Seq_Untrimmed", "Percent_Adapter_Content_Untrimmed"]]
     _contaminant_df_trim = _background_df[["Percent_Overrepresented_Seq_Trimmed", "Percent_Adapter_Content_Trimmed"]]
@@ -800,9 +802,9 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
         plt.gcf() # I think it should just load the figure at the beginning. I honestly don't know however as I'm not the most fluent in
                         # matplotlib style and syntax
 
-
-    _gridsp = matplotlib.gridspec.GridSpec(8, 2, figure=_f)
-
+    _gridsp = matplotlib.gridspec.GridSpec(_subplot_rows*2, 2, figure=_f)
+    print(_gridsp)
+    print(type(_gridsp))
     _axis = _f.add_subplot(_gridsp[4, 1:])
     _axis2 = _f.add_subplot(_gridsp[5, 1:])
 
@@ -908,13 +910,13 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
 
 
-#### Plot 7 : GeneBody Coverage Plot
-def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alpha,_fig=None):
+# Plot 7 : GeneBody Coverage Plot
+def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alpha,_figinfo,_fig=None):
     
     if not _fig is None:
         plt.gcf()
 
-    _axis = _fig.add_subplot(4, 2, _position)
+    _axis = _fig.add_subplot(_subplot_rows, 2, _position)
 
 
     # Calculate mean GeneBody Coverage for the entire library
@@ -972,7 +974,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alph
 
 
 #### Plot 8 : Gene Expression Distribution Plot 
-def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_fail_alpha,_warn_alpha,_f=None):
+def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_fail_alpha,_warn_alpha,_figinfo,_f=None):
     _index_array = _hist_df.iloc[:, 0]
 
     _low_vals = []
@@ -1016,7 +1018,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_fail_alpha,_warn_
     if not _f is None:
         plt.gcf()
 
-    _ax = _f.add_subplot(4, 2, _pos)
+    _ax = _f.add_subplot(_subplot_rows, 2, _pos)
 
     _col_names = [_cl for _cl in _data_df_dropped.columns]
 
