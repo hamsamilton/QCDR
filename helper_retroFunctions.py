@@ -289,6 +289,15 @@ def varlist_2dict(_list):
     
     return _dict
 
+# function to set the ticks for the plots
+def set_ticks(_ax,_tick_size):
+    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _tick_size,
+                      direction='out', pad=2)
+    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True,
+                      direction='out', pad=2)   
+
+    return _ax
+
 
 def insert_flag_image(_image, loc=3, ax=None, zoom=1, **kw):
     if ax == None:
@@ -430,10 +439,7 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
     _ax1 = _ax.twinx()
     sns.distplot(_background_df["Input_Size"], hist=False, bins=_bins, ax=_ax1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
-    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _figinfo["_tick_size"], direction='out', pad=2)
-    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _figinfo["_tick_size"], labelleft=True, left=True, direction='out', pad=2)
-
-#    _ax.set_xlim(_xmin,_xmax)
+    _ax = set_ticks(_ax,_figinfo["_tick_size"])
 
  #   _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5]))
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_million))
@@ -460,7 +466,6 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
     _kde_line = matplotlib.lines.Line2D([0], [0], color="gray", linewidth=0.5, linestyle='-')
 
     # set up axes
-    
     _ax = legend_setup_1_6(_ax,_line1,_line2,_figinfo["_fail_color"],_figinfo["_warn_color"],_figinfo["_fail_ipReads_cutoff"],_figinfo["_warn_ipReads_cutoff"])
 
     #set axes to be visible or not
@@ -470,8 +475,8 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
     return _f
 
 
-#### Plot 2 : Trimming Percentage ####
-def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_cutoff_fail,_cutoff_warn,_figinfo,_figure=None):
+# Plot 2 : Trimming Percentage
+def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_figinfo,_figure=None):
     _xmin = _retro_df.loc[:,"Percent_PostTrim"].min()
     _xmax = _retro_df.loc[:,"Percent_PostTrim"].max()
     bin_data = np.arange(_xmin,_xmax,(_xmax / _xmin) / 30)
@@ -493,7 +498,7 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     if not _figure is None:
         plt.gcf()
 
-    _axis = _figure.add_subplot(_subplot_rows,2, _position)
+    _axis = _figure.add_subplot(_figinfo["_subplot_rows"],2, _position)
 
     _axis.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
@@ -501,14 +506,8 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     sns.distplot(_retro_df["Percent_PostTrim"], hist=False, bins=_bins, ax=_axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
     
     _axis.set_xlim(_xmin, _xmax)
-
-   # _axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5]))
-   # _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
-
-    _axis.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _tick_size,
-                      direction='out', pad=2)
-    _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True,
-                      direction='out', pad=2)
+    
+    _axis = set_ticks(_axis,_figinfo["_tick_size"]
 
     _axis.set_title(_plot_label, fontsize= _title_size)
 
@@ -569,11 +568,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
     _axis_plt3.set_xlim(0, 105)
 
-#    _axis_plt3.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5], nbins=21))
-#    _axis_plt3.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
-
-    _axis_plt3.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _tick_size, direction='out', pad=2)
-    _axis_plt3.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True, direction='out', pad=2)
+    _axis_plt3 = set_ticks(_axis_plt3,_figinfo["_tick_size"]
 
     _axis_plt3.set_title(_plot_label, fontsize=_title_size)
 
@@ -635,12 +630,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
 
     _axis_plt4.set_xlim(0, 105)
 
- #   _axis_plt4.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5], nbins=21))
- #   _axis_plt4.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
-
-    _axis_plt4.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=_tick_size, direction='out', pad=2)
-    _axis_plt4.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True, direction='out', pad=2)
-
+    _axis_plt4 = set_ticks(_axis_plt4,_figinfo["_tick_size"]
     _axis_plt4.set_title(_plot_label, fontsize=_title_size)
 
     _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=_label_size)
@@ -697,9 +687,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
     _ax.plot(X, Y_pred, c='dimgray', linewidth=0.7, linestyle='-', alpha=1)
 
     _ax.set_title("Ribosomal RNA", fontsize= _title_size)
-
-    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelrotation=0, labelbottom=True, bottom=True, labelsize=_tick_size, direction='out', pad=1)
-    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True, direction='out', pad=2)
+    _ax = set_ticks(_ax,_figinfo["_tick_size"]
 
     _ax.set_xlabel("Uniquely Aligned Reads (Millions)", fontsize= _label_size, labelpad=2)
     _ax.set_ylabel("rRNA Reads (Millions)", fontsize= _label_size, labelpad=2)
@@ -816,11 +804,8 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
     _axis.set_title("Sequence Contamination", fontsize=_title_size, pad=0)
 
-    _axis.tick_params(axis='x', which='both', length=1, width=0.5, labelsize=3, labelbottom=True, bottom=True, direction='out', pad=2)
-    _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelrotation=0, labelleft=True, left=True, labelsize=2.5, direction='out', pad=1)
-
-    _axis2.tick_params(axis='x', which='both', length=1, width=0.5, labelsize=3, labelbottom=True, bottom=True, direction='out', pad=2)
-    _axis2.tick_params(axis='y', which='both', length=1, width=0.5, labelrotation=0, labelleft=True, left=True, labelsize=2.5, direction='out', pad=1)
+    _axis  = set_ticks(_axis, _figinfo["_tick_size"]
+    _axis2 = set_ticks(_axis2,_figinfo["_tick_size"]
 
     _axis.set_xlabel("Pre-trim (%)", fontsize=_label_size, labelpad=0.5)
     _axis.set_ylabel("")
@@ -943,10 +928,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alph
 
     _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
 
-    _axis.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize=_tick_size,
-                      direction='out', pad=2)
-    _axis.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=_tick_size, labelleft=True, left=True,
-                      direction='out', pad=2)
+    _axis = set_ticks(_axis,_figinfo["_tick_size"])
 
     _axis.set_xlim(0, 105)
     _axis.set_title(_plot_title, fontsize=6)
@@ -1033,10 +1015,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_fail_alpha,_warn_
     ## Plotting the mean distribution
     _ax.plot(_x_vals, _mean_df_dropped['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
 
-    _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelrotation=60, labelbottom=True, bottom=True,
-                    labelsize=_tick_size, direction='out', pad=1)
-    _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize=_tick_size, labelleft=True, left=True,
-                    direction='out', pad=2)
+    _ax = set_ticks(_ax,_figinfo["_tick_size"])
 
     _ax.set_xlim(0, 10)
     _ax.set_ylim(0, _max_df['max_val'].max())
