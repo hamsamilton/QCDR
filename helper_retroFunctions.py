@@ -1013,9 +1013,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
     _ax = mk_axes(_ax)
     _ax = needs_fail_or_warn(_ax,_curr_pval,1-_fail_alpha,1-_figinfo["_warn_alpha"],"lower")
 
-
     return _f
 
 if __name__ == "__main__":
     main()
-import matplotlib
