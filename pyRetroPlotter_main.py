@@ -69,12 +69,17 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
     _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
 
-    # create dictionarys to store values in 2 pass 2 helper functions
-    
     # Make standard cutoffs for warn/fail
     _fail_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _fail_alpha)
     _warn_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _warn_alpha)
     
+    # add an additional row if the gc or hist data was added
+    if _gc_file is None and _hist_file is None:
+        _subplot_rows = 3
+    else:
+        _subplot_rows = 4
+    print("subplot rows are" + str(_subplot_rows))
+    # create dictionarys to store values in 2 pass 2 helper functions
     _figinfo = {}
     _figinfo["_fail_color"]        = "red"
     _figinfo["_warn_color"]        = "goldenrod"
@@ -82,7 +87,9 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _figinfo["_title_size"]        = 6
     _figinfo["_label_size"]        = 5
     _figinfo["_tick_size"]         = 4
-    _figinfo["_subplot_rows"]      = 4
+    _figinfo["_subplot_rows"]      = _subplot_rows
+    _figinfo["_warn_alpha"]        = _warn_alpha
+    _figinfo["_fail_alpha"]        = _fail_alpha
 
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
@@ -103,15 +110,21 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     # add cutoff info
     _figinfo.update(_fail_cutoffs)
     _figinfo.update(_warn_cutoffs)
-    ## Read Gene Coverage Data
-    _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
 
-    ## Adding the Library Mean column at the end of the GC dataframe
-    _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
+    # Read Background file and load HISTORICAL background data
+    _bgd_df = pd.read_csv(_bgd_file, sep=",")
+
+    # Read Gene Coverage Data
+    if _gc_file is not None:
+        _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
+
+        # Adding the Library Mean column at the end of the GC dataframe
+        _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
 
     # Read Histogram data
-    _negBin_df = pd.read_csv(_hist_file, index_col=False)
-    _negBin_df["Batch_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
+    if _hist_file is not None:
+        _negBin_df = pd.read_csv(_hist_file, index_col=False)
+        _negBin_df["Batch_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
 
     ###### Begin Plotting process ######
 
@@ -142,37 +155,38 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_figinfo,fig)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
-        fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_fail_cutoffs["_violin_cutoff_overrep_untrimmed"],_fail_cutoffs["_violin_cutoff_adapter_untrimmed"],
-        _warn_cutoffs["_violin_cutoff_overrep_untrimmed"],_warn_cutoffs["_violin_cutoff_adapter_untrimmed"],_fail_cutoffs["_violin_cutoff_overrep_trimmed"],_fail_cutoffs["_violin_cutoff_adapter_trimmed"],
-        _warn_cutoffs["_violin_cutoff_overrep_trimmed"],_warn_cutoffs["_violin_cutoff_adapter_trimmed"],_figinfo,fig)
+        fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_figinfo,fig)
 
         # Plotting figure 7: GeneBody Coverage Distribution Plot
-        fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",_fail_alpha,_warn_alpha,_figinfo,fig)
+        if _gc_file is not None:
+            print("GC IS plotting")
+            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",_figinfo,fig)
 
         # Plotting figure 8: Gene Expression Distribution Plot
-        fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_fail_alpha,_warn_alpha,_figinfo,fig)
+        if _hist_file is not None:
+            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_figinfo,fig)
 
         # Add sample name at the top-left corner of the page
         fig.suptitle('Sample : ' + _tuple[1] + " Batch : " + _tuple[13], x=0.01, y=0.99, fontsize=6,
                      horizontalalignment='left', verticalalignment='top', fontweight='book',style = 'italic')
         fig.text(s= ('Warn cutoffs: Default alpha =' + str(_warn_alpha) +
-                    '| Sequencing Depth = ' + str(_warn_cutoffs["_ipReads_cutoff"]) +
-                    '| Trimming = ' + str(_warn_cutoffs["_trimmedReads_cutoff"]) +  
-                    '| Alignment = ' + str(_warn_cutoffs["_uniqAligned_cutoff"]) +  
-                    '| Gene Exon Mapping = ' + str(_warn_cutoffs["_exonMapping_cutoff"]) + 
-                    '| Ribosomal RNA = ' + str(round(_warn_cutoffs["_riboScatter_cutoff"],3)) + 
-                    '| Sequence Contamination = ' + str(_warn_cutoffs["_violin_cutoff_adapter_untrimmed"]) + 
+                    '| Sequencing Depth = ' + str(_figinfo["_warn_ipReads_cutoff"]) +
+                    '| Trimming = ' + str(_figinfo["_warn_trimmedReads_cutoff"]) +  
+                    '| Alignment = ' + str(_figinfo["_warn_uniqAligned_cutoff"]) +  
+                    '| Gene Exon Mapping = ' + str(_figinfo["_warn_exonMapping_cutoff"]) + 
+                    '| Ribosomal RNA = ' + str(round(_figinfo["_warn_riboScatter_cutoff"],3)) + 
+                    '| Sequence Contamination = ' + str(_figinfo["_warn_violin_cutoff_adapter_trimmed"]) + 
                     '| Gene Body Coverage = ' + str(_warn_alpha) + 
                     '| Distribution of Gene Expression = ' + str(_warn_alpha)) , 
                     x = .01, y = .965, fontsize = 3,
                      ha='left', va='top',fontweight='book', style = 'italic')
         fig.text(s= ('Fail cutoffs: Default alpha =' + str(_fail_alpha) +
-                    '| Sequencing Depth = ' + str(_fail_cutoffs["_ipReads_cutoff"]) +
-                    '| Trimming = ' + str(_fail_cutoffs["_trimmedReads_cutoff"]) +  
-                    '| Alignment = ' + str(_fail_cutoffs["_uniqAligned_cutoff"]) +  
-                    '| Gene Exon Mapping = ' + str(_fail_cutoffs["_exonMapping_cutoff"]) + 
-                    '| Ribosomal RNA = ' + str(round(_fail_cutoffs["_riboScatter_cutoff"],3)) + 
-                    '| Sequence Contamination = ' + str(_fail_cutoffs["_violin_cutoff_adapter_untrimmed"]) + 
+                    '| Sequencing Depth = ' + str(_figinfo["_fail_ipReads_cutoff"]) +
+                    '| Trimming = ' + str(_figinfo["_fail_trimmedReads_cutoff"]) +  
+                    '| Alignment = ' + str(_figinfo["_fail_uniqAligned_cutoff"]) +  
+                    '| Gene Exon Mapping = ' + str(_figinfo["_fail_exonMapping_cutoff"]) + 
+                    '| Ribosomal RNA = ' + str(round(_figinfo["_fail_riboScatter_cutoff"],3)) + 
+                    '| Sequence Contamination = ' + str(_figinfo["_fail_violin_cutoff_adapter_untrimmed"]) + 
                     '| Gene Body Coverage = ' + str(_fail_alpha) + 
                     '| Distribution of Gene Expression = ' + str(_fail_alpha)) , 
                     x = .01, y = .95, fontsize = 3,
