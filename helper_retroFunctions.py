@@ -31,13 +31,6 @@ from datetime import datetime
 from statsmodels.stats.weightstats import ztest
 import matplotlib.patches as mpatches
 
-# Replaces missing values of a dictionary with corresponding values of a second dictionary with matching keys
-def repl_missing_values_indict(_indict,_repldict):
-    for key, value in _indict.items():
-    # If the value is NaN, replace it with the corresponding automatically generated keys
-        if value != value:
-            _indict.update({key: _repldict[key]})
-
 # adds a prefix to the names of a dictionary
 def prefix_dict(_pre,_dict):
         
@@ -886,13 +879,12 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
 
 
 # Plot 7 : GeneBody Coverage Plot
-def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alpha,_figinfo,_fig=None):
+def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     
     if not _fig is None:
         plt.gcf()
 
-    _axis = _fig.add_subplot(_subplot_rows, 2, _position)
-
+    _axis = _fig.add_subplot(_figinfo["_subplot_rows"], 2, _position)
 
     # Calculate mean GeneBody Coverage for the entire library
     _mean_df = pd.DataFrame()
@@ -913,7 +905,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alph
     # Plot current sample with library mean
     _x = np.arange(1, 101, 1)
 
-    _axis.plot(_x, _coverage_df[_ipTuple[1]], color=_curr_sample_color, linewidth=0.5, linestyle='-', alpha=0.8)
+    _axis.plot(_x, _coverage_df[_ipTuple[1]], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
     _axis.plot(_x, _mean_df['gc_mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8)
 
     _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
@@ -930,77 +922,64 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alph
                 fontsize=4)
     return _ax 
 
-# the goal of this function is to set which axes of the regular axis and the Kernel density axis 
-def mk_axes(_plt_ax,_kd_ax = None):
-    
-    for label in (_plt_ax.get_xticklabels() + _plt_ax.get_yticklabels()):
-        label.set_fontsize(4)
-    # set the plot axis
-    _plt_ax.spines['top'].set_visible(False)
-    _plt_ax.spines['right'].set_visible(False)
-    _plt_ax.spines['left'].set_visible(True)
-    _plt_ax.spines['bottom'].set_visible(True)
-    _plt_ax.spines['left'].set_color('black')
-    _plt_ax.spines['bottom'].set_color('black')
 
-    _plt_ax.spines['left'].set_linewidth(0.55)
-    _plt_ax.spines['bottom'].set_linewidth(0.55)
-    _plt_ax.set_facecolor('white')
-    
-    if _kd_ax != None: 
-        # set the kernel density axis to be invisible 
-        _kd_ax.yaxis.set_ticks([])
-        _kd_ax.yaxis.label.set_visible(False)
 
-        _kd_ax.spines['top'].set_visible(False)
-        _kd_ax.spines['right'].set_visible(False)
-        _kd_ax.spines['bottom'].set_visible(False)
-        _kd_ax.spines['left'].set_visible(False)
+#### Plot 8 : Gene Expression Distribution Plot 
+def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
+    _index_array = _hist_df.iloc[:, 0]
 
-        return _plt_ax,_kd_ax
-    else:
-        return _plt_ax
+    _low_vals = []
+    _high_vals = []
 
-# Replaces missing values of a dictionary with corresponding values of a second dictionary with matching keys
-def repl_missing_values_indict(_indict,_repldict):
-    for key, value in _indict.items():
-    # If the value is NaN, replace it with the corresponding automatically generated keys
-        if value != value:
-            _indict.update({key: _repldict[key]})
+    for _i in _index_array:
+        _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
+        _high_vals.append(float(_i.strip('(').strip(']').split(',')[1]))
 
-# the goal of this function is to determine if a plot needs a fail or warn box and then call the according
-# helper function 
-def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lower):
-    
-    if higher_lower == "lower":
-        
-        if _current_sample <= _cutoff_fail:
-            insert_flag_fail(_ax)
-        elif (_current_sample <= _cutoff_warn):
-            insert_flag_warn(_ax)
-        return _ax 
+    __col_index = pd.IntervalIndex.from_arrays(_low_vals, _high_vals, closed='right')
+    # of bugfixing concern i am adding a 0 at the beginning but then removing an index from the last? perhaps lowvals is a better index then highvals?
+    # It's a bit unclear how to fix this at the moment.
+    _x_vals_test = _high_vals.insert(0,0)
+    _x_vals = _high_vals[:-1]
 
-    if higher_lower == "upper":
-       
-        if _current_sample >= _cutoff_fail:
-            insert_flag_fail(_ax)
-        elif (_current_sample >= _cutoff_warn):
-            insert_flag_warn(_ax)
-        return _ax
+    ## Preparing the data_df and libMean_df for all bins
+    _data_df = _hist_df.drop(['Unnamed: 0'], axis=1)
+    _libMean_df = pd.DataFrame()
+    _libMean_df['Mean'] = _data_df.iloc[:, :-1].mean(numeric_only=True, axis=1)
 
-# The goal of this function is to return the upper or/and lower bound of a ci given a vec
-def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
-    ci_bnd = stats.norm.interval(alpha = _alph,
-                        loc=np.mean(_vec),
-                        scale = stats.tstd(_vec))
-    if _uppr_lwr == "upper": 
-        ci_bnd = ci_bnd[1]
-    elif _uppr_lwr == "lower":
-        ci_bnd = ci_bnd[0]
+    _data_df_dropped = _data_df
+    _mean_df_dropped = _libMean_df
 
-    return ci_bnd
+    _max_df = pd.DataFrame()
+    _max_df['max_val'] = _data_df.max(axis=1)
+    _max_df.index == _ipTuple[1]
+    _mean_array = _mean_df_dropped.Mean.values
+    _current_samp_array = _data_df_dropped[_ipTuple[1]].values
 
-# writing a custom function to calculate zscores as the implementation in scipi leaves something to be desired
+    # code for calculating Z value of number of expressed genes. Maybe the worst code I've ever written. It's up there.
+    _sum_df = _data_df_dropped.sum().round()
+    _curr_sum = _current_samp_array.sum().round()
+    _curr_ndx = np.where(_sum_df == _curr_sum)[0][0]
+    _zscore = stats.zscore(_sum_df)
+    _pvals  = stats.norm.sf(abs(_zscore))
+    _curr_pval = _pvals[_curr_ndx]
+
+    # ZTest for mean and current sample against the normal distribution to get pvalue
+    _ztest_stat_raw, _ztest_pval_raw = ztest_prob(_current_samp_array, _mean_array, 0)
+
+    if not _f is None:
+        plt.gcf()
+
+    _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _pos)
+
+    _col_names = [_cl for _cl in _data_df_dropped.columns]
+
+    ## Plotting all current library distributions with the current sample highlighted on each page
+    for _col in _col_names:
+
+        if _col == _ipTuple[1]:
+            plt.plot(_x_vals, _data_df_dropped[_col], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', zorder=24)
+        else:
+            plt.plot(_x_vals, _data_df_dropped[_col], color='silver', linewidth=0.5, linestyle='-')
 
     ## Plotting the mean distribution
     _ax.plot(_x_vals, _mean_df_dropped['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
@@ -1010,17 +989,17 @@ def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
     _ax.set_xlim(0, 10)
     _ax.set_ylim(0, _max_df['max_val'].max())
 
-    _ax.set_title(_plot_title, fontsize=_title_size)
+    _ax.set_title(_plot_title, fontsize=_figinfo["_title_size"])
 
-    _ax.set_xlabel("Gene Counts (log2(CPM)+1)", fontsize=_label_size, labelpad=2)
-    _ax.set_ylabel("Frequency", fontsize=_label_size, labelpad=2)
+    _ax.set_xlabel("Quantity of detected reads (log2(CPM)+1)", fontsize=_figinfo["_label_size"], labelpad=2)
+    _ax.set_ylabel("Frequency", fontsize=_figinfo["_label_size"], labelpad=2)
 
     _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_x_vals[::5]))
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FixedFormatter(_x_vals[::5]))
     _ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(500))
     _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
 
-    _current_samp_line = matplotlib.lines.Line2D([0], [0], color=_curr_sample_color, linewidth=0.5, linestyle='-', alpha=0.8)
+    _current_samp_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
     _lib_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
 
     _extra_Ztest_stat = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
@@ -1031,12 +1010,11 @@ def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
     _ax.legend([_current_samp_line, _lib_line, _extra_Ztest_Pval],
                ["Current Sample", "Library Mean", "Pvalue : " + str(round(_curr_pval.item(), 3))], loc='best',
                frameon=False, fontsize=4, ncol=1)
-    _ax = mk_axes(_ax) 
-    _ax = needs_fail_or_warn(_ax,_curr_pval,1-_fail_alpha,1-_warn_alpha,"lower")
-    
-    
-    return _f
+    _ax = mk_axes(_ax)
+    _ax = needs_fail_or_warn(_ax,_curr_pval,1-_fail_alpha,1-_figinfo["_warn_alpha"],"lower")
 
+
+    return _f
 
 if __name__ == "__main__":
     main()
