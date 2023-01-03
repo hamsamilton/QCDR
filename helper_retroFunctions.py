@@ -666,7 +666,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     _plotter_df = pd.concat([_background_df, _userDf])
 
     # Assign color for current project's library (all samples in the current project)
-    _plotter_df["scatter_color"] = np.where(_plotter_df["Sample"].isin(_userDf["Sample"]), "indigo", "darkgray")
+    _plotter_df["scatter_color"] = np.where(_plotter_df["Sample"].isin(_userDf["Sample"]), "indigo", "lightgray")
 
     # Assign separate color for current sample on each page
     _plotter_df.loc[_plotter_df["Sample"] == _in_tup[1], "scatter_color"] = _figinfo["_curr_sample_color"]
@@ -675,7 +675,6 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
 
     _ax = plt.subplot(_figinfo["_subplot_rows"], 2, _pos)
 
-    _ax.scatter(x=_plotter_df['Num_Uniquely_Aligned'], y=_plotter_df['Num_Uniquely_Aligned_rRNA'], s=0.5, c=_plotter_df["scatter_color"])
 
     ## Regression line (gradient slope)
     X = _plotter_df.loc[:, "Num_Uniquely_Aligned"].values.reshape(-1, 1)
@@ -684,8 +683,12 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     linear_regressor.fit(X, Y)
     Y_pred = linear_regressor.predict(X)
 
-    _ax.plot(X, Y_pred, c='dimgray', linewidth=0.7, linestyle='-', alpha=1)
+    _ax.plot(X, Y_pred, c='black', linewidth=0.7, linestyle='-', alpha=1)
+    _ax.scatter(x=_plotter_df['Num_Uniquely_Aligned'], y=_plotter_df['Num_Uniquely_Aligned_rRNA'], s=0.8, c=_plotter_df["scatter_color"])
 
+    #separate scatter call for the sample so it can have a nique size and shape
+    _intupdf = _plotter_df.loc[_plotter_df["Sample"] == _in_tup[1]]
+    _ax.scatter(x=_intupdf['Num_Uniquely_Aligned'], y=_intupdf['Num_Uniquely_Aligned_rRNA'],marker = "*", s=20, c=_intupdf["scatter_color"])
     _ax.set_title("Ribosomal RNA", fontsize= _figinfo["_title_size"])
     _ax = set_ticks(_ax,_figinfo["_tick_size"])
 
@@ -707,7 +710,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     line_y1_fail = _figinfo["_fail_riboScatter_cutoff"] * (line_x1 - line_x0) + line_y0
 
     _ax.plot([line_x0, line_x1], [line_y0, line_y1_warn], c=_figinfo["_warn_color"], linewidth=1, linestyle='--', alpha=0.3, label="Warn")
-    _ax.plot([line_x0, line_x1], [line_y0, line_y1_fail], c='r', linewidth=1, linestyle='--', alpha=0.3, label="Fail")
+    _ax.plot([line_x0, line_x1], [line_y0, line_y1_fail], c=_figinfo["_fail_color"], linewidth=1, linestyle='--', alpha=0.3, label="Fail")
 
     # Set axes margins for padding on both axes
     _ax.margins(0.01)
@@ -722,9 +725,9 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
 
     _historic_data = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='darkgray', marker='o', linewidth=1, markersize=3.5)
     _curr_lib = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='indigo', marker='o', linewidth=1, markersize=3.5)
-    _curr_samp = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor=_figinfo["_curr_sample_color"], marker='*', linewidth=1, markersize=5)
     _regression_gradient = matplotlib.lines.Line2D([0], [0], color='black', linewidth=0.6)
-    _mean_label = mpatches.Patch(color='gray', label='Mean Slope')   
+    _curr_samp = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor=_figinfo["_curr_sample_color"], marker='*', linewidth=1, markersize=6)
+    _mean_label = mpatches.Patch(color='black', label='Mean Slope')   
     _fail_label = mpatches.Patch(color=_figinfo["_fail_color"], label='Fail Cutoff')   
     _warn_label=  mpatches.Patch(color=_figinfo["_warn_color"], label='Warn Cutoff')    
     _ax.legend([_curr_samp,
@@ -923,7 +926,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
 
     _uni_arrw = u"\u2192"
     _axis.set_xlabel("Gene Percentile (5' " + _uni_arrw + " 3')", fontsize=_figinfo["_label_size"], labelpad=2)
-    _axis.set_ylabel("Coverage", fontsize=_figinfo["_label_size"], labelpad=2)
+    _axis.set_ylabel("Read Density", fontsize=_figinfo["_label_size"], labelpad=2)
 
     _current_sample_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
     _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
@@ -933,8 +936,8 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
 
     _axis.legend([_current_sample_line, _library_line, _extra_confidenceInterval, _extra_ksPval],
-                 ["Current Sample", "Library Mean",
-                  "95% Confidence Interval", "KS-2sample Pvalue: " + str(round(_ks_pval, 3))],
+                 ["Current Sample", "Batch Mean",
+                  "95% Confidence Interval", "KS Pvalue: " + str(round(_ks_pval, 3))],
                  loc='best', frameon=False, fontsize=4, ncol=1)
 
     _axis = mk_axes(_axis)
@@ -1027,7 +1030,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
                                                      linewidth=0)
 
     _ax.legend([_current_samp_line, _lib_line, _extra_Ztest_Pval],
-               ["Current Sample", "Library Mean", "Pvalue : " + str(round(_curr_pval.item(), 3))], loc='best',
+               ["Current Sample", "Batch  Mean", "Pvalue : " + str(round(_curr_pval.item(), 3))], loc='best',
                frameon=False, fontsize=4, ncol=1)
     _ax = mk_axes(_ax)
     _ax = needs_fail_or_warn(_ax,_curr_pval,1-_figinfo["_fail_alpha"],1-_figinfo["_warn_alpha"],"lower")

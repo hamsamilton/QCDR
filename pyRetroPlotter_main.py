@@ -148,7 +148,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                                                        _figinfo,fig)
 
         # Plotting figure 4: Percentage of Reads Mapped to Exons
-        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4,
+        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Exon Mapping", 4,
                                                          _figinfo, fig)
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
@@ -159,8 +159,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Plotting figure 7: GeneBody Coverage Distribution Plot
         if _gc_file is not None:
-            print("GC IS plotting")
-            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage Distribution",_figinfo,fig)
+            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage",_figinfo,fig)
 
         # Plotting figure 8: Gene Expression Distribution Plot
         if _hist_file is not None:
