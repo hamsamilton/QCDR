@@ -76,13 +76,13 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _warn_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _warn_alpha)
     
     _figinfo = {}
-    _figinfo["_fail_color"] =  "red"
-    _figinfo["_warn_color"] =  "goldenrod"
+    _figinfo["_fail_color"]        = "red"
+    _figinfo["_warn_color"]        = "goldenrod"
     _figinfo["_curr_sample_color"] = "lightseagreen"
-    _figinfo["_title_size"]         = 6
-    _figinfo["_label_size"]       = 5
-    _figinfo["_tick_size"]        = 4
-    _figinfo["_subplot_rows"]     = 4
+    _figinfo["_title_size"]        = 6
+    _figinfo["_label_size"]        = 5
+    _figinfo["_tick_size"]         = 4
+    _figinfo["_subplot_rows"]      = 4
 
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
@@ -103,7 +103,6 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     # add cutoff info
     _figinfo.update(_fail_cutoffs)
     _figinfo.update(_warn_cutoffs)
-    print(_figinfo)
     ## Read Gene Coverage Data
     _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
 
@@ -129,16 +128,18 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1,_figinfo,fig)
 
         # Plotting figure 2: Percentage of Reads after Trimming
-        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2,_fail_cutoffs["_trimmedReads_cutoff"],_warn_cutoffs["_trimmedReads_cutoff"],_figinfo,fig)
+        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2,_figinfo,fig)
 
         # Plotting figure 3: Percentage of Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3,_fail_cutoffs["_uniqAligned_cutoff"],_warn_cutoffs["_uniqAligned_cutoff"],_figinfo,fig)
+        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3,
+                                                       _figinfo,fig)
 
         # Plotting figure 4: Percentage of Reads Mapped to Exons
-        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4,_fail_cutoffs["_exonMapping_cutoff"],_warn_cutoffs["_exonMapping_cutoff"],_figinfo, fig)
+        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Gene Exon Mapping", 4,
+                                                         _figinfo, fig)
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_fail_cutoffs["_riboScatter_cutoff"],_warn_cutoffs["_riboScatter_cutoff"],_figinfo,fig)
+        fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_figinfo,fig)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
         fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_fail_cutoffs["_violin_cutoff_overrep_untrimmed"],_fail_cutoffs["_violin_cutoff_adapter_untrimmed"],

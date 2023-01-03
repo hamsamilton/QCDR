@@ -412,7 +412,7 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
 
 #### Plot 1: Input Size ####
 def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
-    
+   
     _xmin_bgd = _background_df.loc[:,"Input_Size"].min()
     _xmax_bgd = _background_df.loc[:,"Input_Size"].max()
 #    _xmin_inp = _userDf[:,"Input_Size"].max() 
@@ -507,21 +507,21 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     
     _axis.set_xlim(_xmin, _xmax)
     
-    _axis = set_ticks(_axis,_figinfo["_tick_size"]
+    _axis = set_ticks(_axis,_figinfo["_tick_size"])
 
-    _axis.set_title(_plot_label, fontsize= _title_size)
+    _axis.set_title(_plot_label, fontsize= _figinfo["_title_size"])
 
     _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _axis.set_ylabel('Frequency', labelpad=2, fontsize= _label_size)
-    _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize= _label_size)
+    _axis.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
+    _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize= _figinfo["_label_size"])
 
     ### Adding cutoff markers
-    _axis = add_warn_fail_markers(_axis,_cutoff_fail,_cutoff_warn)
+    _axis = add_warn_fail_markers(_axis,_figinfo["_fail_trimmedReads_cutoff"],_figinfo["warn_trimmedReads_cutoff"])
     
     _axis = adjust_flag(_axis,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
-    _line1 = _axis.axvline(x=_current_sample, alpha=0.8, color=_curr_sample_color, linestyle='-', linewidth=0.5,
+    _line1 = _axis.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
                            label='{:2.2f}%'.format(_current_sample))
 
     # Current Library Mean Line and Label
@@ -531,10 +531,10 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
-    _axis = legend_setup_1_6(_axis,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
+    _axis = legend_setup_1_6(_axis,_line1,_line2,_figinfo["_fail_color"],_figinfo["_warn_color"],_figinfo["fail_trimmedReads_cutoff"],_figinfo["warn_trimmedReads_cutoff"])
 
     _axis,_axis1 =  mk_axes(_axis,_axis1)
-    _axis = needs_fail_or_warn(_axis,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
+    _axis = needs_fail_or_warn(_axis,_current_sample,_figinfo["fail_trimmedReads_cutoff"],_figinfo["warn_trimmedReads_cutoff"],"lower")
 
     return _figure
 
@@ -557,7 +557,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     if not _figure is None:
         plt.gcf()
 
-    _axis_plt3 = _figure.add_subplot(_subplot_rows, 2, _position)
+    _axis_plt3 = _figure.add_subplot(_figinfo["subplot_rows"], 2, _position)
 
     _axis_plt3.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
@@ -568,21 +568,22 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
     _axis_plt3.set_xlim(0, 105)
 
-    _axis_plt3 = set_ticks(_axis_plt3,_figinfo["_tick_size"]
+    _axis_plt3 = set_ticks(_axis_plt3,_figinfo["_tick_size"])
 
-    _axis_plt3.set_title(_plot_label, fontsize=_title_size)
+    _axis_plt3.set_title(_plot_label, fontsize=_figinfo["title_size"])
 
     # Set labels
-    _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize= _label_size)
+    _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize= _figinfo["_label_size"])
     _axis_plt3.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize= _label_size)
+    _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
 
     ### Adding cutoff markers
-    _axis_plt3 = add_warn_fail_markers(_axis_plt3,_cutoff_fail,_cutoff_warn)
+    _axis_plt3 = add_warn_fail_markers(_axis_plt3,__figinfo["_fail_uniqAligned_cutoff"],
+                                       _figinfo["_warn_uniqAligned_cutoff"])
     _axis_plt3 = adjust_flag(_axis_plt3,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
-    _line1 = _axis_plt3.axvline(x=_current_sample, alpha=0.8, color=_curr_sample_color, linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
+    _line1 = _axis_plt3.axvline(x=_current_sample, alpha=0.8, color=_figinfo["curr_sample_color"], linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
 
     # Current Library Mean Line and Label
     _line2 = _axis_plt3.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5, label='{:2.2f}%'.format(_lib_mean))
@@ -592,10 +593,12 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
     _axis_plt3.legend([_line1, _line2], ["Current Sample", "Batch Mean"], loc='best', frameon=False, fontsize=4, ncol=1)
 
-    _axis_plt3 = legend_setup_1_6(_axis_plt3,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
+    _axis_plt3 = legend_setup_1_6(_axis_plt3,_line1,_line2,_figinfo["_fail_color"],_figinfo["_warn_color"],
+                                  _figinfo["_fail_uniqAligned_cutoff"],_figinfo["_warn_uniqAligned_cutoff"])
 
     _axis_plt3,_axis1_plt3 =  mk_axes(_axis_plt3,_axis1_plt3)
-    _axis_plt3 = needs_fail_or_warn(_axis_plt3,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
+    _axis_plt3 = needs_fail_or_warn(_axis_plt3,_current_sample,_figinfo["_fail_uniqAligned_cutoff"],
+                                    _figinfo["_warn_uniqAligned_cutoff"],"lower")
     
     return _figure
 
@@ -618,8 +621,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
 
     if not _figure is None:
         plt.gcf()
-
-    _axis_plt4 = _figure.add_subplot(_subplot_rows, 2, _position)
+    _axis_plt4 = _figure.add_subplot(_figinfo["subplot_rows"], 2, _position)
 
     _axis_plt4.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
@@ -630,21 +632,21 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
 
     _axis_plt4.set_xlim(0, 105)
 
-    _axis_plt4 = set_ticks(_axis_plt4,_figinfo["_tick_size"]
-    _axis_plt4.set_title(_plot_label, fontsize=_title_size)
+    _axis_plt4 = set_ticks(_axis_plt4,_figinfo["_tick_size"])
+    _axis_plt4.set_title(_plot_label, fontsize=_figinfo["_title_size"])
 
-    _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=_label_size)
-    _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize= _label_size)
+    _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=_figinfo["_label_size"])
+    _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
 
     ### Adding cutoff markers
-    _axis_plt4 = add_warn_fail_markers(_axis_plt4,_cutoff_fail,_cutoff_warn)
+    _axis_plt4 = add_warn_fail_markers(_axis_plt4,_figinfo["_fail_exonMapping_cutoff"],_figinfo["_warn_exonMapping_cutoff"])
 
     _axis_plt4.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
     _axis_plt4 = adjust_flag(_axis_plt4,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
-    _line1 = _axis_plt4.axvline(x=_current_sample, alpha=0.8, color=_curr_sample_color, linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
+    _line1 = _axis_plt4.axvline(x=_current_sample, alpha=0.8, color=_figinfo["curr_sample_color"], linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
 
     # Current Library Mean Line and Label
     _line2 = _axis_plt4.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5, label='{:2.2f}%'.format(_lib_mean))
@@ -653,9 +655,10 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
 
-    _axis_plt4 = legend_setup_1_6(_axis_plt4,_line1,_line2,_fail_color,_warn_color,_cutoff_fail,_cutoff_warn)
+    _axis_plt4 = legend_setup_1_6(_axis_plt4,_line1,_line2,_figinfo["_fail_color"],
+                                _figinfo["_warn_color"],_figinfo["_fail_exonMapping_cutoff"],_figinfo["_warn_exonMapping_cutoff"])
     _axis_plt4,_axis1_plt4 =  mk_axes(_axis_plt4,_axis1_plt4)
-    _axis_plt4 = needs_fail_or_warn(_axis_plt4,_current_sample,_cutoff_fail,_cutoff_warn,"lower")
+    _axis_plt4 = needs_fail_or_warn(_axis_plt4,_current_sample,_figinfo["_fail_exonMapping_cutoff"],_figinfo["_warn_exonMapping_cutoff"],"lower")
     
     return _figure
 
@@ -722,11 +725,11 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
 
     _historic_data = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='darkgray', marker='o', linewidth=1, markersize=3.5)
     _curr_lib = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='indigo', marker='o', linewidth=1, markersize=3.5)
-    _curr_samp = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor=_curr_sample_color, marker='*', linewidth=1, markersize=5)
+    _curr_samp = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor=_figinfo["_curr_sample_color"], marker='*', linewidth=1, markersize=5)
     _regression_gradient = matplotlib.lines.Line2D([0], [0], color='black', linewidth=0.6)
     _mean_label = mpatches.Patch(color='gray', label='Mean Slope')   
-    _fail_label = mpatches.Patch(color='red', label='Fail Cutoff')   
-    _warn_label=  mpatches.Patch(color=_warn_color, label='Warn Cutoff')    
+    _fail_label = mpatches.Patch(color=_figinfo["_fail_color"], label='Fail Cutoff')   
+    _warn_label=  mpatches.Patch(color=_figinfo["_warn_color"], label='Warn Cutoff')    
     _ax.legend([_curr_samp,
                     _curr_lib,
                     _fail_label,
@@ -734,20 +737,21 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_cutoff_fail,_cutoff
                     _mean_label],
                 ["Current Sample", 
                     "Batch Mean",
-                    "Fail (" + str(round(_cutoff_fail,2)) + ")",
-                    "Warn (" + str(round(_cutoff_warn,2)) + ")",
+                    "Fail (" + str(round(_figinfo["_fail_riboScatter_cutoff"],2)) + ")",
+                    "Warn (" + str(round(_figinfo["_warn_riboScatter_cutoff"],2)) + ")",
                     "Mean Slope"],
                 loc='best',
                 frameon=False,
                 fontsize=4)
 
     _ax = mk_axes(_ax) 
-    _ax = needs_fail_or_warn(_ax,_slope_current,_cutoff_fail,_cutoff_warn,"upper")
+    _ax = needs_fail_or_warn(_ax,_slope_current,_figinfo["_fail_riboScatter_cutoff"],
+                             _figinfo["_warn_riboScatter_cutoff"],"upper")
 
     return _f
 
 #### Plot 6: Sequence Contamination - Violin Plot ####
-def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_fail_overrep_untrimmed,_cutoff_fail_adapter_untrimmed,_cutoff_warn_overrep_untrimmed,_cutoff_warn_adapter_untrimmed,_cutoff_fail_overrep_trimmed,_cutoff_fail_adapter_trimmed,_cutoff_warn_overrep_trimmed,_cutoff_warn_adapter_trimmed,_figinfo,_f=None):
+def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,_f=None):
     ## Load the sequence contamination levels for the background data
     _contaminant_df_untrim = _background_df[["Percent_Overrepresented_Seq_Untrimmed", "Percent_Adapter_Content_Untrimmed"]]
     _contaminant_df_trim = _background_df[["Percent_Overrepresented_Seq_Trimmed", "Percent_Adapter_Content_Trimmed"]]
@@ -790,9 +794,8 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
         plt.gcf() # I think it should just load the figure at the beginning. I honestly don't know however as I'm not the most fluent in
                         # matplotlib style and syntax
 
-    _gridsp = matplotlib.gridspec.GridSpec(_subplot_rows*2, 2, figure=_f)
-    print(_gridsp)
-    print(type(_gridsp))
+    _gridsp = matplotlib.gridspec.GridSpec(_figinfo["_subplot_rows"]*2, 2, figure=_f)
+    
     _axis = _f.add_subplot(_gridsp[4, 1:])
     _axis2 = _f.add_subplot(_gridsp[5, 1:])
 
@@ -802,15 +805,15 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     sns.violinplot(x="Percent", y="Contamination_Metric", data=_contaminant_melt_trim, palette=_contaminant_pal,
                    inner=None,ax=_axis2, linewidth=0.3, orient="h", scale="count")
 
-    _axis.set_title("Sequence Contamination", fontsize=_title_size, pad=0)
+    _axis.set_title("Sequence Contamination", fontsize=_figinfo["_title_size"], pad=0)
 
     _axis  = set_ticks(_axis, _figinfo["_tick_size"]
     _axis2 = set_ticks(_axis2,_figinfo["_tick_size"]
 
-    _axis.set_xlabel("Pre-trim (%)", fontsize=_label_size, labelpad=0.5)
+    _axis.set_xlabel("Pre-trim (%)", fontsize=_figinfo["_label_size"], labelpad=0.5)
     _axis.set_ylabel("")
 
-    _axis2.set_xlabel("Post-trim (%)", fontsize=_label_size, labelpad=0.5)
+    _axis2.set_xlabel("Post-trim (%)", fontsize=_figinfo["_label_size"], labelpad=0.5)
     _axis2.set_ylabel("")
 
     _axis.xaxis.set_major_locator(matplotlib.ticker.AutoLocator())
@@ -837,38 +840,33 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
     _axis3.set_ylim(_axis2.get_ylim()[0], _axis2.get_ylim()[1])
 
     _markers = [
-    (_axis, _cutoff_fail_overrep_untrimmed, -0.7, 'Fail', 'red'),
-    (_axis, _cutoff_warn_overrep_untrimmed, -0.7, 'Warn', _warn_color),
-    (_axis3, _cutoff_fail_overrep_trimmed, -0.7, 'Fail', 'red'),
-    (_axis3, _cutoff_warn_overrep_trimmed, -0.7,'Warn', _warn_color),
+    (_axis3,_figinfo["_fail_violin_cutoff_overrep_trimmed"], -0.7, 'Fail', _figinfo["_fail_color"],
+    (_axis3, _figinfo["_warn_violin_cutoff_overrep_trimmed"], -0.7,'Warn', _figinfo["_warn_color"]),
     # adapter 
-    (_axis, _cutoff_fail_adapter_untrimmed, .7, 'Fail', 'red'),
-    (_axis, _cutoff_warn_adapter_untrimmed, .7, 'Warn', _warn_color),
-    (_axis3, _cutoff_fail_adapter_trimmed, .7, 'Fail', "red"),
-    (_axis3, _cutoff_warn_adapter_trimmed, .7, 'Warn', _warn_color)]
+    (_axis3, _figinfo["_fail_violin_cutoff_adapter_trimmed"], .7, 'Fail', _figinfo["_fail_color"]),
+    (_axis3, _figinfo["_warn_violin_cutoff_adapter_trimmed"], .7, 'Warn', _figinfo["_warn_color"])]
 
     for _axs, _cutoff, yloc,label, color in _markers:
         _axs.plot(_cutoff, yloc, marker='v', ms=1, c=color, clip_on=False)
-        _axs.text(_cutoff, yloc - .1 , label, fontsize=_tick_size, color=color, horizontalalignment='center')
+        _axs.text(_cutoff, yloc - .1 , label, fontsize=_figinfo["_tick_size"], color=color, horizontalalignment='center')
 
-    _line_overrep_untrim = _axis.axvline(x=_current_overrep_untrim, ymin=0.5, ymax=0.95, alpha=0.8, color=_curr_sample_color,
+    _line_overrep_untrim = _axis.axvline(x=_current_overrep_untrim, ymin=0.5, ymax=0.95, alpha=0.8, color=_figinfo["_curr_sample_color"],
                                          linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_overrep_untrim))
     _line_mean_overrep_untrim = _axis.axvline(x=_mean_overrep_untrim, ymin=0.5, ymax=0.95, alpha=0.8, color='indigo',
                                               linestyle='--', linewidth=0.35,
                                               label='{:.2f}%'.format(_mean_overrep_untrim))
 
-    _line_adapter_untrim = _axis.axvline(x=_current_adapter_untrim, ymin=0.05, ymax=0.45, alpha=0.8, color=_curr_sample_color,
+    _line_adapter_untrim = _axis.axvline(x=_current_adapter_untrim, ymin=0.05, ymax=0.45, alpha=0.8, color=_figinfo["_curr_sample_color"],
                                          linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_adapter_untrim))
-    _line_mean_adapter_untrim = _axis.axvline(x=_mean_adapter_untrim, ymin=0.05, ymax=0.45, alpha=0.8, color='indigo',
                                               linestyle='--', linewidth=0.35,
                                               label='{:.2f}%'.format(_mean_adapter_untrim))
 
-    _line_overrep_trim = _axis2.axvline(x=_current_overrep_trim, ymin=0.55, ymax=0.95, alpha=0.8, color=_curr_sample_color,
+    _line_overrep_trim = _axis2.axvline(x=_current_overrep_trim, ymin=0.55, ymax=0.95, alpha=0.8, color=_figinfo["_curr_sample_color"],
                                         linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_overrep_trim))
     _line_mean_overrep_trim = _axis2.axvline(x=_mean_overrep_trim, ymin=0.55, ymax=0.95, alpha=0.8, color='indigo',
                                              linestyle='--', linewidth=0.35, label='{:.2f}%'.format(_mean_overrep_trim))
 
-    _line_adapter_trim = _axis2.axvline(x=_current_adapter_trim, ymin=0.05, ymax=0.45, alpha=0.8, color=_curr_sample_color,
+    _line_adapter_trim = _axis2.axvline(x=_current_adapter_trim, ymin=0.05, ymax=0.45, alpha=0.8, color=_figinfo["curr_sample_color"],
                                         linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_adapter_trim))
     _line_mean_adapter_trim = _axis2.axvline(x=_mean_adapter_trim, ymin=0.05, ymax=0.45, alpha=0.8, color='indigo',
                                              linestyle='--', linewidth=0.35, label='{:.2f}%'.format(_mean_adapter_trim))
@@ -878,18 +876,10 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_cutoff_f
 
     plt.subplots_adjust(hspace=0)
 
-    if(_current_overrep_trim > _cutoff_fail_overrep_trimmed  or _current_overrep_untrim > _cutoff_fail_overrep_untrimmed \
-     or _current_adapter_trim > _cutoff_fail_adapter_trimmed or _current_adapter_untrim > _cutoff_fail_adapter_untrimmed):
+    if(_current_overrep_trim > _figinfo["_fail_violin_cutoff_overrep_trimmed"] or _current_adapter_trim > _figinfo["_fail_violin_cutoff_adapter_trimmed"]):
         insert_flag_fail(_axis)
-    elif(_current_overrep_trim > _cutoff_warn_overrep_trimmed  or _current_overrep_untrim > _cutoff_warn_overrep_untrimmed \
-     or _current_adapter_trim > _cutoff_warn_adapter_trimmed or _current_adapter_untrim > _cutoff_warn_adapter_untrimmed):
+    elif(_current_overrep_trim > _figinfo["_warn_violin_cutoff_overrep_trimmed"] or _current_adapter_trim > _figinfo["_warn_violin_cutoff_adapter_trimmed"]):
         insert_flag_warn(_axis)
-
-#axis = needs_fail_or_warn(_axis,_current_overrep_trim,_cutoff_fail_overrep_untrimmed,_cutoff_warn_overrep_untrimmed,"upper")
-#   insert_flag_fail(_axis) 
-
-
-    _axis2 = needs_fail_or_warn(_axis2,_current_adapter_trim,_cutoff_fail_overrep_untrimmed,_cutoff_warn_overrep_untrimmed,"upper")
 
     return _f
 
@@ -928,89 +918,89 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_fail_alpha,_warn_alph
 
     _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
 
-    _axis = set_ticks(_axis,_figinfo["_tick_size"])
+                    _line2,
+                    _fail_label,
+                    _warn_label],
+                ["Current Sample", 
+                    "Batch Mean",
+                    "Fail (" + str(round(_cutoff_fail,2)) + ")",
+                    "Warn (" + str(round(_cutoff_warn,2)) + ")"],
+                loc='best',
+                frameon=False,
+                fontsize=4)
+    return _ax 
 
-    _axis.set_xlim(0, 105)
-    _axis.set_title(_plot_title, fontsize=6)
-
-    _uni_arrw = u"\u2192"
-    _axis.set_xlabel("Gene Percentile (5' " + _uni_arrw + " 3')", fontsize=_label_size, labelpad=2)
-    _axis.set_ylabel("Coverage", fontsize=_label_size, labelpad=2)
-
-    _current_sample_line = matplotlib.lines.Line2D([0], [0], color=_curr_sample_color, linewidth=0.5, linestyle='-', alpha=0.8)
-    _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
-
-    _extra_confidenceInterval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='yellow', fill=True,
-                                                             edgecolor='yellow', linewidth=1.2, alpha=0.5)
-    _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
-
-    _axis.legend([_current_sample_line, _library_line, _extra_confidenceInterval, _extra_ksPval],
-                 ["Current Sample", "Library Mean",
-                  "95% Confidence Interval", "KS-2sample Pvalue: " + str(round(_ks_pval, 3))],
-                 loc='best', frameon=False, fontsize=4, ncol=1)
-
-    _axis = mk_axes(_axis) 
-    _axis = needs_fail_or_warn(_axis,_ks_pval,1-_fail_alpha,1-_warn_alpha,"lower")
+# the goal of this function is to set which axes of the regular axis and the Kernel density axis 
+def mk_axes(_plt_ax,_kd_ax = None):
     
-    return _fig
+    for label in (_plt_ax.get_xticklabels() + _plt_ax.get_yticklabels()):
+        label.set_fontsize(4)
+    # set the plot axis
+    _plt_ax.spines['top'].set_visible(False)
+    _plt_ax.spines['right'].set_visible(False)
+    _plt_ax.spines['left'].set_visible(True)
+    _plt_ax.spines['bottom'].set_visible(True)
+    _plt_ax.spines['left'].set_color('black')
+    _plt_ax.spines['bottom'].set_color('black')
 
-
-#### Plot 8 : Gene Expression Distribution Plot 
-def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_fail_alpha,_warn_alpha,_figinfo,_f=None):
-    _index_array = _hist_df.iloc[:, 0]
-
-    _low_vals = []
-    _high_vals = []
-
-    for _i in _index_array:
-        _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
-        _high_vals.append(float(_i.strip('(').strip(']').split(',')[1]))
-
-    __col_index = pd.IntervalIndex.from_arrays(_low_vals, _high_vals, closed='right') 
-    # of bugfixing concern i am adding a 0 at the beginning but then removing an index from the last? perhaps lowvals is a better index then highvals?
-    # It's a bit unclear how to fix this at the moment.
-    _x_vals_test = _high_vals.insert(0,0)
-    _x_vals = _high_vals[:-1]
-
-    ## Preparing the data_df and libMean_df for all bins
-    _data_df = _hist_df.drop(['Unnamed: 0'], axis=1)
-    _libMean_df = pd.DataFrame()
-    _libMean_df['Mean'] = _data_df.iloc[:, :-1].mean(numeric_only=True, axis=1)
-
-    _data_df_dropped = _data_df
-    _mean_df_dropped = _libMean_df
+    _plt_ax.spines['left'].set_linewidth(0.55)
+    _plt_ax.spines['bottom'].set_linewidth(0.55)
+    _plt_ax.set_facecolor('white')
     
-    _max_df = pd.DataFrame()
-    _max_df['max_val'] = _data_df.max(axis=1)
-    _max_df.index == _ipTuple[1]
-    _mean_array = _mean_df_dropped.Mean.values
-    _current_samp_array = _data_df_dropped[_ipTuple[1]].values
+    if _kd_ax != None: 
+        # set the kernel density axis to be invisible 
+        _kd_ax.yaxis.set_ticks([])
+        _kd_ax.yaxis.label.set_visible(False)
+
+        _kd_ax.spines['top'].set_visible(False)
+        _kd_ax.spines['right'].set_visible(False)
+        _kd_ax.spines['bottom'].set_visible(False)
+        _kd_ax.spines['left'].set_visible(False)
+
+        return _plt_ax,_kd_ax
+    else:
+        return _plt_ax
+
+# Replaces missing values of a dictionary with corresponding values of a second dictionary with matching keys
+def repl_missing_values_indict(_indict,_repldict):
+    for key, value in _indict.items():
+    # If the value is NaN, replace it with the corresponding automatically generated keys
+        if value != value:
+            _indict.update({key: _repldict[key]})
+
+# the goal of this function is to determine if a plot needs a fail or warn box and then call the according
+# helper function 
+def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lower):
     
-    # code for calculating Z value of number of expressed genes. Maybe the worst code I've ever written. It's up there.
-    _sum_df = _data_df_dropped.sum().round()
-    _curr_sum = _current_samp_array.sum().round()
-    _curr_ndx = np.where(_sum_df == _curr_sum)[0][0]
-    _zscore = stats.zscore(_sum_df)
-    _pvals  = stats.norm.sf(abs(_zscore))
-    _curr_pval = _pvals[_curr_ndx]
-    
-    # ZTest for mean and current sample against the normal distribution to get pvalue
-    _ztest_stat_raw, _ztest_pval_raw = ztest_prob(_current_samp_array, _mean_array, 0)
+    if higher_lower == "lower":
+        
+        if _current_sample <= _cutoff_fail:
+            insert_flag_fail(_ax)
+        elif (_current_sample <= _cutoff_warn):
+            insert_flag_warn(_ax)
+        return _ax 
 
-    if not _f is None:
-        plt.gcf()
+    if higher_lower == "upper":
+       
+        if _current_sample >= _cutoff_fail:
+            insert_flag_fail(_ax)
+        elif (_current_sample >= _cutoff_warn):
+            insert_flag_warn(_ax)
+        return _ax
 
-    _ax = _f.add_subplot(_subplot_rows, 2, _pos)
+# The goal of this function is to return the upper or/and lower bound of a ci given a vec
+def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
+    ci_bnd = stats.norm.interval(alpha = _alph,
+                        loc=np.mean(_vec),
+                        scale = stats.tstd(_vec))
+    if _uppr_lwr == "upper": 
+        ci_bnd = ci_bnd[1]
+    elif _uppr_lwr == "lower":
+        ci_bnd = ci_bnd[0]
 
-    _col_names = [_cl for _cl in _data_df_dropped.columns]
+    return ci_bnd
 
-    ## Plotting all current library distributions with the current sample highlighted on each page
-    for _col in _col_names:
-
-        if _col == _ipTuple[1]:
-            plt.plot(_x_vals, _data_df_dropped[_col], color=_curr_sample_color, linewidth=0.5, linestyle='-', zorder=24)
-        else:
-            plt.plot(_x_vals, _data_df_dropped[_col], color='silver', linewidth=0.5, linestyle='-')
+# writing a custom function to calculate zscores as the implementation in scipi leaves something to be desired
 
     ## Plotting the mean distribution
     _ax.plot(_x_vals, _mean_df_dropped['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
@@ -1050,3 +1040,4 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_fail_alpha,_warn_
 
 if __name__ == "__main__":
     main()
+import matplotlib
