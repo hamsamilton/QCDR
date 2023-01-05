@@ -68,6 +68,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
     # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
     _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
+    _user_df.loc[:, 'Input_Size'] = _user_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
 
     # Make standard cutoffs for warn/fail
     _fail_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _fail_alpha)
@@ -90,7 +91,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _figinfo["_subplot_rows"]      = _subplot_rows
     _figinfo["_warn_alpha"]        = _warn_alpha
     _figinfo["_fail_alpha"]        = _fail_alpha
-
+    _figinfo["_bin_num"]         = 30
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
         print(_manual_cutoffs.to_string())
@@ -110,9 +111,6 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     # add cutoff info
     _figinfo.update(_fail_cutoffs)
     _figinfo.update(_warn_cutoffs)
-
-    # Read Background file and load HISTORICAL background data
-    _bgd_df = pd.read_csv(_bgd_file, sep=",")
 
     # Read Gene Coverage Data
     if _gc_file is not None:
@@ -169,23 +167,23 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig.suptitle('Sample : ' + _tuple[1] + " Batch : " + _tuple[13], x=0.01, y=0.99, fontsize=6,
                      horizontalalignment='left', verticalalignment='top', fontweight='book',style = 'italic')
         fig.text(s= ('Warn cutoffs: Default alpha =' + str(_warn_alpha) +
-                    '| Sequencing Depth = ' + str(_figinfo["_warn_ipReads_cutoff"]) +
-                    '| Trimming = ' + str(_figinfo["_warn_trimmedReads_cutoff"]) +  
-                    '| Alignment = ' + str(_figinfo["_warn_uniqAligned_cutoff"]) +  
-                    '| Gene Exon Mapping = ' + str(_figinfo["_warn_exonMapping_cutoff"]) + 
+                    '| Sequencing Depth = ' + str(round(_figinfo["_warn_ipReads_cutoff"],3)) +
+                    '| Trimming = ' + str(round(_figinfo["_warn_trimmedReads_cutoff"],3)) +  
+                    '| Alignment = ' + str(round(_figinfo["_warn_uniqAligned_cutoff"],3)) +  
+                    '| Gene Exon Mapping = ' + str(round(_figinfo["_warn_exonMapping_cutoff"],3)) + 
                     '| Ribosomal RNA = ' + str(round(_figinfo["_warn_riboScatter_cutoff"],3)) + 
-                    '| Sequence Contamination = ' + str(_figinfo["_warn_violin_cutoff_adapter_trimmed"]) + 
+                    '| Sequence Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_adapter_trimmed"],3)) + 
                     '| Gene Body Coverage = ' + str(_warn_alpha) + 
                     '| Distribution of Gene Expression = ' + str(_warn_alpha)) , 
                     x = .01, y = .965, fontsize = 3,
                      ha='left', va='top',fontweight='book', style = 'italic')
         fig.text(s= ('Fail cutoffs: Default alpha =' + str(_fail_alpha) +
-                    '| Sequencing Depth = ' + str(_figinfo["_fail_ipReads_cutoff"]) +
-                    '| Trimming = ' + str(_figinfo["_fail_trimmedReads_cutoff"]) +  
-                    '| Alignment = ' + str(_figinfo["_fail_uniqAligned_cutoff"]) +  
-                    '| Gene Exon Mapping = ' + str(_figinfo["_fail_exonMapping_cutoff"]) + 
+                    '| Sequencing Depth = ' + str(round(_figinfo["_fail_ipReads_cutoff"],3)) +
+                    '| Trimming = ' + str(round(_figinfo["_fail_trimmedReads_cutoff"],3)) +  
+                    '| Alignment = ' + str(round(_figinfo["_fail_uniqAligned_cutoff"],3)) +  
+                    '| Gene Exon Mapping = ' + str(round(_figinfo["_fail_exonMapping_cutoff"],3)) + 
                     '| Ribosomal RNA = ' + str(round(_figinfo["_fail_riboScatter_cutoff"],3)) + 
-                    '| Sequence Contamination = ' + str(_figinfo["_fail_violin_cutoff_adapter_untrimmed"]) + 
+                    '| Sequence Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_adapter_untrimmed"],3)) + 
                     '| Gene Body Coverage = ' + str(_fail_alpha) + 
                     '| Distribution of Gene Expression = ' + str(_fail_alpha)) , 
                     x = .01, y = .95, fontsize = 3,
@@ -224,9 +222,9 @@ if __name__ == "__main__":
     
     parser.add_argument("-ctf", "--cutoffs", required=False, default = False,help="[OPTIONAL] Provide optional cutoffs for warn fail cutoffs.\n -ctf [CUTOFF_PATH],\t --cutoff [CUTOFF_PATH] \n")
 
-    parser.add_argument("-fla", "--failalpha", required=False, default = .9,help="[OPTIONAL] Provide an alpha cutoff for failure.\n -fla [FAIL_ALPHA],\t--fail-alpha [FAIL_ALPHA]\n") 
+    parser.add_argument("-fla", "--failalpha", required=False, default = .95,help="[OPTIONAL] Provide an alpha cutoff for failure.\n -fla [FAIL_ALPHA],\t--fail-alpha [FAIL_ALPHA]\n") 
     
-    parser.add_argument("-wrna", "--warnalpha", required=False,type=float, default = .8,help="[OPTIONAL] Provide an alpha cutoff for warn.\n -wrna [WARN_ALPHA],\t--warnalpha [WARN_ALPHA]\n")
+    parser.add_argument("-wrna", "--warnalpha", required=False,type=float, default = .9,help="[OPTIONAL] Provide an alpha cutoff for warn.\n -wrna [WARN_ALPHA],\t--warnalpha [WARN_ALPHA]\n")
  
     args = parser.parse_args()
 

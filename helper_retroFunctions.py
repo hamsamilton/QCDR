@@ -64,18 +64,17 @@ def add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn,_fail_color,_warn_color)
 def adjust_flag(_ax,_current_sample,_lib_mean):
     if _current_sample >=  _lib_mean:
         # plot the current sample line
-        _ax.text(_current_sample + 0.5, (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
+        _ax.text(_current_sample + (get_axis_range(_ax.get_xlim())/ 100), (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
                  rotation= 270, fontsize=3, zorder=2)
-  
         # plot the library mean line
-        _ax.text(_lib_mean - 2, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation=90,
+        _ax.text(_lib_mean - (get_axis_range(_ax.get_xlim())/30),((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation=90,
                  fontsize=3, zorder=2)
     else:
         # plot the current sample line
-        _ax.text(_current_sample - 1, (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
+        _ax.text(_current_sample - (get_axis_range(_ax.get_xlim())/50),(_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
                  rotation= 90, fontsize=3, zorder=2)
         # plot the library mean line
-        _ax.text(_lib_mean + 0.5, ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation= 270,
+        _ax.text(_lib_mean + (get_axis_range(_ax.get_xlim())/80), ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation= 270,
                  fontsize=3, zorder=2)
     return _ax
 
@@ -178,16 +177,6 @@ def calc_zscore(_newval,_comparevec):
     
     return _zscr
 
-# Not certain of the purpose of this, leftover from Gaurav days. Moved here as a part of code cleanup
-def create_connection(_db_file):
-    try:
-        _conn = sqlite3.connect(_db_file)
-        return _conn
-    except Error as e:
-        print(e)
-
-    return None
-
 # Not sure what to do here, I found it in the Main file so I am migrating it here as a part of a code cleanup
 def join_levels(_df):
     for i, col in enumerate(_df.columns.levels):
@@ -201,32 +190,33 @@ def join_levels(_df):
 # The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
 def gen_cutoffs(_bgd_df,_alph):
 
+    _onesided_alph = _alph - (1 - _alph)
     _ipReads_cutoff =  get_ci_bound(_vec = _bgd_df.loc[:,"Input_Size"],
-                                    _alph = _alph,
+                                    _alph = _onesided_alph,
                                     _uppr_lwr = "lower")
     _trimmedReads_cutoff = get_ci_bound(_vec = _bgd_df.loc[:,"Percent_PostTrim"],
-                                        _alph = _alph,
+                                        _alph = _onesided_alph,
                                         _uppr_lwr = "lower")
     _uniqAligned_cutoff  = get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Uniquely_Aligned"],
-                                        _alph = _alph,
+                                        _alph = _onesided_alph,
                                         _uppr_lwr = "lower")
     _exonMapping_cutoff  = get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Exonic"],
-                                        _alph = _alph,
+                                        _alph = _onesided_alph,
                                         _uppr_lwr = "lower")
     _riboScatter_cutoff  = get_ci_bound(_vec = (_bgd_df.loc[:,"Num_Uniquely_Aligned_rRNA"] / _bgd_df.loc[:,"Num_Uniquely_Aligned"]),
-                                        _alph = _alph,
+                                        _alph = _onesided_alph,
                                         _uppr_lwr = "upper")
     _violin_cutoff_overrep_untrimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Overrepresented_Seq_Untrimmed"],
-                                        _alph = _alph,
+                                        _alph = _onesided_alph,
                                         _uppr_lwr = "upper")
     _violin_cutoff_adapter_untrimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Untrimmed"],
-                                        _alph = _alph,
+                                        _alph = _onesided_alph,
                                         _uppr_lwr = "upper")
     _violin_cutoff_overrep_trimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Overrepresented_Seq_Trimmed"],
-                                        _alph = _alph,
+                                        _alph = _onesided_alph,
                                         _uppr_lwr = "upper")
     _violin_cutoff_adapter_trimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Trimmed"],
-                                        _alph = _alph,
+                                        _alph = _onesided_alph,
                                         _uppr_lwr = "upper")
     _cutoffs_dict  = locals() 
     del _cutoffs_dict["_bgd_df"]
@@ -402,23 +392,30 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
     ax.set_ylim(ylim)
     return text
 
+# takes two vectors, finds the maximum and minimum, and creates the number of bins specified
+def make_bins(_vec1,_vec2,_bins):
+
+    _xmin_bgd = _vec1.min()
+    _xmax_bgd = _vec1.max()
+    _xmin_inp = _vec2.min()
+    _xmax_inp = _vec2.max()
+    
+    _plt_max = max([_xmax_bgd,_xmax_inp])
+    _plt_min = min([_xmin_bgd,_xmin_inp])
+   
+    _bins = np.arange(_plt_min,_plt_max, (_plt_max  - _plt_min) / _bins)
+    
+    return _bins
 
 #### Plot 1: Input Size ####
 def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
-   
-    _xmin_bgd = _background_df.loc[:,"Input_Size"].min()
-    _xmax_bgd = _background_df.loc[:,"Input_Size"].max()
-#    _xmin_inp = _userDf[:,"Input_Size"].max() 
- #   _xmax_inp = _userDf[:,"Input_Size"].max()
-
-    bin = np.arange(_xmin_bgd,_xmax_bgd, (_xmax_bgd - _xmin_bgd) / 30)
+ 
+    _bins = make_bins(_background_df.loc[:,"Input_Size"],_userDf.loc[:,"Input_Size"],_figinfo["_bin_num"])
     
-    _userDf.loc[:, "Input_Size"] = _userDf.loc[:, "Input_Size"]
-
-    _out, _bins = pd.cut(_background_df['Input_Size'], bins=bin, retbins=True, right=True, include_lowest=False)
+    _out, _bins = pd.cut(_background_df['Input_Size'], bins=_bins, retbins=True, right=True, include_lowest=False)
     _xlabs = [str(xt) for xt in _bins[0::5]]
 
-    _ip_norm = _userDf.loc[:, 'Input_Size'].apply(byMillion)
+    _ip_norm = _userDf.loc[:, 'Input_Size']
     _lib_mean = _ip_norm.mean()
     _current_sample = _ip_norm[_in_tuple.Index]
 
@@ -472,12 +469,12 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
 def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_figinfo,_figure=None):
     _xmin = _retro_df.loc[:,"Percent_PostTrim"].min()
     _xmax = _retro_df.loc[:,"Percent_PostTrim"].max()
-    bin_data = np.arange(_xmin,_xmax,(_xmax / _xmin) / 30)
+    _bins = make_bins(_retro_df.loc[:,"Percent_PostTrim"],_user_df.loc[:,"Percent_PostTrim"],_figinfo["_bin_num"])
 
     _retro_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"]
     _user_df.loc[:, "Percent_PostTrim"] = _user_df.loc[:, "Percent_PostTrim"]
 
-    _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
+    _out, _bins = pd.cut(_retro_df[_colname], bins=_bins, retbins=True, right=True, include_lowest=True)
     _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
 
     _xtick_labs = [str(xt) for xt in _bins[0::5]]
@@ -535,7 +532,8 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
 
 #### Plot 3: Alignment Percentage ####
 def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_figinfo,_figure=None):
-    bin_data = np.arange(0, 100 + 1, 1)
+   
+    bin_data = np.arange(0, 100 + 1,101 / _figinfo["_bin_num"] )
     _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
    
     _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
@@ -603,7 +601,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 #### Plot 4: Gene Exon Mapping ####
 def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_figinfo,_figure=None):
     
-    bin_data = np.arange(0, 100 + 1, 1)
+    bin_data = np.arange(0, 100 + 1, 101/_figinfo["_bin_num"])
 
     _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
     _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
