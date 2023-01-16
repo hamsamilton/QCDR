@@ -87,11 +87,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _figinfo["_curr_sample_color"] = "lightseagreen"
     _figinfo["_title_size"]        = 6
     _figinfo["_label_size"]        = 5
+    _figinfo["_legend_size"]       = 3
     _figinfo["_tick_size"]         = 4
     _figinfo["_subplot_rows"]      = _subplot_rows
     _figinfo["_warn_alpha"]        = _warn_alpha
     _figinfo["_fail_alpha"]        = _fail_alpha
-    _figinfo["_bin_num"]         = 30
+    _figinfo["_bin_num"]         = 40
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
         print(_manual_cutoffs.to_string())
@@ -124,11 +125,67 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _negBin_df = pd.read_csv(_hist_file, index_col=False)
         _negBin_df["Batch_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
 
+        _data_df = _negBin_df.drop(['Unnamed: 0'], axis=1)
+        _sum_df = _data_df.sum().round()
+        _fail_numGene_cutoff = get_ci_bound(_vec = _sum_df,
+                                                _alph = _fail_alpha - (1 - _fail_alpha),
+                                            _uppr_lwr = "lower")
+        _warn_numGene_cutoff = get_ci_bound(_vec = _sum_df,
+                                                _alph = _warn_alpha - (1 - _warn_alpha),
+                                            _uppr_lwr = "lower")
+        _fail_numGene_cutoff = '{:.0f}'.format(_fail_numGene_cutoff) 
+         
+        _warn_numGene_cutoff = '{:.0f}'.format(_warn_numGene_cutoff) 
+    else:
+        _fail_numGene_cutoff = "None"
+        _warn_numGene_cutoff = "None"
     ###### Begin Plotting process ######
 
-    ## Open the given PDF output file
+    # Open the given PDF output file
     _pdfObj = PdfPages(_output_file)
+    
+    # Make the title page
+    fig = plt.figure()
 
+    # add text
+    fig.text(.5,.965,"QC Plotter Input Summary",ha='center',va='top',fontsize = 14)
+    fig.text(.005,.985,datetime.now().strftime("%d/%m/%Y %H:%M:%S"),fontsize = 4)
+    fig.text(.005,.97,"Version 2.0",fontsize = 4)
+    # list inputs
+    fig.text(.5,.5,"Input table =     " + _ip_filename + "\nOutput location =    " + _op_filename +\
+    "\nBackground table =    " + _bgd_filename + "\nGene Body Coverage file =    " + str(_gc_file) + \
+    "\nGene read depth distribution histogram file =    " + str(_hist_file) + "\nCutoff file =    " + str(_cutoff_filename),
+    fontsize = 6,ha="center",va="center")
+
+    # show cutoffs
+    fig.text(s= ('Warn cutoffs: Default alpha =' + str(_warn_alpha) +
+                    '| Sequencing Depth = ' + str(round(_figinfo["_warn_ipReads_cutoff"],3)) +
+                    '| Trimming = ' + str(round(_figinfo["_warn_trimmedReads_cutoff"],3)) +  
+                    '| Alignment = ' + str(round(_figinfo["_warn_uniqAligned_cutoff"],3)) +  
+                    '| Gene Exon Mapping = ' + str(round(_figinfo["_warn_exonMapping_cutoff"],3)) + 
+                    '\n| Ribosomal RNA = ' + str(round(_figinfo["_warn_riboScatter_cutoff"],3)) + 
+                    '| Adapter Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_adapter_trimmed"],3)) + 
+                    '| Overrep. Seq  Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_overrep_trimmed"],3)) + 
+                    '| Gene Body Coverage = ' + str(_warn_alpha) + 
+                    '| Distribution of Gene Expression = ' + _fail_numGene_cutoff) , 
+                    x = .5, y = .1, fontsize = 5,
+                     ha='center', va='top',fontweight='book', style = 'italic')
+    fig.text(s= ('Fail cutoffs: Default alpha =' + str(_fail_alpha) +
+                    '| Sequencing Depth = ' + str(round(_figinfo["_fail_ipReads_cutoff"],3)) +
+                    '| Trimming = ' + str(round(_figinfo["_fail_trimmedReads_cutoff"],3)) +  
+                    '| Alignment = ' + str(round(_figinfo["_fail_uniqAligned_cutoff"],3)) +  
+                    '| Gene Exon Mapping = ' + str(round(_figinfo["_fail_exonMapping_cutoff"],3)) + 
+                    '\n| Ribosomal RNA = ' + str(round(_figinfo["_fail_riboScatter_cutoff"],3)) + 
+                    '| Adapter Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_adapter_trimmed"],3)) + 
+                    '| Overrep. Seq Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_overrep_trimmed"],3)) + 
+                    '| Gene Body Coverage = ' + str(_fail_alpha) + 
+                    '| Distribution of Gene Expression = ' + _warn_numGene_cutoff) , 
+                    x = .5, y = .05, fontsize = 5,
+                     ha='center', va='top',fontweight='book', style = 'italic')
+    _pdfObj.savefig()
+    plt.close()
+
+    # Make individual figures
     for _tuple in _user_df.itertuples():
         print("THIS IS THE IN TUPLE",_tuple)
 
@@ -164,32 +221,11 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
             fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_figinfo,fig)
 
         # Add sample name at the top-left corner of the page
-        fig.suptitle('Sample : ' + _tuple[1] + " Batch : " + _tuple[13], x=0.01, y=0.99, fontsize=6,
+        fig.text(s='Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
                      horizontalalignment='left', verticalalignment='top', fontweight='book',style = 'italic')
-        fig.text(s= ('Warn cutoffs: Default alpha =' + str(_warn_alpha) +
-                    '| Sequencing Depth = ' + str(round(_figinfo["_warn_ipReads_cutoff"],3)) +
-                    '| Trimming = ' + str(round(_figinfo["_warn_trimmedReads_cutoff"],3)) +  
-                    '| Alignment = ' + str(round(_figinfo["_warn_uniqAligned_cutoff"],3)) +  
-                    '| Gene Exon Mapping = ' + str(round(_figinfo["_warn_exonMapping_cutoff"],3)) + 
-                    '| Ribosomal RNA = ' + str(round(_figinfo["_warn_riboScatter_cutoff"],3)) + 
-                    '| Sequence Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_adapter_trimmed"],3)) + 
-                    '| Gene Body Coverage = ' + str(_warn_alpha) + 
-                    '| Distribution of Gene Expression = ' + str(_warn_alpha)) , 
-                    x = .01, y = .965, fontsize = 3,
-                     ha='left', va='top',fontweight='book', style = 'italic')
-        fig.text(s= ('Fail cutoffs: Default alpha =' + str(_fail_alpha) +
-                    '| Sequencing Depth = ' + str(round(_figinfo["_fail_ipReads_cutoff"],3)) +
-                    '| Trimming = ' + str(round(_figinfo["_fail_trimmedReads_cutoff"],3)) +  
-                    '| Alignment = ' + str(round(_figinfo["_fail_uniqAligned_cutoff"],3)) +  
-                    '| Gene Exon Mapping = ' + str(round(_figinfo["_fail_exonMapping_cutoff"],3)) + 
-                    '| Ribosomal RNA = ' + str(round(_figinfo["_fail_riboScatter_cutoff"],3)) + 
-                    '| Sequence Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_adapter_untrimmed"],3)) + 
-                    '| Gene Body Coverage = ' + str(_fail_alpha) + 
-                    '| Distribution of Gene Expression = ' + str(_fail_alpha)) , 
-                    x = .01, y = .95, fontsize = 3,
-                     ha='left', va='top',fontweight='book', style = 'italic')
-        # Add page number at the top-right corner of the page
-        fig.text(x=0.99, y=0.99, s=int(_tuple[0]) + 1, ha='right', va='top', fontsize=4)
+        fig.text(s ="Batch : " + _tuple[13], x=0.99, y=0.99, fontsize=6,
+                     horizontalalignment='right', verticalalignment='top', fontweight='book',style = 'italic')
+        #fig.text(x=0.99, y=0.01, s=int(_tuple[0]) + 1, ha='right', va='top', fontsize=4)
             
         plt.subplots_adjust(hspace=0.7, wspace=0.2)
 
