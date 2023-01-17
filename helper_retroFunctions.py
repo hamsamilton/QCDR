@@ -731,7 +731,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
                     _warn_label,
                     _mean_label],
                 ["Current Sample", 
-                    "Batch Mean",
+                    "Batch Samples",
                     "Fail (" + "{:.0%}".format(_figinfo["_fail_riboScatter_cutoff"])  + ")",
                     "Warn (" + "{:.0%}".format(_figinfo["_warn_riboScatter_cutoff"]) + ")",
                     "Mean rRNA/Aligned Reads (" + "{:.0%}".format(_slope_current) + ")"],
@@ -1007,7 +1007,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
 
     _ax.set_title(_plot_title, fontsize=_figinfo["_title_size"])
 
-    _ax.set_xlabel("Quantity of detected reads (log2(CPM)+1)", fontsize=_figinfo["_label_size"], labelpad=2)
+    _ax.set_xlabel("Expression Level (log2(CPM)+1)", fontsize=_figinfo["_label_size"], labelpad=2)
     _ax.set_ylabel("Frequency", fontsize=_figinfo["_label_size"], labelpad=2)
 
     _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_x_vals[::5]))
