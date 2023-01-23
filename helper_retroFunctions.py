@@ -174,7 +174,7 @@ def calc_zscore(_newval,_comparevec):
 
     # calculate zscore
     _zscr = (_newval - _mn_comparevec) / _std_comparevec
-    
+
     return _zscr
 
 # Not sure what to do here, I found it in the Main file so I am migrating it here as a part of a code cleanup
@@ -406,6 +406,84 @@ def make_bins(_vec1,_vec2,_bins):
     _bins = np.arange(_plt_min,_plt_max, (_plt_max  - _plt_min) / _bins)
     
     return _bins
+
+''' Make QC heatmap
+The Goal of this function is to calculate a matrix that can be used with matplotlibs heatmap
+function which contains whether a sample passed, failed, or was warned for each test
+
+Inputs'''
+def mkQC_heatmap(_userDf,_figinfo):
+
+    def pass_warn_or_fail(_testval,_warnval,_failval,_direction):
+
+        # reverse direction using negatives to account for direction
+        if _direction == "upper":
+            _testval = -_testval
+            _warnval = -_warnval
+            _failval = -_failval
+
+        if _testval <= _warnval:
+            if _testval <= _failval:
+                return 1
+            else: 
+                return .5
+        else: 
+            return 0
+
+    # Initialize Matrix
+    _htmat = np.zeros((len(_userDf),9))
+    for _tuple in _userDf.itertuples():
+        
+        # Perform each test
+        # Input Size
+        _htmat[_tuple.Index,0]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Input_Size"],
+                                                    _figinfo["_warn_ipReads_cutoff"],
+                                                    _figinfo["_fail_ipReads_cutoff"],
+                                                    _direction = "lower")       
+        # Post trimmed reads
+        _htmat[_tuple.Index,1]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Percent_PostTrim"],
+                                                    _figinfo["_warn_trimmedReads_cutoff"],
+                                                    _figinfo["_fail_trimmedReads_cutoff"],       
+                                                    _direction = "lower")
+        # Alignment %     
+        _htmat[_tuple.Index,2]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index][ "Percent_Uniquely_Aligned"],
+                                                    _figinfo["_warn_uniqAligned_cutoff"],
+                                                    _figinfo["_fail_uniqAligned_cutoff"], 
+                                                    _direction = "lower")      
+        # Percent Exon Mapping  
+        _htmat[_tuple.Index,3]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index][ "Percent_Exonic"],
+                                                    _figinfo["_warn_exonMapping_cutoff"],
+                                                    _figinfo["_fail_exonMapping_cutoff"],
+                                                    _direction = "lower")       
+        # rRNA cutoff
+        _slope_current = float(_tuple[7] / _tuple[4])
+        _htmat[_tuple.Index,4]  = pass_warn_or_fail(_slope_current,
+                                                    _figinfo["_warn_riboScatter_cutoff"],
+                                                    _figinfo["_fail_riboScatter_cutoff"], 
+                                                    _direction = "upper")     
+        # Percent Overrepresented PostTrim     
+        _htmat[_tuple.Index,5]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Percent_Overrepresented_Seq_Trimmed"],
+                                                    _figinfo["_warn_violin_cutoff_overrep_trimmed"],
+                                                    _figinfo["_fail_violin_cutoff_overrep_trimmed"],  
+                                                    _direction = "upper")       
+        # Percent Adapter PostTrim
+        _htmat[_tuple.Index,6]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Percent_Adapter_Content_Trimmed"],
+                                                    _figinfo["_warn_violin_cutoff_adapter_trimmed"],
+                                                    _figinfo["_fail_violin_cutoff_adapter_trimmed"], 
+                                                    _direction = "upper")       
+        # GBC 
+        if _figinfo["_gbc_pvals"] != None:
+            _htmat[_tuple.Index,7]  = pass_warn_or_fail(_figinfo["_gbc_pvals"][_tuple.Index],
+                                                        (1- _figinfo["_warn_alpha"]) ,
+                                                        (1- _figinfo["_fail_alpha"]) ,
+                                                        _direction = "lower")       
+        # HIST
+        if _figinfo["_hist_pvals"] != None:
+            _htmat[_tuple.Index,8]  = pass_warn_or_fail(_figinfo["_hist_pvals"][_tuple.Index],
+                                                        (1- _figinfo["_warn_alpha"]) ,
+                                                        (1- _figinfo["_fail_alpha"]) ,
+                                                        _direction = "lower")       
+    return _htmat
 
 #### Plot 1: Input Size ####
 def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
@@ -654,8 +732,6 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     
     return _figure
 
-
-
 #### Plot 5: rRNA Scatter ####
 def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     _plotter_df = pd.concat([_background_df, _userDf])
@@ -880,10 +956,25 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     return _f
 
 
+# function designed to return pvalues for GCinformation if supplied
+def GCpvals(_coverage_df):
+    
+    # initialize list to store values
+    _kslst = []
+    # calculate mean GBC for the whole library
+    _mean_df = pd.DataFrame()
+    _mean_df["gc_mean"] = _coverage_df.mean(axis=1)
+    
+    for column_name, _column_data in _coverage_df.iteritems():
+        print(_column_data)
+        _ks_stat, _ks_pval = stats.ks_2samp(_column_data, _mean_df['gc_mean'])
+        _kslst.append(_ks_pval)
 
+    return _kslst
 # Plot 7 : GeneBody Coverage Plot
 def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     
+    # initialize list to store pvals so if returnP is true it can be returned in itself
     if not _fig is None:
         plt.gcf()
 
@@ -897,6 +988,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _wilcox_stat, _wilcox_pval = stats.wilcoxon(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'], correction=True)
 
     ## KS-2sample test
+    print(_coverage_df[_ipTuple[1]])
     _ks_stat, _ks_pval = stats.ks_2samp(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'])
 
     _pearson_corr = _coverage_df[_ipTuple[1]].corr(_mean_df['gc_mean'])
@@ -939,7 +1031,17 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
 
     return _fig
 
+def calcHistPval(_hist_df):
 
+    _data_df = _hist_df.drop(['Unnamed: 0'], axis=1)
+    # code for calculating Z value of number of expressed genes. In need of some improvement.
+    _sum_df = _data_df.sum().round()
+    _zscore = stats.zscore(_sum_df)
+    _pvals  = stats.norm.sf(abs(_zscore))
+    
+    return(_pvals)
+
+    # code for calculating Z value of number of expressed genes. In need of some improvement.
 # Plot 8 : Gene Expression Distribution Plot 
 def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
     _index_array = _hist_df.iloc[:, 0]
