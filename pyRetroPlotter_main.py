@@ -1,5 +1,6 @@
 import matplotlib
 import matplotlib.gridspec as gridspec
+import matplotlib.colors as mcolors
 import os
 import argparse
 matplotlib.use('PDF')
@@ -119,7 +120,11 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Adding the Library Mean column at the end of the GC dataframe
         _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
-
+        
+        # Calculate pvalues for plotting by the summary heatmap
+        _figinfo["_gbc_pvals"] = GCpvals(_gc_df)
+    else:
+        _figinfo["_gbc_pvals"] = None
     # Read Histogram data
     if _hist_file is not None:
         _negBin_df = pd.read_csv(_hist_file, index_col=False)
@@ -135,10 +140,13 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                                             _uppr_lwr = "lower")
         _fail_numGene_cutoff = '{:.0f}'.format(_fail_numGene_cutoff) 
          
-        _warn_numGene_cutoff = '{:.0f}'.format(_warn_numGene_cutoff) 
+        _warn_numGene_cutoff = '{:.0f}'.format(_warn_numGene_cutoff)
+         
+        _figinfo["_hist_pvals"]= calcHistPval(_negBin_df)
     else:
         _fail_numGene_cutoff = "None"
         _warn_numGene_cutoff = "None"
+        _figinfo["_hist_pvals"]= None 
     ###### Begin Plotting process ######
 
     # Open the given PDF output file
@@ -184,8 +192,36 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                      ha='center', va='top',fontweight='book', style = 'italic')
     _pdfObj.savefig()
     plt.close()
-
+    
+    colors = ["grey","goldenrod","red"]
+    cm = mcolors.ListedColormap(colors)
+    fig2,ax = plt.subplots()
+    fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')
+    _summary_heatmap = mkQC_heatmap(_user_df,_figinfo)
+    seaborn.heatmap(_summary_heatmap,ax=ax,
+                    xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
+                                  "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
+                                 "Gene Body Coverage","Gene Expression"],
+                    yticklabels=_user_df["Sample"],
+                    cmap = cm)
+    # change y-axis tick label font size
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize = 5)
+    # change x-axis tick label font size
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize = 5)
+    plt.subplots_adjust(left=0.3, bottom=0.3, right=0.7, top=0.8)
+    plt.yticks(rotation = 0)
+    plt.xticks(rotation = 45)
+    # Get the Colorbar object from the heatmap
+    cbar = ax.collections[0].colorbar
+    cbar.ax.set_aspect(.5)
+    cbar.ax.set_anchor("N")
+    # Change the ticks on the colorbar
+    cbar.set_ticks([0, 0.5, 1])
+    ax.collections[0].colorbar.ax.tick_params(labelsize=5)
+    cbar.set_ticklabels(['Passed', 'Warned', 'Failed'])
     # Make individual figures
+    _pdfObj.savefig()
+    plt.close(fig2)    
     for _tuple in _user_df.itertuples():
         print("THIS IS THE IN TUPLE",_tuple)
 
@@ -211,7 +247,6 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
         fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_figinfo,fig)
-
         # Plotting figure 7: GeneBody Coverage Distribution Plot
         if _gc_file is not None:
             fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage",_figinfo,fig)
@@ -219,7 +254,6 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         # Plotting figure 8: Gene Expression Distribution Plot
         if _hist_file is not None:
             fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_figinfo,fig)
-
         # Add sample name at the top-left corner of the page
         fig.text(s='Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
                      horizontalalignment='left', verticalalignment='top', fontweight='book',style = 'italic')
