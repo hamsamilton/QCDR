@@ -432,13 +432,10 @@ def mkQC_heatmap(_userDf,_figinfo):
 
     # Initialize Matrix
     _htmat = np.zeros((len(_userDf),9))
-    print(_userDf)
     for _tuple in _userDf.itertuples():
         
         # Perform each test
         # Input Size
-        print(_tuple.Index)
-        print(_userDf.iloc[_tuple.Index])
         _htmat[_tuple.Index,0]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Input_Size"],
                                                     _figinfo["_warn_ipReads_cutoff"],
                                                     _figinfo["_fail_ipReads_cutoff"],
@@ -474,12 +471,18 @@ def mkQC_heatmap(_userDf,_figinfo):
                                                     _figinfo["_warn_violin_cutoff_adapter_trimmed"],
                                                     _figinfo["_fail_violin_cutoff_adapter_trimmed"], 
                                                     _direction = "upper")       
-        # Percent Adapter PostTrim
-        _htmat[_tuple.Index,7]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Percent_Adapter_Content_Trimmed"],
-                                                    _figinfo["_warn_violin_cutoff_adapter_trimmed"],
-                                                    _figinfo["_fail_violin_cutoff_adapter_trimmed"], 
-                                                    _direction = "upper")       
-    print(_htmat)
+        # GBC 
+        if _figinfo["_gbc_exists"]:
+            _htmat[_tuple.Index,7]  = pass_warn_or_fail(_figinfo["_gbc_pvals"][_tuple.Index],
+                                                        (1- _figinfo["_warn_alpha"]) ,
+                                                        (1- _figinfo["_fail_alpha"]) ,
+                                                        _direction = "lower")       
+        # HIST
+        if _figinfo["_hist_exists"]:
+            _htmat[_tuple.Index,8]  = pass_warn_or_fail(_figinfo["_hist_pvals"][_tuple.Index],
+                                                        (1- _figinfo["_warn_alpha"]) ,
+                                                        (1- _figinfo["_fail_alpha"]) ,
+                                                        _direction = "lower")       
     return _htmat
 
 #### Plot 1: Input Size ####
@@ -962,11 +965,12 @@ def GCpvals(_coverage_df):
     _mean_df = pd.DataFrame()
     _mean_df["gc_mean"] = _coverage_df.mean(axis=1)
     
-    for ind, row in _coverage_df.iterrows():
-        _ks_stat, _ks_pval = stats.ks_2samp(row, _mean_df['gc_mean'])
+    for column_name, _column_data in _coverage_df.iteritems():
+        print(_column_data)
+        _ks_stat, _ks_pval = stats.ks_2samp(_column_data, _mean_df['gc_mean'])
         _kslst.append(_ks_pval)
 
-    return _kslst 
+    return _kslst
 # Plot 7 : GeneBody Coverage Plot
 def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     
@@ -984,6 +988,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _wilcox_stat, _wilcox_pval = stats.wilcoxon(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'], correction=True)
 
     ## KS-2sample test
+    print(_coverage_df[_ipTuple[1]])
     _ks_stat, _ks_pval = stats.ks_2samp(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'])
 
     _pearson_corr = _coverage_df[_ipTuple[1]].corr(_mean_df['gc_mean'])
@@ -1026,7 +1031,17 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
 
     return _fig
 
+def calcHistPval(_hist_df):
 
+    _data_df = _hist_df.drop(['Unnamed: 0'], axis=1)
+    # code for calculating Z value of number of expressed genes. In need of some improvement.
+    _sum_df = _data_df.sum().round()
+    _zscore = stats.zscore(_sum_df)
+    _pvals  = stats.norm.sf(abs(_zscore))
+    
+    return(_pvals)
+
+    # code for calculating Z value of number of expressed genes. In need of some improvement.
 # Plot 8 : Gene Expression Distribution Plot 
 def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
     _index_array = _hist_df.iloc[:, 0]
@@ -1116,7 +1131,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
     _ax = mk_axes(_ax)
     _ax = needs_fail_or_warn(_ax,_curr_pval,1-_figinfo["_fail_alpha"],1-_figinfo["_warn_alpha"],"lower")
 
-    return _f, _curr_pval
+    return _f
 
 if __name__ == "__main__":
     main()
