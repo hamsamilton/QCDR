@@ -472,13 +472,13 @@ def mkQC_heatmap(_userDf,_figinfo):
                                                     _figinfo["_fail_violin_cutoff_adapter_trimmed"], 
                                                     _direction = "upper")       
         # GBC 
-        if _figinfo["_gbc_pvals"] != None:
+        if _figinfo["_gbc_exists"]:
             _htmat[_tuple.Index,7]  = pass_warn_or_fail(_figinfo["_gbc_pvals"][_tuple.Index],
                                                         (1- _figinfo["_warn_alpha"]) ,
                                                         (1- _figinfo["_fail_alpha"]) ,
                                                         _direction = "lower")       
         # HIST
-        if _figinfo["_hist_pvals"] != None:
+        if _figinfo["_hist_exists"]:
             _htmat[_tuple.Index,8]  = pass_warn_or_fail(_figinfo["_hist_pvals"][_tuple.Index],
                                                         (1- _figinfo["_warn_alpha"]) ,
                                                         (1- _figinfo["_fail_alpha"]) ,

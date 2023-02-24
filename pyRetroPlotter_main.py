@@ -123,8 +123,9 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         
         # Calculate pvalues for plotting by the summary heatmap
         _figinfo["_gbc_pvals"] = GCpvals(_gc_df)
+        _figinfo["_gbc_exists"] = True
     else:
-        _figinfo["_gbc_pvals"] = None
+        _figinfo["_gbc_exists"] = False
     # Read Histogram data
     if _hist_file is not None:
         _negBin_df = pd.read_csv(_hist_file, index_col=False)
@@ -143,10 +144,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _warn_numGene_cutoff = '{:.0f}'.format(_warn_numGene_cutoff)
          
         _figinfo["_hist_pvals"]= calcHistPval(_negBin_df)
+        _figinfo["_hist_exists"] =True
     else:
         _fail_numGene_cutoff = "None"
         _warn_numGene_cutoff = "None"
         _figinfo["_hist_pvals"]= None 
+        _figinfo["_hist_exists"] = False
     ###### Begin Plotting process ######
 
     # Open the given PDF output file
