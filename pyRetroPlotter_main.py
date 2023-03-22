@@ -2,6 +2,7 @@ import matplotlib
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 import os
+import math as math
 import argparse
 matplotlib.use('PDF')
 import seaborn
@@ -33,17 +34,11 @@ from datetime import datetime
 # from pandas.plotting import register_matplotlib_converters
 from statsmodels.stats.weightstats import ztest
 
-_script_bgdFile = "/projects/b1063/Gaurav/pyRetroPlotter/data/SCRIPTretro_masterStatistics_allBatches.csv"
-_masterDB = "/projects/b1079/tools/U19_masterDB_dev/U19_masterDB.sqlite"
-_pipeline_dir = "/projects/b1079/U19_RNAseq_Pipeline_SLURM_v01"
-required_modules = ['python/anaconda']
-_notification_email = "samuelhamilton2024@u.northwestern.edu"
-
 '''RetroPlotter caller function for reading data and passing it to individual plotters. Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions'''
 
 def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file):
-
-    # Read input file and load USER data
+   
+     # Read input file and load USER data
     _user_df = pd.read_csv(_input_file, sep=",")
 
     # Add last row in the USER df with current batch's mean values for the final summary page
@@ -93,10 +88,16 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _figinfo["_subplot_rows"]      = _subplot_rows
     _figinfo["_warn_alpha"]        = _warn_alpha
     _figinfo["_fail_alpha"]        = _fail_alpha
-    _figinfo["_bin_num"]         = 40
+    _figinfo["_bin_num"]           = 40
+    _figinfo["_ip_filename"]       = _ip_filename
+    _figinfo["_op_filename"]       = _op_filename
+    _figinfo["_gc_file"]           = _gc_file
+    _figinfo["_hist_file"]         = _hist_file
+    _figinfo["_bgd_filename"]      = _bgd_filename
+    _figinfo["_cutoff_filename"]   = _cutoff_filename
+
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
-        print(_manual_cutoffs.to_string())
         _man_warn_cutoff_dict = _manual_cutoffs.set_index('cutoff')['Warn'].to_dict()
         _man_fail_cutoff_dict = _manual_cutoffs.set_index('cutoff')['Fail'].to_dict()
  
@@ -139,94 +140,43 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _warn_numGene_cutoff = get_ci_bound(_vec = _sum_df,
                                                 _alph = _warn_alpha - (1 - _warn_alpha),
                                             _uppr_lwr = "lower")
-        _fail_numGene_cutoff = '{:.0f}'.format(_fail_numGene_cutoff) 
-         
-        _warn_numGene_cutoff = '{:.0f}'.format(_warn_numGene_cutoff)
+        _figinfo["_fail_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff) 
+        _figinfo["_warn_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
          
         _figinfo["_hist_pvals"]= calcHistPval(_negBin_df)
         _figinfo["_hist_exists"] =True
     else:
-        _fail_numGene_cutoff = "None"
-        _warn_numGene_cutoff = "None"
+        _figinfo["_fail_numGene_cutoff"] = "None"
+        _figinfo["_warn_numGene_cutoff"] = "None"
         _figinfo["_hist_pvals"]= None 
         _figinfo["_hist_exists"] = False
     ###### Begin Plotting process ######
 
     # Open the given PDF output file
     _pdfObj = PdfPages(_output_file)
-    
-    # Make the title page
-    fig = plt.figure()
-
-    # add text
-    fig.text(.5,.965,"QC Plotter Input Summary",ha='center',va='top',fontsize = 14)
-    fig.text(.005,.985,datetime.now().strftime("%d/%m/%Y %H:%M:%S"),fontsize = 4)
-    fig.text(.005,.97,"Version 2.0",fontsize = 4)
-    # list inputs
-    fig.text(.5,.5,"Input table =     " + _ip_filename + "\nOutput location =    " + _op_filename +\
-    "\nBackground table =    " + _bgd_filename + "\nGene Body Coverage file =    " + str(_gc_file) + \
-    "\nGene read depth distribution histogram file =    " + str(_hist_file) + "\nCutoff file =    " + str(_cutoff_filename),
-    fontsize = 6,ha="center",va="center")
-
-    # show cutoffs
-    fig.text(s= ('Warn cutoffs: Default alpha =' + str(_warn_alpha) +
-                    '| Sequencing Depth = ' + str(round(_figinfo["_warn_ipReads_cutoff"],3)) +
-                    '| Trimming = ' + str(round(_figinfo["_warn_trimmedReads_cutoff"],3)) +  
-                    '| Alignment = ' + str(round(_figinfo["_warn_uniqAligned_cutoff"],3)) +  
-                    '| Gene Exon Mapping = ' + str(round(_figinfo["_warn_exonMapping_cutoff"],3)) + 
-                    '\n| Ribosomal RNA = ' + str(round(_figinfo["_warn_riboScatter_cutoff"],3)) + 
-                    '| Adapter Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_adapter_trimmed"],3)) + 
-                    '| Overrep. Seq  Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_overrep_trimmed"],3)) + 
-                    '| Gene Body Coverage = ' + str(_warn_alpha) + 
-                    '| Distribution of Gene Expression = ' + _fail_numGene_cutoff) , 
-                    x = .5, y = .1, fontsize = 5,
-                     ha='center', va='top',fontweight='book', style = 'italic')
-    fig.text(s= ('Fail cutoffs: Default alpha =' + str(_fail_alpha) +
-                    '| Sequencing Depth = ' + str(round(_figinfo["_fail_ipReads_cutoff"],3)) +
-                    '| Trimming = ' + str(round(_figinfo["_fail_trimmedReads_cutoff"],3)) +  
-                    '| Alignment = ' + str(round(_figinfo["_fail_uniqAligned_cutoff"],3)) +  
-                    '| Gene Exon Mapping = ' + str(round(_figinfo["_fail_exonMapping_cutoff"],3)) + 
-                    '\n| Ribosomal RNA = ' + str(round(_figinfo["_fail_riboScatter_cutoff"],3)) + 
-                    '| Adapter Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_adapter_trimmed"],3)) + 
-                    '| Overrep. Seq Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_overrep_trimmed"],3)) + 
-                    '| Gene Body Coverage = ' + str(_fail_alpha) + 
-                    '| Distribution of Gene Expression = ' + _warn_numGene_cutoff) , 
-                    x = .5, y = .05, fontsize = 5,
-                     ha='center', va='top',fontweight='book', style = 'italic')
-    _pdfObj.savefig()
+   
+    #Create title page
+    _title_fig = mkTitlePage(_figinfo) 
+    _pdfObj.savefig(_title_fig)
     plt.close()
+
+    # Make summary heatmap tables
+
+    # how many tables do we need? 
+    _summary_heatmap_data = mkQC_heatmap_data(_user_df,_figinfo)
+    _summary_heatmap_data = pd.DataFrame(_summary_heatmap_data)
+    _summary_heatmap_data["Sample"] = _user_df.Sample
+    my_range = list(range(0,len(_user_df),20))
+    my_range[-1] = len(_user_df)
+    for i in range(0,len(my_range)-1):
+        new_rng = list(range(my_range[i],my_range[i+1]))
+        _sub_df = _summary_heatmap_data.iloc[new_rng]
+        _summary_heatmap_fig = mkQC_heatmap(_sub_df)
     
-    colors = ["grey","goldenrod","red"]
-    cm = mcolors.ListedColormap(colors)
-    fig2,ax = plt.subplots()
-    fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')
-    _summary_heatmap = mkQC_heatmap(_user_df,_figinfo)
-    seaborn.heatmap(_summary_heatmap,ax=ax,
-                    xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
-                                  "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
-                                 "Gene Body Coverage","Gene Expression"],
-                    yticklabels=_user_df["Sample"],
-                    cmap = cm)
-    # change y-axis tick label font size
-    ax.set_yticklabels(ax.get_yticklabels(), fontsize = 5)
-    # change x-axis tick label font size
-    ax.set_xticklabels(ax.get_xticklabels(), fontsize = 5)
-    plt.subplots_adjust(left=0.3, bottom=0.3, right=0.7, top=0.8)
-    plt.yticks(rotation = 0)
-    plt.xticks(rotation = 45)
-    # Get the Colorbar object from the heatmap
-    cbar = ax.collections[0].colorbar
-    cbar.ax.set_aspect(.5)
-    cbar.ax.set_anchor("N")
-    # Change the ticks on the colorbar
-    cbar.set_ticks([0, 0.5, 1])
-    ax.collections[0].colorbar.ax.tick_params(labelsize=5)
-    cbar.set_ticklabels(['Passed', 'Warned', 'Failed'])
-    # Make individual figures
-    _pdfObj.savefig()
-    plt.close(fig2)    
+        _pdfObj.savefig(_summary_heatmap_fig)
+        plt.close(_summary_heatmap_fig)   
+ 
     for _tuple in _user_df.itertuples():
-        print("THIS IS THE IN TUPLE",_tuple)
 
         # Create empty figure
         fig = plt.figure(frameon=False)
@@ -247,16 +197,14 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
         fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_figinfo,fig)
-
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
         fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_figinfo,fig)
-        # Plotting figure 7: GeneBody Coverage Distribution Plot
+        # Plotting figure 7:  Gene Expression Distribution Plot
         if _gc_file is not None:
-            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage",_figinfo,fig)
-
-        # Plotting figure 8: Gene Expression Distribution Plot
+            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_figinfo,fig)   
+        # Plotting figure 8: Gene Body Coverage Plot
         if _hist_file is not None:
-            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_figinfo,fig)
+            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage",_figinfo,fig)
         # Add sample name at the top-left corner of the page
         fig.text(s='Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
                      horizontalalignment='left', verticalalignment='top', fontweight='book',style = 'italic')
@@ -264,7 +212,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                      horizontalalignment='right', verticalalignment='top', fontweight='book',style = 'italic')
         #fig.text(x=0.99, y=0.01, s=int(_tuple[0]) + 1, ha='right', va='top', fontsize=4)
             
-        plt.subplots_adjust(hspace=0.7, wspace=0.2)
+        plt.subplots_adjust(hspace=1, wspace=0.2)
 
         _pdfObj.savefig(fig)
         plt.close(fig) 

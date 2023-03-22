@@ -177,16 +177,6 @@ def calc_zscore(_newval,_comparevec):
 
     return _zscr
 
-# Not sure what to do here, I found it in the Main file so I am migrating it here as a part of a code cleanup
-def join_levels(_df):
-    for i, col in enumerate(_df.columns.levels):
-        columns = np.where(col.str.contains('Unnamed'), '', col)
-        _df.columns.set_levels(columns, level=i, inplace=True)
-
-    _df.columns = [' '.join(_col).strip() for _col in _df.columns.values]
-
-    return _df
-
 # The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
 def gen_cutoffs(_bgd_df,_alph):
 
@@ -392,6 +382,23 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
     ax.set_ylim(ylim)
     return text
 
+def vec2CDF(_vec):
+    """
+    Convert a vector of numbers into a CDF (Must be valid all positive etc.)
+
+    Input: A vector of #
+
+    Return:A vector of probs signifying a CDF
+    """
+        
+    # Normalize the vector to make it a probability distribution
+    prob_dist = _vec / np.sum(_vec)
+
+    # Compute the cumulative distribution function (CDF)
+    cdf = np.cumsum(prob_dist)
+
+    return(cdf)
+
 # takes two vectors, finds the maximum and minimum, and creates the number of bins specified
 def make_bins(_vec1,_vec2,_bins):
 
@@ -407,12 +414,55 @@ def make_bins(_vec1,_vec2,_bins):
     
     return _bins
 
-''' Make QC heatmap
-The Goal of this function is to calculate a matrix that can be used with matplotlibs heatmap
-function which contains whether a sample passed, failed, or was warned for each test
+def mkTitlePage(_figinfo):
 
-Inputs'''
-def mkQC_heatmap(_userDf,_figinfo):
+    """ 
+    Make QC heatmap data
+    The Goal of this function is to calculate a matrix that can be used with matplotlibs heatmap
+    function which contains whether a sample passed, failed, or was warned for each test
+    """
+
+    fig = plt.figure()
+
+    # add text
+    fig.text(.5,.965,"QC Plotter Input Summary",ha='center',va='top',fontsize = 14)
+    fig.text(.005,.985,datetime.now().strftime("%d/%m/%Y %H:%M:%S"),fontsize = 4)
+    fig.text(.005,.97,"Version 2.0",fontsize = 4)
+    fig.text(.5,.5,"Input table =     " + _figinfo["_ip_filename"] + "\nOutput location =    " + \
+    _figinfo["_op_filename"] + "\nBackground table =    " + _figinfo["_bgd_filename"] + 
+    "\nGene Body Coverage file =    " + str(_figinfo["_gc_file"]) + \
+    "\nGene read depth distribution histogram file =" + \
+    str(_figinfo["_hist_file"]) + "\nCutoff file =    " + str(_figinfo["_cutoff_filename"]),
+    fontsize = 6,ha="center",va="center")
+
+    # show cutoffs
+    fig.text(s= ('Warn cutoffs: Default alpha =' + str(_figinfo["_warn_alpha"]) +
+                    '| Sequencing Depth = ' + str(round(_figinfo["_warn_ipReads_cutoff"],3)) +
+                    '| Trimming = ' + str(round(_figinfo["_warn_trimmedReads_cutoff"],3)) +  
+                    '| Alignment = ' + str(round(_figinfo["_warn_uniqAligned_cutoff"],3)) +  
+                    '| Gene Exon Mapping = ' + str(round(_figinfo["_warn_exonMapping_cutoff"],3)) + 
+                    '\n| Ribosomal RNA = ' + str(round(_figinfo["_warn_riboScatter_cutoff"],3)) + 
+                    '| Adapter Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_adapter_trimmed"],3)) + 
+                    '| Overrep. Seq  Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_overrep_trimmed"],3)) + 
+                    '| Gene Body Coverage = ' + str(_figinfo["_warn_alpha"]) + 
+                    '| Distribution of Gene Expression = ' + _figinfo["_fail_numGene_cutoff"]) , 
+                    x = .5, y = .1, fontsize = 5,
+                     ha='center', va='top',fontweight='book', style = 'italic')
+    fig.text(s= ('Fail cutoffs: Default alpha =' + str(_figinfo["_fail_alpha"]) +
+                    '| Sequencing Depth = ' + str(round(_figinfo["_fail_ipReads_cutoff"],3)) +
+                    '| Trimming = ' + str(round(_figinfo["_fail_trimmedReads_cutoff"],3)) +  
+                    '| Alignment = ' + str(round(_figinfo["_fail_uniqAligned_cutoff"],3)) +  
+                    '| Gene Exon Mapping = ' + str(round(_figinfo["_fail_exonMapping_cutoff"],3)) + 
+                    '\n| Ribosomal RNA = ' + str(round(_figinfo["_fail_riboScatter_cutoff"],3)) + 
+                    '| Adapter Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_adapter_trimmed"],3)) + 
+                    '| Overrep. Seq Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_overrep_trimmed"],3)) + 
+                    '| Gene Body Coverage = ' + str(_figinfo["_fail_alpha"]) + 
+                    '| Distribution of Gene Expression = ' + _figinfo["_warn_numGene_cutoff"]) , 
+                    x = .5, y = .05, fontsize = 5,
+                     ha='center', va='top',fontweight='book', style = 'italic')
+ 
+
+def mkQC_heatmap_data(_userDf,_figinfo):
 
     def pass_warn_or_fail(_testval,_warnval,_failval,_direction):
 
@@ -432,8 +482,9 @@ def mkQC_heatmap(_userDf,_figinfo):
 
     # Initialize Matrix
     _htmat = np.zeros((len(_userDf),9))
+    print(type(_userDf))
     for _tuple in _userDf.itertuples():
-        
+        print(_tuple.Index) 
         # Perform each test
         # Input Size
         _htmat[_tuple.Index,0]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Input_Size"],
@@ -485,7 +536,45 @@ def mkQC_heatmap(_userDf,_figinfo):
                                                         _direction = "lower")       
     return _htmat
 
-#### Plot 1: Input Size ####
+def mkQC_heatmap(_heatmap_data):
+
+    """
+    mkQC_heatmap: This function generates the summary heatmap
+
+    take input from mkQC_heatmap_data as input
+    """
+    colors = ["grey","goldenrod","red"]
+    cm = matplotlib.colors.ListedColormap(colors)
+    _sample_names = _heatmap_data.Sample
+    _heatmap_data = _heatmap_data.drop("Sample",axis = 1)
+    fig2,ax = plt.subplots()
+    fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')  
+    print(_heatmap_data.values) 
+    seaborn.heatmap(_heatmap_data.values,ax=ax,
+                    xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
+                                  "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
+                                 "Gene Body Coverage","Gene Expression"],
+                    yticklabels=_sample_names,
+                    cmap = cm)
+    # change y-axis tick label font size
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize = 5)
+    # change x-axis tick label font size
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize = 5)
+    plt.subplots_adjust(left=0.3, bottom=0.3, right=0.7, top=0.8)
+    plt.yticks(rotation = 0)
+    plt.xticks(rotation = 90)
+    # Get the Colorbar object from the heatmap
+    cbar = ax.collections[0].colorbar
+    cbar.ax.set_aspect(.5)
+    cbar.ax.set_anchor("N")
+    # Change the ticks on the colorbar
+    cbar.set_ticks([0, 0.5, 1])
+    ax.collections[0].colorbar.ax.tick_params(labelsize=5)
+    cbar.set_ticklabels(['Passed', 'Warned', 'Failed'])
+
+    return fig2
+
+
 def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
  
     _bins = make_bins(_background_df.loc[:,"Input_Size"],_userDf.loc[:,"Input_Size"],_figinfo["_bin_num"])
@@ -763,8 +852,8 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     _ax.set_title("Ribosomal RNA", fontsize= _figinfo["_title_size"])
     _ax = set_ticks(_ax,_figinfo["_tick_size"])
 
-    _ax.set_xlabel("Uniquely Aligned Reads (Millions)", fontsize= _figinfo["_label_size"], labelpad=2)
-    _ax.set_ylabel("rRNA Reads (Millions)", fontsize= _figinfo["_label_size"], labelpad=2)
+    _ax.set_xlabel("Total Uniquely Aligned Reads (Millions)", fontsize= _figinfo["_label_size"], labelpad=2)
+    _ax.set_ylabel("Aligned rRNA Reads (Millions)", fontsize= _figinfo["_label_size"], labelpad=2)
 
     x_bottom, x_top = plt.xlim()
     y_bottom, y_top = plt.ylim()
@@ -963,10 +1052,9 @@ def GCpvals(_coverage_df):
     _kslst = []
     # calculate mean GBC for the whole library
     _mean_df = pd.DataFrame()
-    _mean_df["gc_mean"] = _coverage_df.mean(axis=1)
+    _mean_df["gc_mean"] = _coverage_df.median(axis=1)
     
     for column_name, _column_data in _coverage_df.iteritems():
-        print(_column_data)
         _ks_stat, _ks_pval = stats.ks_2samp(_column_data, _mean_df['gc_mean'])
         _kslst.append(_ks_pval)
 
@@ -982,19 +1070,18 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
 
     # Calculate mean GeneBody Coverage for the entire library
     _mean_df = pd.DataFrame()
-    _mean_df['gc_mean'] = _coverage_df.mean(axis=1)
+    _mean_df['gc_mean'] = _coverage_df.median(axis=1)
 
     # Statistical Tests: Wilcoxon signed rank test, Kolmogorov-Smirnov 2-sample test and Pearson Correlation
     _wilcox_stat, _wilcox_pval = stats.wilcoxon(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'], correction=True)
 
     ## KS-2sample test
-    print(_coverage_df[_ipTuple[1]])
-    _ks_stat, _ks_pval = stats.ks_2samp(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'])
+
+    _ks_stat, _ks_pval = stats.ks_2samp(_coverage_df[_ipTuple[1]],_mean_df['gc_mean'])
 
     _pearson_corr = _coverage_df[_ipTuple[1]].corr(_mean_df['gc_mean'])
 
     ### Calculate Confidence Interval for the mean GC line
-    # _sigma = stats.t.interval(0.05, len(_mean_df['gc_mean'])-1, loc=_mean_df['gc_mean'], scale=stats.sem(_mean_df['gc_mean']))
     _err = stats.sem(_mean_df['gc_mean']) * stats.t.ppf((1 + 0.95) / 2, len(_mean_df) - 1)
 
     # Plot current sample with library mean
@@ -1021,9 +1108,10 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
                                                              edgecolor='yellow', linewidth=1.2, alpha=0.5)
     _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
 
-    _axis.legend([_current_sample_line, _library_line, _extra_confidenceInterval, _extra_ksPval],
+    _axis.legend([_current_sample_line, _library_line, _extra_confidenceInterval, _extra_ksPval, _extra_ksPval],
                  ["Current Sample", "Batch Mean",
-                  "95% Confidence Interval", "KS Pvalue: " + str(round(_ks_pval, 3))],
+                  "95% Confidence Interval", "KS Pvalue: " + str(round(_ks_pval, 3)),
+                  "KS-stat: " + str(round(_ks_stat,3))],
                  loc='lower center', frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
 
     _axis = mk_axes(_axis)
@@ -1126,7 +1214,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
                                                      linewidth=0)
 
     _ax.legend([_current_samp_line, _lib_line, _extra_Ztest_Pval],
-               ["Current Sample", "Batch  Mean", "Pvalue : " + str(round(_curr_pval.item(), 3))], loc='upper right',
+               ["Current Sample", "Batch  Mean", "Pvalue (# Detected Genes): " + str(round(_curr_pval.item(), 3))], loc='upper right',
                frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
     _ax = mk_axes(_ax)
     _ax = needs_fail_or_warn(_ax,_curr_pval,1-_figinfo["_fail_alpha"],1-_figinfo["_warn_alpha"],"lower")
