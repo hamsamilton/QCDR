@@ -67,15 +67,15 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _user_df.loc[:, 'Input_Size'] = _user_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
 
     # Make standard cutoffs for warn/fail
-    _fail_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _fail_alpha)
-    _warn_cutoffs = helper_retroFunctions.gen_cutoffs(_bgd_df = _bgd_df,_alph = _warn_alpha)
+    _fail_cutoffs = gen_cutoffs(_bgd_df = _bgd_df,_alph = _fail_alpha)
+    _warn_cutoffs = gen_cutoffs(_bgd_df = _bgd_df,_alph = _warn_alpha)
     
     # add an additional row if the gc or hist data was added
     if _gc_file is None and _hist_file is None:
         _subplot_rows = 3
     else:
         _subplot_rows = 4
-    print("subplot rows are" + str(_subplot_rows))
+    
     # create dictionarys to store values in 2 pass 2 helper functions
     _figinfo = {}
     _figinfo["_fail_color"]        = "red"
@@ -118,12 +118,27 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     # Read Gene Coverage Data
     if _gc_file is not None:
         _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
-
+        
         # Adding the Library Mean column at the end of the GC dataframe
         _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
         
+        gc_KSvals = GC_KSstats(_gc_df)
+        
         # Calculate pvalues for plotting by the summary heatmap
-        _figinfo["_gbc_pvals"] = GCpvals(_gc_df)
+        _gc_vals = stats.norm.sf(stats.zscore(gc_KSvals))
+
+        #testing bootstrap pcvals
+#        n_samples = 1000
+ #       sample_size = len(gc_pvals)
+        
+       # bootstrap = bootstrap_samples(gc_pvals,n_samples,sample_size)
+       # bootstrap_means = [np.median(sample) for sample in bootstrap]
+       # p_values = estimate_p_values(gc_pvals,bootstrap_means)
+        
+
+
+        # Convert the distribution of stuff
+        _figinfo["_gbc_pvals"] = _gc_vals
         _figinfo["_gbc_exists"] = True
     else:
         _figinfo["_gbc_exists"] = False
@@ -199,20 +214,22 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_figinfo,fig)
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
         fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_figinfo,fig)
-        # Plotting figure 7:  Gene Expression Distribution Plot
-        if _gc_file is not None:
-            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_figinfo,fig)   
-        # Plotting figure 8: Gene Body Coverage Plot
+        
+        # Plotting figure 7: Gene Body Coverage Plot
         if _hist_file is not None:
             fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage",_figinfo,fig)
-        # Add sample name at the top-left corner of the page
+
+        # Plotting figure 8:  Gene Expression Distribution Plot
+        if _gc_file is not None:
+            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_figinfo,fig)           
+
+        # Add sample info at the top-left corner of the page
         fig.text(s='Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
                      horizontalalignment='left', verticalalignment='top', fontweight='book',style = 'italic')
         fig.text(s ="Batch : " + _tuple[13], x=0.99, y=0.99, fontsize=6,
                      horizontalalignment='right', verticalalignment='top', fontweight='book',style = 'italic')
-        #fig.text(x=0.99, y=0.01, s=int(_tuple[0]) + 1, ha='right', va='top', fontsize=4)
             
-        plt.subplots_adjust(hspace=1, wspace=0.2)
+        plt.subplots_adjust(left = .05,right = .95, bottom = .05, top = .9,hspace=.72, wspace=0.25)
 
         _pdfObj.savefig(fig)
         plt.close(fig) 

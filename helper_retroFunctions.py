@@ -261,8 +261,31 @@ def varlist_2dict(_list):
         _dict.update({str(item),item})
     
     return _dict
+def values_to_percentiles(values):
+    """
+    Convert a vector of values to their associated percentile ranks on a standard normal distribution.
+    
+    Parameters
+    ----------
+    values : list or numpy array of float
+        A vector of values you want to convert to their associated percentile ranks.
+    """
+    
+    # Convert the input values to a numpy array if not already
+    values = np.asarray(values)
 
-# function to set the ticks for the plots
+    # Calculate the mean and standard deviation of the input values
+    mean = np.mean(values)
+    std_dev = np.std(values)
+
+    # Standardize the values by subtracting the mean and dividing by the standard deviation
+    standardized_values = (values - mean) / std_dev
+
+    # Calculate the percentile rank for each standardized value using the cumulative distribution function (CDF)
+    percentiles = norm.cdf(standardized_values)
+
+    return percentiles
+
 def set_ticks(_ax,_tick_size):
     _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _tick_size,
                       direction='out', pad=2)
@@ -270,7 +293,6 @@ def set_ticks(_ax,_tick_size):
                       direction='out', pad=2)   
 
     return _ax
-
 
 def insert_flag_image(_image, loc=3, ax=None, zoom=1, **kw):
     if ax == None:
@@ -280,7 +302,6 @@ def insert_flag_image(_image, loc=3, ax=None, zoom=1, **kw):
     _anch_box = matplotlib.offsetbox.AnchoredOffsetbox(loc=loc, child=_im_box, frameon=False, **kw)
 
     ax.add_artist(_anch_box)
-
 
 def insert_flag_fail(ax=None):
     if ax == None:
@@ -460,8 +481,39 @@ def mkTitlePage(_figinfo):
                     '| Distribution of Gene Expression = ' + _figinfo["_warn_numGene_cutoff"]) , 
                     x = .5, y = .05, fontsize = 5,
                      ha='center', va='top',fontweight='book', style = 'italic')
- 
+def bootstrap_samples(data, n_samples, sample_size):
+    """
+    Create bootstrap samples from the original data.
+    
+    Args:
+        data (list): A list of numerical values.
+        n_samples (int): The number of bootstrap samples to generate.
+        sample_size (int): The size of each bootstrap sample.
+    
+    Returns:
+        bootstrap (list): A list of bootstrap samples.
+    """
+    bootstrap = [np.random.choice(data, size=sample_size, replace=True) for _ in range(n_samples)]
+    
+    return bootstrap
 
+def estimate_p_values(data, bootstrap_means):
+    """
+    Estimate p-values for the original values based on the bootstrap means.
+    
+    Args:
+        data (list): A list of numerical values.
+        bootstrap_means (list): A list of means from the bootstrap samples.
+    
+    Returns:
+        p_values (list): A list of p-values corresponding to the input values.
+    """
+    print('bootstrap means', np.array(bootstrap_means))
+    print("length", len(bootstrap_means))
+    p_values = [np.sum(np.array(bootstrap_means) <= value) / len(bootstrap_means)  for value in data]
+
+    return p_values
+ 
 def mkQC_heatmap_data(_userDf,_figinfo):
 
     def pass_warn_or_fail(_testval,_warnval,_failval,_direction):
@@ -482,9 +534,8 @@ def mkQC_heatmap_data(_userDf,_figinfo):
 
     # Initialize Matrix
     _htmat = np.zeros((len(_userDf),9))
-    print(type(_userDf))
     for _tuple in _userDf.itertuples():
-        print(_tuple.Index) 
+        print(_tuple[1]) 
         # Perform each test
         # Input Size
         _htmat[_tuple.Index,0]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Input_Size"],
@@ -549,7 +600,6 @@ def mkQC_heatmap(_heatmap_data):
     _heatmap_data = _heatmap_data.drop("Sample",axis = 1)
     fig2,ax = plt.subplots()
     fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')  
-    print(_heatmap_data.values) 
     seaborn.heatmap(_heatmap_data.values,ax=ax,
                     xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
                                   "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
@@ -1046,7 +1096,7 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
 
 
 # function designed to return pvalues for GCinformation if supplied
-def GCpvals(_coverage_df):
+def GC_KSstats(_coverage_df):
     
     # initialize list to store values
     _kslst = []
@@ -1056,7 +1106,7 @@ def GCpvals(_coverage_df):
     
     for column_name, _column_data in _coverage_df.iteritems():
         _ks_stat, _ks_pval = stats.ks_2samp(_column_data, _mean_df['gc_mean'])
-        _kslst.append(_ks_pval)
+        _kslst.append(_ks_stat)
 
     return _kslst
 # Plot 7 : GeneBody Coverage Plot
@@ -1072,16 +1122,10 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _mean_df = pd.DataFrame()
     _mean_df['gc_mean'] = _coverage_df.median(axis=1)
 
-    # Statistical Tests: Wilcoxon signed rank test, Kolmogorov-Smirnov 2-sample test and Pearson Correlation
-    _wilcox_stat, _wilcox_pval = stats.wilcoxon(_coverage_df[_ipTuple[1]], _mean_df['gc_mean'], correction=True)
-
-    ## KS-2sample test
-
-    _ks_stat, _ks_pval = stats.ks_2samp(_coverage_df[_ipTuple[1]],_mean_df['gc_mean'])
-
-    _pearson_corr = _coverage_df[_ipTuple[1]].corr(_mean_df['gc_mean'])
-
-    ### Calculate Confidence Interval for the mean GC line
+    # acquire the pvalue information from the _figinfo object
+    _ks_pvals = _figinfo['_gbc_pvals']
+    _ks_pval  = _ks_pvals[_ipTuple[0]]
+    # Calculate Confidence Interval for the mean GC line
     _err = stats.sem(_mean_df['gc_mean']) * stats.t.ppf((1 + 0.95) / 2, len(_mean_df) - 1)
 
     # Plot current sample with library mean
@@ -1097,21 +1141,19 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _axis.set_xlim(0, 105)
     _axis.set_title(_plot_title, fontsize=_figinfo["_title_size"])
 
-    _uni_arrw = u"\u2192"
-    _axis.set_xlabel("Gene Percentile (5' " + _uni_arrw + " 3')", fontsize=_figinfo["_label_size"], labelpad=2)
+    _axis.set_xlabel("Gene Percentile (5' " + u"\u2192" + " 3')", fontsize=_figinfo["_label_size"], labelpad=2)
     _axis.set_ylabel("Read Density", fontsize=_figinfo["_label_size"], labelpad=2)
-
+    
+    # make the symbols for the legend
     _current_sample_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
     _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
-
     _extra_confidenceInterval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='yellow', fill=True,
                                                              edgecolor='yellow', linewidth=1.2, alpha=0.5)
     _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
 
-    _axis.legend([_current_sample_line, _library_line, _extra_confidenceInterval, _extra_ksPval, _extra_ksPval],
+    _axis.legend([_current_sample_line, _library_line, _extra_confidenceInterval, _extra_ksPval],
                  ["Current Sample", "Batch Mean",
-                  "95% Confidence Interval", "KS Pvalue: " + str(round(_ks_pval, 3)),
-                  "KS-stat: " + str(round(_ks_stat,3))],
+                  "95% Confidence Interval", "KS Pvalue: " + str(round(_ks_pval, 3))],
                  loc='lower center', frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
 
     _axis = mk_axes(_axis)
@@ -1143,7 +1185,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
 
     __col_index = pd.IntervalIndex.from_arrays(_low_vals, _high_vals, closed='right')
     # of bugfixing concern i am adding a 0 at the beginning but then removing an index from the last? perhaps lowvals is a better index then highvals?
-    # It's a bit unclear how to fix this at the moment.
     _x_vals_test = _high_vals.insert(0,0)
     _x_vals = _high_vals[:-1]
 
