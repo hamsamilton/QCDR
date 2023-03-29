@@ -127,21 +127,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         # Calculate pvalues for plotting by the summary heatmap
         _gc_vals = stats.norm.sf(stats.zscore(gc_KSvals))
 
-        #testing bootstrap pcvals
-#        n_samples = 1000
- #       sample_size = len(gc_pvals)
-        
-       # bootstrap = bootstrap_samples(gc_pvals,n_samples,sample_size)
-       # bootstrap_means = [np.median(sample) for sample in bootstrap]
-       # p_values = estimate_p_values(gc_pvals,bootstrap_means)
-        
-
-
         # Convert the distribution of stuff
         _figinfo["_gbc_pvals"] = _gc_vals
         _figinfo["_gbc_exists"] = True
     else:
         _figinfo["_gbc_exists"] = False
+
     # Read Histogram data
     if _hist_file is not None:
         _negBin_df = pd.read_csv(_hist_file, index_col=False)
@@ -170,19 +161,17 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     # Open the given PDF output file
     _pdfObj = PdfPages(_output_file)
    
-    #Create title page
+    # Create title page
     _title_fig = mkTitlePage(_figinfo) 
     _pdfObj.savefig(_title_fig)
     plt.close()
-
-    # Make summary heatmap tables
 
     # how many tables do we need? 
     _summary_heatmap_data = mkQC_heatmap_data(_user_df,_figinfo)
     _summary_heatmap_data = pd.DataFrame(_summary_heatmap_data)
     _summary_heatmap_data["Sample"] = _user_df.Sample
     my_range = list(range(0,len(_user_df),20))
-    my_range[-1] = len(_user_df)
+    my_range.append(len(_user_df))
     for i in range(0,len(my_range)-1):
         new_rng = list(range(my_range[i],my_range[i+1]))
         _sub_df = _summary_heatmap_data.iloc[new_rng]
@@ -212,16 +201,17 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
         fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_figinfo,fig)
+ 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
         fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_figinfo,fig)
-        
-        # Plotting figure 7: Gene Body Coverage Plot
-        if _hist_file is not None:
-            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 7, "GeneBody Coverage",_figinfo,fig)
 
-        # Plotting figure 8:  Gene Expression Distribution Plot
+        # Plotting figure 7: Expression Distribution Plot
         if _gc_file is not None:
-            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,8,"Gene Expression",_figinfo,fig)           
+            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,7,"Gene Expression",_figinfo,fig)           
+
+        # Plotting figure 8: Gene Body Coverage Plot
+        if _hist_file is not None:
+            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 8, "GeneBody Coverage",_figinfo,fig)
 
         # Add sample info at the top-left corner of the page
         fig.text(s='Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
