@@ -6,19 +6,19 @@
 # run the pipeline and generate the output
 
 # SCRIPT with custom cutoffs
-python3 pyRetroPlotter_main.py -ip data/USER_testData_B11.csv -out SCRIPTB11_mancutoffs.pdf -gc data/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv -hist data/sample11hist_data.csv -bgd data/SCRIPTretro_masterStatistics_allBatches.csv -ctf data/Man_Input_Cutoff_test.xlsx
+python3 pyRetroPlotter_main.py -ip data/USER_testData_B11.csv -out SCRIPTB11_mancutoffs.pdf -gc data/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv -hist data/CPM_SCRIPT_RNAseq_Batch_11_final_count_bincounts_0.5.csv  -bgd data/SCRIPTretro_masterStatistics_allBatches.csv -ctf data/Man_Input_Cutoff_test.xlsx
 
 # SCRIPT with default cutoffs
-python3 pyRetroPlotter_main.py -ip data/USER_testData_B11.csv -out SCRIPTB11_defaultcutoffs.pdf -gc data/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv -hist data/sample11hist_data.csv -bgd data/SCRIPTretro_masterStatistics_allBatches.csv 
+python3 pyRetroPlotter_main.py -ip data/USER_testData_B11.csv -out SCRIPTB11_defaultcutoffs.pdf -gc data/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv -hist data/CPM_SCRIPT_RNAseq_Batch_11_final_count_bincounts_0.5.csv  -bgd data/SCRIPTretro_masterStatistics_allBatches.csv 
 
 # SCRIPT with 6 panels
 python3 pyRetroPlotter_main.py -ip data/USER_testData_B11.csv -out SCRIPTB11_defaultcutoffs_6panel.pdf -bgd data/SCRIPTretro_masterStatistics_allBatches.csv 
 
 # fibrosis with fibrosis background
-python3 pyRetroPlotter_main.py -ip data/fib4pyRetroplotter.csv -out fib_with_fib_background.pdf -gc data/fibGBC_output.csv -hist data/fibhist.254pltr.csv -bgd data/fib4pyRetroplotter.csv
+python3 pyRetroPlotter_main.py -ip data/fib4pyRetroplotter.csv -out fib_with_fib_background.pdf -gc data/fibGBC_output.csv -hist data/fib.5hist.csv -bgd data/fib4pyRetroplotter.csv
 
 #fibrosis with SCRIPT background
-python3 pyRetroPlotter_main.py -ip data/fib4pyRetroplotter.csv -out fib_with_SCRIPT_background.pdf -gc data/fibGBC_output.csv -hist data/fibhist.254pltr.csv -bgd data/SCRIPTretro_masterStatistics_allBatches.csv
+python3 pyRetroPlotter_main.py -ip data/fib4pyRetroplotter.csv -out fib_with_SCRIPT_background.pdf -gc data/fibGBC_output.csv -hist data/fib.5hist.csv -bgd data/SCRIPTretro_masterStatistics_allBatches.csv
 # create the folder to store information
 
 FOLDERNAME=all_test_outputs
@@ -37,7 +37,7 @@ mkdir $INPUTFOLDER
 mkdir $OUTPUTFOLDER
 cp data/USER_testData_B11.csv $INPUTFOLDER/USER_testData_B11.csv
 cp data/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv $INPUTFOLDER/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv
-cp data/sample11hist_data.csv $INPUTFOLDER/sample11hist_data.csv
+cp data/CPM_SCRIPT_RNAseq_Batch_11_final_count_bincounts_0.5.csv  $INPUTFOLDER/sample11hist_data.csv
 cp data/SCRIPTretro_masterStatistics_allBatches.csv $INPUTFOLDER/SCRIPTretro_masterStatistics_allBatches.csv
 cp data/Man_Input_Cutoff_test.xlsx $INPUTFOLDER/Man_Input_Cutoff_test.xlsx
 cp SCRIPTB11_mancutoffs.pdf $OUTPUTFOLDER/SCRIPTB11_mancutoffs.pdf
@@ -52,7 +52,7 @@ mkdir $INPUTFOLDER
 mkdir $OUTPUTFOLDER
 cp data/USER_testData_B11.csv $INPUTFOLDER/USER_testData_B11.csv
 cp data/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv $INPUTFOLDER/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv
-cp data/sample11hist_data.csv $INPUTFOLDER/sample11hist_data.csv
+cp data/CPM_SCRIPT_RNAseq_Batch_11_final_count_bincounts_0.5.csv  $INPUTFOLDER/sample11hist_data.csv
 cp data/SCRIPTretro_masterStatistics_allBatches.csv $INPUTFOLDER/SCRIPTretro_masterStatistics_allBatches.csv
 cp SCRIPTB11_defaultcutoffs.pdf $OUTPUTFOLDER/SCRIPTB11_defaultcutoffs.pdf
 echo "python3 pyRetroPlotter_main.py -ip data/USER_testData_B11.csv -out SCRIPTB11_defaultcutoffs.pdf -gc data/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv -hist data/sample11hist_data.csv -bgd data/SCRIPTretro_masterStatistics_allBatches.csv" > $CUSTNAME/python_call.txt
@@ -83,7 +83,7 @@ mkdir $INPUTFOLDER
 mkdir $OUTPUTFOLDER
 cp data/fib4pyRetroplotter.csv $INPUTFOLDER/fib4pyRetroplotter.csv
 cp data/fibGBC_output.csv $INPUTFOLDER/fibGBC_output.csv
-cp data/fibhist.254pltr.csv $INPUTFOLDER/fibhist_25_4pltr.csv
+cp data/fib.5hist.csv $INPUTFOLDER/fib.5hist.csv
 cp fib_with_fib_background.pdf $OUTPUTFOLDER/fib_with_fib_background.pdf
 echo "python3 pyRetroPlotter_main.py -ip data/fib4pyRetroplotter.csv -out fib_with_fib_background.pdf -gc data/fibGBC_output.csv -hist data/fibhist.254pltr.csv -bgd data/fib4pyRetroplotter.csv" > $CUSTNAME/pythoncall.txt 
 
@@ -97,7 +97,7 @@ mkdir $OUTPUTFOLDER
 cp data/fib4pyRetroplotter.csv $INPUTFOLDER/fib4pyRetroplotter.csv
 cp data/SCRIPTretro_masterStatistics_allBatches.csv $INPUTFOLDER/SCRIPTretro_masterStatistics_allBatches.csv
 cp data/fibGBC_output.csv $INPUTFOLDER/fibGBC_output.csv
-cp data/fibhist.254pltr.csv $INPUTFOLDER/fibhist_25_4pltr.csv
+cp data/fib.5hist.csv $INPUTFOLDER/fib.5hist.csv
 cp fib_with_SCRIPT_background.pdf $OUTPUTFOLDER/fib_with_SCRIPT_background.pdf
 echo "python3 pyRetroPlotter_main.py -ip data/fib4pyRetroplotter.csv -out fib_with_SCRIPT_background.pdf -gc data/fibGBC_output.csv -hist data/fibhist.254pltr.csv -bgd data/SCRIPTretro_masterStatistics_allBatches.csv" > $CUSTNAME/pythoncall.txt
 

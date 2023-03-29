@@ -256,8 +256,6 @@ def byMillion(_lib):
 def varlist_2dict(_list):
     _dict = {}
     for item in _list:
-        print(str(item))
-        print(item)
         _dict.update({str(item),item})
     
     return _dict
@@ -466,7 +464,7 @@ def mkTitlePage(_figinfo):
                     '| Adapter Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_adapter_trimmed"],3)) + 
                     '| Overrep. Seq  Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_overrep_trimmed"],3)) + 
                     '| Gene Body Coverage = ' + str(_figinfo["_warn_alpha"]) + 
-                    '| Distribution of Gene Expression = ' + _figinfo["_fail_numGene_cutoff"]) , 
+                    '| Detected Genes = ' + _figinfo["_fail_numGene_cutoff"]) , 
                     x = .5, y = .1, fontsize = 5,
                      ha='center', va='top',fontweight='book', style = 'italic')
     fig.text(s= ('Fail cutoffs: Default alpha =' + str(_figinfo["_fail_alpha"]) +
@@ -478,7 +476,7 @@ def mkTitlePage(_figinfo):
                     '| Adapter Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_adapter_trimmed"],3)) + 
                     '| Overrep. Seq Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_overrep_trimmed"],3)) + 
                     '| Gene Body Coverage = ' + str(_figinfo["_fail_alpha"]) + 
-                    '| Distribution of Gene Expression = ' + _figinfo["_warn_numGene_cutoff"]) , 
+                    '| # Detected Genes = ' + _figinfo["_warn_numGene_cutoff"]) , 
                     x = .5, y = .05, fontsize = 5,
                      ha='center', va='top',fontweight='book', style = 'italic')
 def bootstrap_samples(data, n_samples, sample_size):
@@ -508,8 +506,6 @@ def estimate_p_values(data, bootstrap_means):
     Returns:
         p_values (list): A list of p-values corresponding to the input values.
     """
-    print('bootstrap means', np.array(bootstrap_means))
-    print("length", len(bootstrap_means))
     p_values = [np.sum(np.array(bootstrap_means) <= value) / len(bootstrap_means)  for value in data]
 
     return p_values
@@ -535,8 +531,6 @@ def mkQC_heatmap_data(_userDf,_figinfo):
     # Initialize Matrix
     _htmat = np.zeros((len(_userDf),9))
     for _tuple in _userDf.itertuples():
-        print(_tuple[1]) 
-        # Perform each test
         # Input Size
         _htmat[_tuple.Index,0]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Input_Size"],
                                                     _figinfo["_warn_ipReads_cutoff"],
@@ -573,15 +567,15 @@ def mkQC_heatmap_data(_userDf,_figinfo):
                                                     _figinfo["_warn_violin_cutoff_adapter_trimmed"],
                                                     _figinfo["_fail_violin_cutoff_adapter_trimmed"], 
                                                     _direction = "upper")       
-        # GBC 
-        if _figinfo["_gbc_exists"]:
-            _htmat[_tuple.Index,7]  = pass_warn_or_fail(_figinfo["_gbc_pvals"][_tuple.Index],
+        # HIST
+        if _figinfo["_hist_exists"]:
+            _htmat[_tuple.Index,7]  = pass_warn_or_fail(_figinfo["_hist_pvals"][_tuple.Index],
                                                         (1- _figinfo["_warn_alpha"]) ,
                                                         (1- _figinfo["_fail_alpha"]) ,
                                                         _direction = "lower")       
-        # HIST
-        if _figinfo["_hist_exists"]:
-            _htmat[_tuple.Index,8]  = pass_warn_or_fail(_figinfo["_hist_pvals"][_tuple.Index],
+        # GBC 
+        if _figinfo["_gbc_exists"]:
+            _htmat[_tuple.Index,8]  = pass_warn_or_fail(_figinfo["_gbc_pvals"][_tuple.Index],
                                                         (1- _figinfo["_warn_alpha"]) ,
                                                         (1- _figinfo["_fail_alpha"]) ,
                                                         _direction = "lower")       
@@ -603,7 +597,7 @@ def mkQC_heatmap(_heatmap_data):
     seaborn.heatmap(_heatmap_data.values,ax=ax,
                     xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
                                   "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
-                                 "Gene Body Coverage","Gene Expression"],
+                                 "# Detected Genes","Gene Body Coverage"],
                     yticklabels=_sample_names,
                     cmap = cm)
     # change y-axis tick label font size
@@ -1126,7 +1120,9 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _ks_pvals = _figinfo['_gbc_pvals']
     _ks_pval  = _ks_pvals[_ipTuple[0]]
     # Calculate Confidence Interval for the mean GC line
-    _err = stats.sem(_mean_df['gc_mean']) * stats.t.ppf((1 + 0.95) / 2, len(_mean_df) - 1)
+
+    # Calculate 95% interval for each position
+    _err = _coverage_df.std(axis=1)*2
 
     # Plot current sample with library mean
     _x = np.arange(1, 101, 1)
@@ -1183,10 +1179,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
         _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
         _high_vals.append(float(_i.strip('(').strip(']').split(',')[1]))
 
-    __col_index = pd.IntervalIndex.from_arrays(_low_vals, _high_vals, closed='right')
-    # of bugfixing concern i am adding a 0 at the beginning but then removing an index from the last? perhaps lowvals is a better index then highvals?
-    _x_vals_test = _high_vals.insert(0,0)
-    _x_vals = _high_vals[:-1]
+    _x_vals = _low_vals
 
     ## Preparing the data_df and libMean_df for all bins
     _data_df = _hist_df.drop(['Unnamed: 0'], axis=1)
