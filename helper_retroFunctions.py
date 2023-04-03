@@ -30,33 +30,22 @@ import matplotlib.offsetbox
 from datetime import datetime
 from statsmodels.stats.weightstats import ztest
 import matplotlib.patches as mpatches
+from Sam_PyUtils import *
 
-# adds a prefix to the names of a dictionary
-def prefix_dict(_pre,_dict):
-        
-    _newdict= {_pre + str(key): val for key, val in _dict.items()}
-    
-    return _newdict
-  
-# Get the range of an _axis get_y(x)lim object
-def get_axis_range(_axis_lim):
-    _rng = _axis_lim[1] - _axis_lim[0]
-    return _rng
+def add_warn_fail_markers(ax,cutoff_fail,cutoff_warn,fail_color,warn_color):
 
-# This function physically adds the warn and fail markers
-def add_warn_fail_markers(_ax,_cutoff_fail,_cutoff_warn,_fail_color,_warn_color):
+    def add_vert_marker(ax,cutoff,clr,plot_scalar,txt):
 
-    # calculate a value based on the range that scales values to a % so that the % everything is shifted by is consistent across plots 
-    _plot_scalar = get_axis_range(_ax.get_ylim()) / 100
-   
-    _ax.plot(_cutoff_fail,_ax.get_ylim()[1] - (18 * _plot_scalar), marker='v', ms=0.8, c=_fail_color)
-    _ax.text(_cutoff_fail,_ax.get_ylim()[1] - (13 * _plot_scalar), 'Fail', fontsize=4, color=_fail_color,
-             horizontalalignment='center')
+        ax.plot(cutoff,ax.get_ylim()[1] - (18 * plot_scalar), marker='v', ms=0.8, c=clr)
+        ax.text(cutoff,ax.get_ylim()[1] - (13 * plot_scalar), txt, fontsize=4, color=clr,
+                 horizontalalignment='center')                                                                  
+        return(ax) 
+                                                                                            
+    plot_scalar = get_axis_range(_ax.get_ylim()) / 100
 
-    _ax.plot(_cutoff_warn, _ax.get_ylim()[1] -  (1 * _plot_scalar), marker='v', ms=0.8, c=_warn_color)
-    _ax.text(_cutoff_warn, _ax.get_ylim()[1] - (.5 * _plot_scalar), 'Warn', fontsize=4, color=_warn_color,
-             horizontalalignment='center')
-    return _ax
+    ax = add_vert_marker(ax,cutoff_fail,plot_scalar,fail_color,"Fail")
+    ax = add_vert_marker(ax,curoff_warn,plot_scalar,warn_color,"Warn")
+    return ax
 
    
 # This function calculates whether the current sample label orientation needs 
@@ -1103,7 +1092,8 @@ def GC_KSstats(_coverage_df):
         _kslst.append(_ks_stat)
 
     return _kslst
-# Plot 7 : GeneBody Coverage Plot
+
+#  GeneBody Coverage Plot
 def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     
     # initialize list to store pvals so if returnP is true it can be returned in itself
@@ -1127,10 +1117,12 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     # Plot current sample with library mean
     _x = np.arange(1, 101, 1)
 
-    _axis.plot(_x, _coverage_df[_ipTuple[1]], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
+
+    _axis.plot(_x, _coverage_df, color="lightgray",alpha = .4, linewidth=0.5, linestyle='-')
+    _axis.plot(_x, _coverage_df[_ipTuple[1]], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-')
     _axis.plot(_x, _mean_df['gc_mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8)
 
-    _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
+     _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
 
     _axis = set_ticks(_axis,_figinfo["_tick_size"])
 
@@ -1142,14 +1134,15 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     
     # make the symbols for the legend
     _current_sample_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
+    _background_lines = matplotlib.lines.Line2D([0], [0], color="lightgray", linewidth=0.5, linestyle='-', alpha=0.6)
     _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
     _extra_confidenceInterval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='yellow', fill=True,
                                                              edgecolor='yellow', linewidth=1.2, alpha=0.5)
     _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
 
-    _axis.legend([_current_sample_line, _library_line, _extra_confidenceInterval, _extra_ksPval],
+    _axis.legend([_current_sample_line, _library_line,_background_lines, _extra_ksPval],
                  ["Current Sample", "Batch Mean",
-                  "95% Confidence Interval", "KS Pvalue: " + str(round(_ks_pval, 3))],
+                 "Batch Samples",  "KS Pvalue: " + str(round(_ks_pval, 3))],
                  loc='lower center', frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
 
     _axis = mk_axes(_axis)
