@@ -68,8 +68,8 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _user_df.loc[:, 'Input_Size'] = _user_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
 
     # Make standard cutoffs for warn/fail
-    _fail_cutoffs = gen_cutoffs(_bgd_df = _bgd_df,_alph = _fail_alpha)
-    _warn_cutoffs = gen_cutoffs(_bgd_df = _bgd_df,_alph = _warn_alpha)
+    _fail_cutoffs = gen_cutoffs(bgd_df = _bgd_df,alph = _fail_alpha)
+    _warn_cutoffs = gen_cutoffs(bgd_df = _bgd_df,alph = _warn_alpha)
     
     # add an additional row if the gc or hist data was added
     if _gc_file is None and _hist_file is None:
@@ -141,12 +141,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         _data_df = _negBin_df.drop(['Unnamed: 0'], axis=1)
         _sum_df = _data_df.sum().round()
-        _fail_numGene_cutoff = get_ci_bound(_vec = _sum_df,
-                                                _alph = _fail_alpha - (1 - _fail_alpha),
-                                            _uppr_lwr = "lower")
-        _warn_numGene_cutoff = get_ci_bound(_vec = _sum_df,
-                                                _alph = _warn_alpha - (1 - _warn_alpha),
-                                            _uppr_lwr = "lower")
+        _fail_numGene_cutoff = get_ci_bound(vec = _sum_df,
+                                                alpha = _fail_alpha - (1 - _fail_alpha),
+                                            upper_lower = "lower")
+        _warn_numGene_cutoff = get_ci_bound(vec = _sum_df,
+                                                alpha = _warn_alpha - (1 - _warn_alpha),
+                                            upper_lower = "lower")
         _figinfo["_fail_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff) 
         _figinfo["_warn_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
          

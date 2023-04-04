@@ -34,17 +34,17 @@ from Sam_PyUtils import *
 
 def add_warn_fail_markers(ax,cutoff_fail,cutoff_warn,fail_color,warn_color):
 
-    def add_vert_marker(ax,cutoff,clr,plot_scalar,txt):
+    def add_vert_marker(ax,cutoff,plot_scalar,clr,txt):
 
         ax.plot(cutoff,ax.get_ylim()[1] - (18 * plot_scalar), marker='v', ms=0.8, c=clr)
         ax.text(cutoff,ax.get_ylim()[1] - (13 * plot_scalar), txt, fontsize=4, color=clr,
                  horizontalalignment='center')                                                                  
-        return(ax) 
+        return ax 
                                                                                             
-    plot_scalar = get_axis_range(_ax.get_ylim()) / 100
+    plot_scalar = get_axis_range(ax.get_ylim()) / 100
 
     ax = add_vert_marker(ax,cutoff_fail,plot_scalar,fail_color,"Fail")
-    ax = add_vert_marker(ax,curoff_warn,plot_scalar,warn_color,"Warn")
+    ax = add_vert_marker(ax,cutoff_warn,plot_scalar,warn_color,"Warn")
     return ax
 
    
@@ -115,44 +115,34 @@ def mk_axes(_plt_ax,_kd_ax = None):
     else:
         return _plt_ax
 
-# Replaces missing values of a dictionary with corresponding values of a second dictionary with matching keys
-def repl_missing_values_indict(_indict,_repldict):
-    for key, value in _indict.items():
-    # If the value is NaN, replace it with the corresponding automatically generated keys
-        if value != value:
-            _indict.update({key: _repldict[key]})
 
 # the goal of this function is to determine if a plot needs a fail or warn box and then call the according
 # helper function 
 def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lower):
-    
-    if higher_lower == "lower":
-        
-        if _current_sample <= _cutoff_fail:
-            insert_flag_fail(_ax)
-        elif (_current_sample <= _cutoff_warn):
-            insert_flag_warn(_ax)
-        return _ax 
+    def insert_flag(ax, cutoff, flag_func):
+        if higher_lower == "lower" and current_sample <= cutoff  or higher_lower == "upper" and current_sample >= cutoff:
+            flag_func(ax)
 
-    if higher_lower == "upper":
-       
-        if _current_sample >= _cutoff_fail:
-            insert_flag_fail(_ax)
-        elif (_current_sample >= _cutoff_warn):
-            insert_flag_warn(_ax)
-        return _ax
+        insert_flag(ax, cutoff_fail, insert_flag_fail)
+        insert_flag(ax, cutoff_warn, insert_flag_warn)
+
+        return ax
 
 # The goal of this function is to return the upper or/and lower bound of a ci given a vec
-def get_ci_bound(_vec,_alph,_uppr_lwr="both"):
-    ci_bnd = stats.norm.interval(alpha = _alph,
-                        loc=np.mean(_vec),
-                        scale = stats.tstd(_vec))
-    if _uppr_lwr == "upper": 
-        ci_bnd = ci_bnd[1]
-    elif _uppr_lwr == "lower":
-        ci_bnd = ci_bnd[0]
+def get_ci_bound(vec, alpha, upper_lower="both"):
+    mean = np.mean(vec)
+    scale = stats.tstd(vec)
+    lower, upper = stats.norm.interval(alpha=alpha, loc=mean, scale=scale)
 
-    return ci_bnd
+    if upper_lower == "upper":
+        return upper
+    elif upper_lower == "lower":
+        return lower
+    elif upper_lower == "both":
+        return lower, upper
+    else:
+        raise ValueError("Invalid value for 'upper_lower'. Must be 'upper', 'lower', or 'both'.")
+
 
 # writing a custom function to calculate zscores as the implementation in scipi leaves something to be desired
 def calc_zscore(_newval,_comparevec):
@@ -167,6 +157,7 @@ def calc_zscore(_newval,_comparevec):
     return _zscr
 
 # The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
+"""
 def gen_cutoffs(_bgd_df,_alph):
 
     _onesided_alph = _alph - (1 - _alph)
@@ -201,6 +192,39 @@ def gen_cutoffs(_bgd_df,_alph):
     del _cutoffs_dict["_bgd_df"]
     del _cutoffs_dict["_alph"]
     return _cutoffs_dict
+"""
+class CutoffCalculator:
+    def __init__(self, bgd_df, alph):
+        self.bgd_df = bgd_df
+        self.onesided_alph = alph - (1 - alph)
+        self.cutoffs_dict = {}
+
+    def __call__(self):
+        self.calculate_cutoff("Input_Size", "lower", "_ipReads_cutoff")
+        self.calculate_cutoff("Percent_PostTrim", "lower", "_trimmedReads_cutoff")
+        self.calculate_cutoff("Percent_Uniquely_Aligned", "lower", "_uniqAligned_cutoff")
+        self.calculate_cutoff("Percent_Exonic", "lower", "_exonMapping_cutoff")
+        self.calculate_cutoff_ratio("Num_Uniquely_Aligned_rRNA", "Num_Uniquely_Aligned", "upper", "_riboScatter_cutoff")
+        self.calculate_cutoff("Percent_Overrepresented_Seq_Untrimmed", "upper", "_violin_cutoff_overrep_untrimmed")
+        self.calculate_cutoff("Percent_Adapter_Content_Untrimmed", "upper", "_violin_cutoff_adapter_untrimmed")
+        self.calculate_cutoff("Percent_Overrepresented_Seq_Trimmed", "upper", "_violin_cutoff_overrep_trimmed")
+        self.calculate_cutoff("Percent_Adapter_Content_Trimmed", "upper", "_violin_cutoff_adapter_trimmed")
+        
+        return self.cutoffs_dict
+
+    def calculate_cutoff(self, column, upper_lower, cutoff_name):
+        vec = self.bgd_df.loc[:, column]
+        cutoff = get_ci_bound(vec, self.onesided_alph, upper_lower)
+        self.cutoffs_dict[cutoff_name] = cutoff
+
+    def calculate_cutoff_ratio(self, column1, column2, upper_lower, cutoff_name):
+        vec = self.bgd_df.loc[:, column1] / self.bgd_df.loc[:, column2]
+        cutoff = get_ci_bound(vec, self.onesided_alph, upper_lower)
+        self.cutoffs_dict[cutoff_name] = cutoff
+
+def gen_cutoffs(bgd_df, alph):
+    calculator = CutoffCalculator(bgd_df, alph)
+    return calculator()
 
 def fmt_number(number, pos=None):
     if number == 0:
@@ -1122,7 +1146,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _axis.plot(_x, _coverage_df[_ipTuple[1]], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-')
     _axis.plot(_x, _mean_df['gc_mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8)
 
-     _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
+    _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
 
     _axis = set_ticks(_axis,_figinfo["_tick_size"])
 
