@@ -167,7 +167,7 @@ def needs_fail_or_warn(ax,current_sample,cutoff_fail,cutoff_warn,higher_lower):
 def get_ci_bound(vec, alpha, upper_lower="both"):
     mean = np.mean(vec)
     scale = stats.tstd(vec)
-    lower, upper = stats.norm.interval(alpha=alpha, loc=mean, scale=scale)
+    lower, upper = stats.norm.interval(alpha= 1 - alpha, loc=mean, scale=scale)
 
     if upper_lower == "upper":
         return upper
@@ -196,7 +196,7 @@ def calc_zscore(_newval,_comparevec):
 class CutoffCalculator:
     def __init__(self, bgd_df, alph):
         self.bgd_df = bgd_df
-        self.onesided_alph = alph - (1 - alph)
+        self.onesided_alph = 2*alph
         self.cutoffs_dict = {}
 
     def __call__(self):
@@ -1215,7 +1215,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
                  loc='lower center', frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
 
     _axis = mk_axes(_axis)
-    _axis = needs_fail_or_warn(_axis,_ks_pval,1-_figinfo["_fail_alpha"],1-_figinfo["_warn_alpha"],"lower")
+    _axis = needs_fail_or_warn(_axis,_ks_pval,_figinfo["_fail_alpha"],_figinfo["_warn_alpha"],"lower")
 
     return _fig
 
@@ -1313,7 +1313,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
                ["Current Sample", "Batch  Mean", "Pvalue (# Detected Genes): " + str(round(_curr_pval.item(), 3))], loc='upper right',
                frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
     _ax = mk_axes(_ax)
-    _ax = needs_fail_or_warn(_ax,_curr_pval,1-_figinfo["_fail_alpha"],1-_figinfo["_warn_alpha"],"lower")
+    _ax = needs_fail_or_warn(_ax,_curr_pval,_figinfo["_fail_alpha"],_figinfo["_warn_alpha"],"lower")
 
     return _f
 
