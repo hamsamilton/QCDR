@@ -144,10 +144,10 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _data_df = _negBin_df.drop(['Unnamed: 0'], axis=1)
         _sum_df = _data_df.sum().round()
         _fail_numGene_cutoff = get_ci_bound(vec = _sum_df,
-                                                alpha = _fail_alpha - (1 - _fail_alpha),
+                                                alpha = 2*_fail_alpha,
                                             upper_lower = "lower")
         _warn_numGene_cutoff = get_ci_bound(vec = _sum_df,
-                                                alpha = _warn_alpha - (1 - _warn_alpha),
+                                                alpha = 2*_warn_alpha,
                                             upper_lower = "lower")
         _figinfo["_fail_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff) 
         _figinfo["_warn_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
@@ -253,9 +253,9 @@ if __name__ == "__main__":
     
     parser.add_argument("-ctf", "--cutoffs", required=False, default = False,help="[OPTIONAL] Provide optional cutoffs for warn fail cutoffs.\n -ctf [CUTOFF_PATH],\t --cutoff [CUTOFF_PATH] \n")
 
-    parser.add_argument("-fla", "--failalpha", required=False, default = .95,help="[OPTIONAL] Provide an alpha cutoff for failure.\n -fla [FAIL_ALPHA],\t--fail-alpha [FAIL_ALPHA]\n") 
+    parser.add_argument("-fla", "--failalpha", required=False, default = .05,help="[OPTIONAL] Provide an alpha cutoff for failure.\n -fla [FAIL_ALPHA],\t--fail-alpha [FAIL_ALPHA]\n") 
     
-    parser.add_argument("-wrna", "--warnalpha", required=False,type=float, default = .9,help="[OPTIONAL] Provide an alpha cutoff for warn.\n -wrna [WARN_ALPHA],\t--warnalpha [WARN_ALPHA]\n")
+    parser.add_argument("-wrna", "--warnalpha", required=False,type=float, default = .1,help="[OPTIONAL] Provide an alpha cutoff for warn.\n -wrna [WARN_ALPHA],\t--warnalpha [WARN_ALPHA]\n")
  
     args = parser.parse_args()
 
