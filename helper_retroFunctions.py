@@ -1,4 +1,5 @@
 import matplotlib
+from abc import ABC, abstractmethod
 import matplotlib.gridspec as gridspec
 import os
 import argparse
@@ -118,15 +119,49 @@ def mk_axes(_plt_ax,_kd_ax = None):
 
 # the goal of this function is to determine if a plot needs a fail or warn box and then call the according
 # helper function 
-def needs_fail_or_warn(_ax,_current_sample,_cutoff_fail,_cutoff_warn,higher_lower):
+def needs_fail_or_warn(ax,current_sample,cutoff_fail,cutoff_warn,higher_lower):
+
+    class FlagInserter:
+        def __init__(self, ax=None):
+            self.ax = ax or plt.gca()
+
+        def make_flag(self, flag_type):
+            if flag_type == "fail":
+                text = "FAILURE"
+                font_size = 4
+                background_color = 'tomato'
+                text_color = 'yellow'
+                font_stretch = 'extra-expanded'
+            elif flag_type == "warn":
+                text = "WARNING"
+                font_size = 3.7
+                background_color = 'yellow'
+                text_color = 'red'
+                font_stretch = 'expanded'
+            else:
+                raise ValueError("Invalid flag type")
+
+            anch_text = matplotlib.offsetbox.AnchoredText(text, pad=0.0001, borderpad=1,
+                                                          loc=3,
+                                                          prop=dict(size=font_size, snap=True, backgroundcolor=background_color,
+                                                                    color=text_color, alpha=0.9, zorder=5, fontweight='roman',
+                                                                    fontfamily='serif', fontstretch=font_stretch),
+                                                          frameon=True,
+                                                          bbox_to_anchor=(0., 1.03),
+                                                          bbox_transform=self.ax.transAxes)
+
+            self.ax.add_artist(anch_text)
+            return None
+ 
     def insert_flag(ax, cutoff, flag_func):
         if higher_lower == "lower" and current_sample <= cutoff  or higher_lower == "upper" and current_sample >= cutoff:
             flag_func(ax)
 
-        insert_flag(ax, cutoff_fail, insert_flag_fail)
-        insert_flag(ax, cutoff_warn, insert_flag_warn)
-
-        return ax
+    flag_inserter = FlagInserter()
+    insert_flag(ax, cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
+    insert_flag(ax, cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
+    
+    return ax
 
 # The goal of this function is to return the upper or/and lower bound of a ci given a vec
 def get_ci_bound(vec, alpha, upper_lower="both"):
@@ -157,42 +192,7 @@ def calc_zscore(_newval,_comparevec):
     return _zscr
 
 # The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
-"""
-def gen_cutoffs(_bgd_df,_alph):
 
-    _onesided_alph = _alph - (1 - _alph)
-    _ipReads_cutoff =  get_ci_bound(_vec = _bgd_df.loc[:,"Input_Size"],
-                                    _alph = _onesided_alph,
-                                    _uppr_lwr = "lower")
-    _trimmedReads_cutoff = get_ci_bound(_vec = _bgd_df.loc[:,"Percent_PostTrim"],
-                                        _alph = _onesided_alph,
-                                        _uppr_lwr = "lower")
-    _uniqAligned_cutoff  = get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Uniquely_Aligned"],
-                                        _alph = _onesided_alph,
-                                        _uppr_lwr = "lower")
-    _exonMapping_cutoff  = get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Exonic"],
-                                        _alph = _onesided_alph,
-                                        _uppr_lwr = "lower")
-    _riboScatter_cutoff  = get_ci_bound(_vec = (_bgd_df.loc[:,"Num_Uniquely_Aligned_rRNA"] / _bgd_df.loc[:,"Num_Uniquely_Aligned"]),
-                                        _alph = _onesided_alph,
-                                        _uppr_lwr = "upper")
-    _violin_cutoff_overrep_untrimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Overrepresented_Seq_Untrimmed"],
-                                        _alph = _onesided_alph,
-                                        _uppr_lwr = "upper")
-    _violin_cutoff_adapter_untrimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Untrimmed"],
-                                        _alph = _onesided_alph,
-                                        _uppr_lwr = "upper")
-    _violin_cutoff_overrep_trimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Overrepresented_Seq_Trimmed"],
-                                        _alph = _onesided_alph,
-                                        _uppr_lwr = "upper")
-    _violin_cutoff_adapter_trimmed=get_ci_bound(_vec = _bgd_df.loc[:,"Percent_Adapter_Content_Trimmed"],
-                                        _alph = _onesided_alph,
-                                        _uppr_lwr = "upper")
-    _cutoffs_dict  = locals() 
-    del _cutoffs_dict["_bgd_df"]
-    del _cutoffs_dict["_alph"]
-    return _cutoffs_dict
-"""
 class CutoffCalculator:
     def __init__(self, bgd_df, alph):
         self.bgd_df = bgd_df
@@ -346,7 +346,6 @@ def insert_flag_warn(ax=None):
     ax.add_artist(anch_text)
 
     return None
-
 
 def ztest_prob(dist_current, dist_mean, val):
 
@@ -522,7 +521,54 @@ def estimate_p_values(data, bootstrap_means):
     p_values = [np.sum(np.array(bootstrap_means) <= value) / len(bootstrap_means)  for value in data]
 
     return p_values
- 
+
+
+
+class MetricStatusStrategy(ABC):
+    @abstractmethod
+    def compute_status(self, test_value, warn_value, fail_value):
+        pass
+
+class LowerStatusStrategy(MetricStatusStrategy):
+    def compute_status(self, test_value, warn_value, fail_value):
+        if test_value <= warn_value:
+            return 1 if test_value <= fail_value else 0.5
+        return 0
+
+class UpperStatusStrategy(MetricStatusStrategy):
+    def compute_status(self, test_value, warn_value, fail_value):
+        return LowerStatusStrategy().compute_status(-test_value, -warn_value, -fail_value)
+
+def mkQC_heatmap_data(_userDf, _figinfo):
+    lower_status_strategy = LowerStatusStrategy()
+    upper_status_strategy = UpperStatusStrategy()
+
+    strategies = [
+        ("Input_Size", "_warn_ipReads_cutoff", "_fail_ipReads_cutoff", lower_status_strategy),
+        ("Percent_PostTrim", "_warn_trimmedReads_cutoff", "_fail_trimmedReads_cutoff", lower_status_strategy),
+        ("Percent_Uniquely_Aligned","_warn_uniqAligned_cutoff","_fail_uniqAligned_cutoff",lower_status_strategy),
+        ("Percent_Exonic","_warn_riboScatter_cutoff","_fail_exonMapping_cutoff",lower_status_strategy),
+        ("Percent_Exonic","_warn_riboScatter_cutoff","_fail_exonMapping_cutoff",lower_status_strategy), # HOLD UNTIL I FIX THE ISSUES WITH RIBO
+        ("Percent_Overrepresented_Seq_Trimmed","_warn_violin_cutoff_overrep_trimmed","_fail_violin_cutoff_overrep_trimmed",upper_status_strategy),
+        ("Percent_Adapter_Content_Trimmed","_warn_violin_cutoff_adapter_trimmed","_fail_violin_cutoff_adapter_trimmed",upper_status_strategy)]
+    if _figinfo["_hist_exists"]:
+        strategies.append(("_hist_pvals","_warn_alpha","_fail_alpha",lower_status_strategy))
+    if _figinfo["_gbc_exists"]:
+        strategies.append(("_gbc_pvals","_warn_alpha","_fail_alpha",lower_status_strategy))    
+
+    _htmat = np.zeros((len(_userDf), 9))
+
+    for _tuple in _userDf.itertuples():
+        for i, (column, warn_key, fail_key, strategy) in enumerate(strategies):
+            
+            print(_tuple)
+            test_value = _userDf.iloc[_tuple.Index][column]
+            warn_value = _figinfo[warn_key]
+            fail_value = _figinfo[fail_key]
+            _htmat[_tuple.Index, i] = strategy.compute_status(test_value, warn_value, fail_value)
+
+    return _htmat
+"""
 def mkQC_heatmap_data(_userDf,_figinfo):
 
     def pass_warn_or_fail(_testval,_warnval,_failval,_direction):
@@ -593,7 +639,7 @@ def mkQC_heatmap_data(_userDf,_figinfo):
                                                         (1- _figinfo["_fail_alpha"]) ,
                                                         _direction = "lower")       
     return _htmat
-
+"""
 def mkQC_heatmap(_heatmap_data):
 
     """
@@ -655,7 +701,6 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
 
     _ax = set_ticks(_ax,_figinfo["_tick_size"])
 
- #   _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_bins[0::5]))
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_million))
 
     _ax.set_title("Sequencing Depth",fontsize = _figinfo["_title_size"])
