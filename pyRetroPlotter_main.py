@@ -130,6 +130,8 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Convert the distribution of stuff
         _figinfo["_gbc_pvals"] = _gc_vals
+        _user_df["_gbc_pvals"]  = _gc_vals
+        print(_user_df)
         _figinfo["_gbc_exists"] = True
     else:
         _figinfo["_gbc_exists"] = False
@@ -149,8 +151,8 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                                             upper_lower = "lower")
         _figinfo["_fail_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff) 
         _figinfo["_warn_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
-         
-        _figinfo["_hist_pvals"]= calcHistPval(_negBin_df)
+        _user_df["_hist_pvals"] = calcHistPval(_negBin_df) 
+        _figinfo["_hist_pvals"]  = calcHistPval(_negBin_df)
         _figinfo["_hist_exists"] =True
     else:
         _figinfo["_fail_numGene_cutoff"] = "None"
