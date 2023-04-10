@@ -110,11 +110,14 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _warn_cutoffs = _man_warn_cutoff_dict
         _fail_cutoffs = _man_fail_cutoff_dict
     
-    _warn_cutoffs = prefix_dict("_warn",_warn_cutoffs)
-    _fail_cutoffs = prefix_dict("_fail",_fail_cutoffs)
+    #_warn_cutoffs = prefix_dict("_warn",_warn_cutoffs)
+    #_fail_cutoffs = prefix_dict("_fail",_fail_cutoffs)
     # add cutoff info
-    _figinfo.update(_fail_cutoffs)
-    _figinfo.update(_warn_cutoffs)
+    
+    _figinfo["_fail_cutoffs"] = _fail_cutoffs
+    _figinfo["_warn_cutoffs"] = _warn_cutoffs
+    #_figinfo.update(_fail_cutoffs)
+    #_figinfo.update(_warn_cutoffs)
 
     # Read Gene Coverage Data
     if _gc_file is not None:
@@ -131,7 +134,6 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         # Convert the distribution of stuff
         _figinfo["_gbc_pvals"] = _gc_vals
         _user_df["_gbc_pvals"]  = _gc_vals
-        print(_user_df)
         _figinfo["_gbc_exists"] = True
     else:
         _figinfo["_gbc_exists"] = False
@@ -149,15 +151,15 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _warn_numGene_cutoff = get_ci_bound(vec = _sum_df,
                                                 alpha = 2*_warn_alpha,
                                             upper_lower = "lower")
-        _figinfo["_fail_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff) 
-        _figinfo["_warn_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
-        _user_df["_hist_pvals"] = calcHistPval(_negBin_df) 
+        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff) 
+        _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
+        _user_df["_hist_pvals"]  = calcHistPval(_negBin_df) 
         _figinfo["_hist_pvals"]  = calcHistPval(_negBin_df)
-        _figinfo["_hist_exists"] =True
+        _figinfo["_hist_exists"] = True
     else:
-        _figinfo["_fail_numGene_cutoff"] = "None"
-        _figinfo["_warn_numGene_cutoff"] = "None"
-        _figinfo["_hist_pvals"]= None 
+        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = "None"
+        _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = "None"
+        _figinfo["_hist_pvals"]  = None 
         _figinfo["_hist_exists"] = False
     ###### Begin Plotting process ######
 

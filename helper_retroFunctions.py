@@ -33,7 +33,7 @@ from statsmodels.stats.weightstats import ztest
 import matplotlib.patches as mpatches
 from Sam_PyUtils import *
 
-def add_warn_fail_markers(ax,cutoff_fail,cutoff_warn,fail_color,warn_color):
+def add_warn_fail_markers(_figinfo,ax,cutoff_key):
 
     def add_vert_marker(ax,cutoff,plot_scalar,clr,txt):
 
@@ -44,8 +44,8 @@ def add_warn_fail_markers(ax,cutoff_fail,cutoff_warn,fail_color,warn_color):
                                                                                             
     plot_scalar = get_axis_range(ax.get_ylim()) / 100
 
-    ax = add_vert_marker(ax,cutoff_fail,plot_scalar,fail_color,"Fail")
-    ax = add_vert_marker(ax,cutoff_warn,plot_scalar,warn_color,"Warn")
+    ax = add_vert_marker(ax,_figinfo["_warn_cutoffs"][cutoff_key],plot_scalar,_figinfo["_fail_color"],"Fail")
+    ax = add_vert_marker(ax,_figinfo["_fail_cutoffs"][cutoff_key],plot_scalar,_figinfo["_warn_color"],"Warn")
     return ax
 
    
@@ -69,7 +69,7 @@ def adjust_flag(_ax,_current_sample,_lib_mean):
     return _ax
 
 # set the legend for figures with warn / fail IE 1_6)
-def legend_setup_1_6(_ax,_line1,_line2,_figinfo,_cutoff_fail,_cutoff_warn,_loc):
+def legend_setup_1_6(_ax,_line1,_line2,_figinfo,cutoff_key,_loc):
     _fail_label = mpatches.Patch(color=_figinfo["_fail_color"], label='Fail Cutoff')   
     _warn_label=  mpatches.Patch(color=_figinfo["_warn_color"], label='Warn Cutoff')    
     _ax.legend([_line1,
@@ -78,8 +78,8 @@ def legend_setup_1_6(_ax,_line1,_line2,_figinfo,_cutoff_fail,_cutoff_warn,_loc):
                     _warn_label],
                 ["Current Sample", 
                     "Batch Mean",
-                    "Fail (" + str(round(_cutoff_fail,2)) + ")",
-                    "Warn (" + str(round(_cutoff_warn,2)) + ")"],
+                    "Fail (" + str(round(_figinfo["_fail_cutoffs"][cutoff_key],2)) + ")",
+                    "Warn (" + str(round(_figinfo[_"warn_cutoffs"][cutoff_key],2)) + ")"],
                 loc= _loc,
                 frameon=False,
                 fontsize=_figinfo["_legend_size"])
@@ -119,12 +119,13 @@ def mk_axes(_plt_ax,_kd_ax = None):
 
 # the goal of this function is to determine if a plot needs a fail or warn box and then call the according
 # helper function 
-def needs_fail_or_warn(ax,current_sample,cutoff_fail,cutoff_warn,higher_lower):
+def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
 
     class FlagInserter:
         def __init__(self, ax=None):
             self.ax = ax or plt.gca()
-
+i           self.cutoff_warn = _figinfo["_warn_cutoffs"][cutoff_key]
+            self.cutoff_fail = _figinfo["_fail_cutoffs"][cutoff_key]
         def make_flag(self, flag_type):
             if flag_type == "fail":
                 text = "FAILURE"
@@ -158,8 +159,8 @@ def needs_fail_or_warn(ax,current_sample,cutoff_fail,cutoff_warn,higher_lower):
             flag_func(ax)
 
     flag_inserter = FlagInserter()
-    insert_flag(ax, cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
-    insert_flag(ax, cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
+    insert_flag(ax, self.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
+    insert_flag(ax, self.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
     
     return ax
 
@@ -198,7 +199,7 @@ class CutoffCalculator:
         self.bgd_df = bgd_df
         self.onesided_alph = 2*alph
         self.cutoffs_dict = {}
-
+        self.cutoffs_dict["_alpha"] = alph
     def __call__(self):
         self.calculate_cutoff("Input_Size", "lower", "_ipReads_cutoff")
         self.calculate_cutoff("Percent_PostTrim", "lower", "_trimmedReads_cutoff")
@@ -305,63 +306,6 @@ def set_ticks(_ax,_tick_size):
 
     return _ax
 
-def insert_flag_image(_image, loc=3, ax=None, zoom=1, **kw):
-    if ax == None:
-        ax = plt.gca()
-
-    _im_box = matplotlib.offsetbox.OffsetImage(_image, zoom=zoom * 0.05)
-    _anch_box = matplotlib.offsetbox.AnchoredOffsetbox(loc=loc, child=_im_box, frameon=False, **kw)
-
-    ax.add_artist(_anch_box)
-
-def insert_flag_fail(ax=None):
-    if ax == None:
-        ax = plt.gca()
-
-    anch_text = matplotlib.offsetbox.AnchoredText("FAILURE ", pad=0.0001, borderpad=1,
-                                                  loc=3,
-                                                  prop=dict(size=4, snap=True, backgroundcolor='tomato', color='yellow',
-                                                            alpha=0.9, zorder=5, fontweight='roman', fontfamily='serif',
-                                                            fontstretch='extra-expanded'),
-                                                  frameon=True,
-                                                  bbox_to_anchor=(0., 1.03),
-                                                  bbox_transform=ax.transAxes)
-
-    ax.add_artist(anch_text)
-    return None
-
-
-def insert_flag_warn(ax=None):
-    if ax == None:
-        ax = plt.gca()
-
-    anch_text = matplotlib.offsetbox.AnchoredText("WARNING", pad=0.00000001, borderpad=1,
-                                                  loc=3, prop=dict(size=3.7, snap=True, animated=True,
-                                                                   backgroundcolor='yellow', color='red', alpha=0.9,
-                                                                   zorder=5, fontweight='roman', fontfamily='serif',
-                                                                   fontstretch='expanded'),
-                                                  frameon=True,
-                                                  bbox_to_anchor=(0., 1.03),
-                                                  bbox_transform=ax.transAxes)
-    ax.add_artist(anch_text)
-
-    return None
-
-def ztest_prob(dist_current, dist_mean, val):
-
-    ztest_stat, ztest_pval = ztest(dist_current, dist_mean, value=val, alternative='two-sided')
-
-    return ztest_stat, ztest_pval
-
-
-def cdf_prob(df):
-
-    df_cdf = df.apply(lambda x: 1 - stats.norm.cdf(x))
-    df_pvalue = df.apply(lambda x: stats.norm.sf(x))
-
-    return df_cdf
-
-
 def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center_baseline'):
 
     xdata, ydata = line.get_data()
@@ -411,39 +355,17 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
     text.set_rotation_mode('anchor')
     text.set_rotation(slope_degrees)
     ax.set_ylim(ylim)
+
     return text
 
-def vec2CDF(_vec):
-    """
-    Convert a vector of numbers into a CDF (Must be valid all positive etc.)
-
-    Input: A vector of #
-
-    Return:A vector of probs signifying a CDF
-    """
-        
-    # Normalize the vector to make it a probability distribution
-    prob_dist = _vec / np.sum(_vec)
-
-    # Compute the cumulative distribution function (CDF)
-    cdf = np.cumsum(prob_dist)
-
-    return(cdf)
-
 # takes two vectors, finds the maximum and minimum, and creates the number of bins specified
-def make_bins(_vec1,_vec2,_bins):
+def make_bins(vec1,vec2,num_bins):
 
-    _xmin_bgd = _vec1.min()
-    _xmax_bgd = _vec1.max()
-    _xmin_inp = _vec2.min()
-    _xmax_inp = _vec2.max()
-    
-    _plt_max = max([_xmax_bgd,_xmax_inp])
-    _plt_min = min([_xmin_bgd,_xmin_inp])
+    plt_min,plt_max = pd.concat([vec1,vec2]).agg(['min','max'])
    
-    _bins = np.arange(_plt_min,_plt_max, (_plt_max  - _plt_min) / _bins)
+    bins = np.linspace(plt_min,plt_max, num_bins + 1)
     
-    return _bins
+    return bins
 
 def mkTitlePage(_figinfo):
 
@@ -452,6 +374,20 @@ def mkTitlePage(_figinfo):
     The Goal of this function is to calculate a matrix that can be used with matplotlibs heatmap
     function which contains whether a sample passed, failed, or was warned for each test
     """
+    
+    def mk_cutoff_descript(descriptor,cutoff_set):
+
+        cutoff_descriptor = (descriptor +': Default alpha =' + str(cutoff_set["_alpha"]) +
+                                '| Sequencing Depth = ' + str(round(cutoff_set["_ipReads_cutoff"],3)) +
+                                '| Trimming = ' + str(round(cutoff_set["_trimmedReads_cutoff"],3)) +  
+                                '| Alignment = ' + str(round(cutoff_set["_uniqAligned_cutoff"],3)) +  
+                                '| Gene Exon Mapping = ' + str(round(cutoff_set["_exonMapping_cutoff"],3)) + 
+                                '\n| Ribosomal RNA = ' + str(round(cutoff_set["_riboScatter_cutoff"],3)) + 
+                                '| Adapter Contamination = ' + str(round(cutoff_set["_violin_cutoff_adapter_trimmed"],3)) + 
+                                '| Overrep. Seq  Contamination = ' + str(round(cutoff_set["_violin_cutoff_overrep_trimmed"],3)) + 
+                                '| Gene Body Coverage = ' + str(cutoff_set["_alpha"]) + 
+                                '| Detected Genes = ' + cutoff_set["_fail_numGene_cutoff"])
+        return(cutoff_descriptor)  
 
     fig = plt.figure()
 
@@ -467,61 +403,21 @@ def mkTitlePage(_figinfo):
     fontsize = 6,ha="center",va="center")
 
     # show cutoffs
-    fig.text(s= ('Warn cutoffs: Default alpha =' + str(_figinfo["_warn_alpha"]) +
-                    '| Sequencing Depth = ' + str(round(_figinfo["_warn_ipReads_cutoff"],3)) +
-                    '| Trimming = ' + str(round(_figinfo["_warn_trimmedReads_cutoff"],3)) +  
-                    '| Alignment = ' + str(round(_figinfo["_warn_uniqAligned_cutoff"],3)) +  
-                    '| Gene Exon Mapping = ' + str(round(_figinfo["_warn_exonMapping_cutoff"],3)) + 
-                    '\n| Ribosomal RNA = ' + str(round(_figinfo["_warn_riboScatter_cutoff"],3)) + 
-                    '| Adapter Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_adapter_trimmed"],3)) + 
-                    '| Overrep. Seq  Contamination = ' + str(round(_figinfo["_warn_violin_cutoff_overrep_trimmed"],3)) + 
-                    '| Gene Body Coverage = ' + str(_figinfo["_warn_alpha"]) + 
-                    '| Detected Genes = ' + _figinfo["_fail_numGene_cutoff"]) , 
+
+    warn_descript = mk_cutoff_descript("Warn cutoffs",_figinfo["_warn_cutoffs"] 
+    fail_descript = mk_cutoff_descript("Fail cutoffs",_figinfo["_fail_cutoffs"] 
+
+
+    fig.text(s= warn_descript , 
                     x = .5, y = .1, fontsize = 5,
                      ha='center', va='top',fontweight='book', style = 'italic')
-    fig.text(s= ('Fail cutoffs: Default alpha =' + str(_figinfo["_fail_alpha"]) +
-                    '| Sequencing Depth = ' + str(round(_figinfo["_fail_ipReads_cutoff"],3)) +
-                    '| Trimming = ' + str(round(_figinfo["_fail_trimmedReads_cutoff"],3)) +  
-                    '| Alignment = ' + str(round(_figinfo["_fail_uniqAligned_cutoff"],3)) +  
-                    '| Gene Exon Mapping = ' + str(round(_figinfo["_fail_exonMapping_cutoff"],3)) + 
-                    '\n| Ribosomal RNA = ' + str(round(_figinfo["_fail_riboScatter_cutoff"],3)) + 
-                    '| Adapter Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_adapter_trimmed"],3)) + 
-                    '| Overrep. Seq Contamination = ' + str(round(_figinfo["_fail_violin_cutoff_overrep_trimmed"],3)) + 
-                    '| Gene Body Coverage = ' + str(_figinfo["_fail_alpha"]) + 
-                    '| # Detected Genes = ' + _figinfo["_warn_numGene_cutoff"]) , 
+
+
+    fig.text(s= fail_descript , 
                     x = .5, y = .05, fontsize = 5,
                      ha='center', va='top',fontweight='book', style = 'italic')
-def bootstrap_samples(data, n_samples, sample_size):
-    """
-    Create bootstrap samples from the original data.
-    
-    Args:
-        data (list): A list of numerical values.
-        n_samples (int): The number of bootstrap samples to generate.
-        sample_size (int): The size of each bootstrap sample.
-    
-    Returns:
-        bootstrap (list): A list of bootstrap samples.
-    """
-    bootstrap = [np.random.choice(data, size=sample_size, replace=True) for _ in range(n_samples)]
-    
-    return bootstrap
 
-def estimate_p_values(data, bootstrap_means):
-    """
-    Estimate p-values for the original values based on the bootstrap means.
-    
-    Args:
-        data (list): A list of numerical values.
-        bootstrap_means (list): A list of means from the bootstrap samples.
-    
-    Returns:
-        p_values (list): A list of p-values corresponding to the input values.
-    """
-    p_values = [np.sum(np.array(bootstrap_means) <= value) / len(bootstrap_means)  for value in data]
-
-    return p_values
-
+    return fig
 
 
 class MetricStatusStrategy(ABC):
@@ -544,17 +440,17 @@ def mkQC_heatmap_data(_userDf, _figinfo):
     upper_status_strategy = UpperStatusStrategy()
 
     strategies = [
-        ("Input_Size", "_warn_ipReads_cutoff", "_fail_ipReads_cutoff", lower_status_strategy),
-        ("Percent_PostTrim", "_warn_trimmedReads_cutoff", "_fail_trimmedReads_cutoff", lower_status_strategy),
-        ("Percent_Uniquely_Aligned","_warn_uniqAligned_cutoff","_fail_uniqAligned_cutoff",lower_status_strategy),
-        ("Percent_Exonic","_warn_riboScatter_cutoff","_fail_exonMapping_cutoff",lower_status_strategy),
-        ("Percent_Exonic","_warn_riboScatter_cutoff","_fail_exonMapping_cutoff",lower_status_strategy), # HOLD UNTIL I FIX THE ISSUES WITH RIBO
-        ("Percent_Overrepresented_Seq_Trimmed","_warn_violin_cutoff_overrep_trimmed","_fail_violin_cutoff_overrep_trimmed",upper_status_strategy),
-        ("Percent_Adapter_Content_Trimmed","_warn_violin_cutoff_adapter_trimmed","_fail_violin_cutoff_adapter_trimmed",upper_status_strategy)]
+        ("Input_Size", "_ipReads_cutoff", lower_status_strategy),
+        ("Percent_PostTrim", "_trimmedReads_cutoff", lower_status_strategy),
+        ("Percent_Uniquely_Aligned","_uniqAligned_cutoff",lower_status_strategy),
+        ("Percent_Exonic","_riboScatter_cutoff",lower_status_strategy),
+        ("Percent_Exonic","_riboScatter_cutoff",lower_status_strategy), # HOLD UNTIL I FIX THE ISSUES WITH RIBO
+        ("Percent_Overrepresented_Seq_Trimmed","_violin_cutoff_overrep_trimmed",upper_status_strategy),
+        ("Percent_Adapter_Content_Trimmed","_violin_cutoff_adapter_trimmed",upper_status_strategy)]
     if _figinfo["_hist_exists"]:
-        strategies.append(("_hist_pvals","_warn_alpha","_fail_alpha",lower_status_strategy))
+        strategies.append(("_hist_pvals","_alpha",lower_status_strategy))
     if _figinfo["_gbc_exists"]:
-        strategies.append(("_gbc_pvals","_warn_alpha","_fail_alpha",lower_status_strategy))    
+        strategies.append(("_gbc_pvals","_alpha",lower_status_strategy))    
 
     _htmat = np.zeros((len(_userDf), 9))
 
@@ -563,84 +459,13 @@ def mkQC_heatmap_data(_userDf, _figinfo):
             
             print(_tuple)
             test_value = _userDf.iloc[_tuple.Index][column]
-            warn_value = _figinfo[warn_key]
-            fail_value = _figinfo[fail_key]
+            warn_value = _figinfo["_warn_cutoffs"][key]
+            fail_value = _figinfo["_fail_cutoffs"][key]
             _htmat[_tuple.Index, i] = strategy.compute_status(test_value, warn_value, fail_value)
 
     return _htmat
-"""
-def mkQC_heatmap_data(_userDf,_figinfo):
 
-    def pass_warn_or_fail(_testval,_warnval,_failval,_direction):
-
-        # reverse direction using negatives to account for direction
-        if _direction == "upper":
-            _testval = -_testval
-            _warnval = -_warnval
-            _failval = -_failval
-
-        if _testval <= _warnval:
-            if _testval <= _failval:
-                return 1
-            else: 
-                return .5
-        else: 
-            return 0
-
-    # Initialize Matrix
-    _htmat = np.zeros((len(_userDf),9))
-    for _tuple in _userDf.itertuples():
-        # Input Size
-        _htmat[_tuple.Index,0]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Input_Size"],
-                                                    _figinfo["_warn_ipReads_cutoff"],
-                                                    _figinfo["_fail_ipReads_cutoff"],
-                                                    _direction = "lower")       
-        # Post trimmed reads
-        _htmat[_tuple.Index,1]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Percent_PostTrim"],
-                                                    _figinfo["_warn_trimmedReads_cutoff"],
-                                                    _figinfo["_fail_trimmedReads_cutoff"],       
-                                                    _direction = "lower")
-        # Alignment %     
-        _htmat[_tuple.Index,2]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index][ "Percent_Uniquely_Aligned"],
-                                                    _figinfo["_warn_uniqAligned_cutoff"],
-                                                    _figinfo["_fail_uniqAligned_cutoff"], 
-                                                    _direction = "lower")      
-        # Percent Exon Mapping  
-        _htmat[_tuple.Index,3]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index][ "Percent_Exonic"],
-                                                    _figinfo["_warn_exonMapping_cutoff"],
-                                                    _figinfo["_fail_exonMapping_cutoff"],
-                                                    _direction = "lower")       
-        # rRNA cutoff
-        _slope_current = float(_tuple[7] / _tuple[4])
-        _htmat[_tuple.Index,4]  = pass_warn_or_fail(_slope_current,
-                                                    _figinfo["_warn_riboScatter_cutoff"],
-                                                    _figinfo["_fail_riboScatter_cutoff"], 
-                                                    _direction = "upper")     
-        # Percent Overrepresented PostTrim     
-        _htmat[_tuple.Index,5]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Percent_Overrepresented_Seq_Trimmed"],
-                                                    _figinfo["_warn_violin_cutoff_overrep_trimmed"],
-                                                    _figinfo["_fail_violin_cutoff_overrep_trimmed"],  
-                                                    _direction = "upper")       
-        # Percent Adapter PostTrim
-        _htmat[_tuple.Index,6]  = pass_warn_or_fail(_userDf.iloc[_tuple.Index]["Percent_Adapter_Content_Trimmed"],
-                                                    _figinfo["_warn_violin_cutoff_adapter_trimmed"],
-                                                    _figinfo["_fail_violin_cutoff_adapter_trimmed"], 
-                                                    _direction = "upper")       
-        # HIST
-        if _figinfo["_hist_exists"]:
-            _htmat[_tuple.Index,7]  = pass_warn_or_fail(_figinfo["_hist_pvals"][_tuple.Index],
-                                                        (1- _figinfo["_warn_alpha"]) ,
-                                                        (1- _figinfo["_fail_alpha"]) ,
-                                                        _direction = "lower")       
-        # GBC 
-        if _figinfo["_gbc_exists"]:
-            _htmat[_tuple.Index,8]  = pass_warn_or_fail(_figinfo["_gbc_pvals"][_tuple.Index],
-                                                        (1- _figinfo["_warn_alpha"]) ,
-                                                        (1- _figinfo["_fail_alpha"]) ,
-                                                        _direction = "lower")       
-    return _htmat
-"""
-def mkQC_heatmap(_heatmap_data):
+def mkQC_heatmap(heatmap_data):
 
     """
     mkQC_heatmap: This function generates the summary heatmap
@@ -649,21 +474,20 @@ def mkQC_heatmap(_heatmap_data):
     """
     colors = ["grey","goldenrod","red"]
     cm = matplotlib.colors.ListedColormap(colors)
-    _sample_names = _heatmap_data.Sample
-    _heatmap_data = _heatmap_data.drop("Sample",axis = 1)
+    sample_names = heatmap_data.Sample
+    heatmap_data = heatmap_data.drop("Sample",axis = 1)
     fig2,ax = plt.subplots()
     fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')  
-    seaborn.heatmap(_heatmap_data.values,ax=ax,
+    seaborn.heatmap(heatmap_data.values,ax=ax,
                     xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
                                   "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
                                  "# Detected Genes","Gene Body Coverage"],
-                    yticklabels=_sample_names,
+                    yticklabels=sample_names,
                     cmap = cm)
     # change y-axis tick label font size
     ax.set_yticklabels(ax.get_yticklabels(), fontsize = 5)
     # change x-axis tick label font size
     ax.set_xticklabels(ax.get_xticklabels(), fontsize = 5)
-    plt.subplots_adjust(left=0.3, bottom=0.3, right=0.7, top=0.8)
     plt.yticks(rotation = 0)
     plt.xticks(rotation = 90)
     # Get the Colorbar object from the heatmap
@@ -675,24 +499,25 @@ def mkQC_heatmap(_heatmap_data):
     ax.collections[0].colorbar.ax.tick_params(labelsize=5)
     cbar.set_ticklabels(['Passed', 'Warned', 'Failed'])
 
+    plt.subplots_adjust(left=0.3, bottom=0.3, right=0.7, top=0.8)
+    
     return fig2
 
 
 def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
+
+    if not _f is None:
+        plt.gcf()
+                                                             
+    _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _pos)
  
     _bins = make_bins(_background_df.loc[:,"Input_Size"],_userDf.loc[:,"Input_Size"],_figinfo["_bin_num"])
     
     _out, _bins = pd.cut(_background_df['Input_Size'], bins=_bins, retbins=True, right=True, include_lowest=False)
     _xlabs = [str(xt) for xt in _bins[0::5]]
 
-    _ip_norm = _userDf.loc[:, 'Input_Size']
-    _lib_mean = _ip_norm.mean()
-    _current_sample = _ip_norm[_in_tuple.Index]
-
-    if not _f is None:
-        plt.gcf()
-
-    _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _pos)
+    _lib_mean = _userDf.loc[:, 'Input_Size'].mean()
+    _current_sample = _userDf.loc[:,'Input_Size'][_in_tuple.Index]
 
     _background_df["Input_Size"].plot(kind='hist', bins=_bins, ax=_ax, color='lightgray')
 
@@ -712,7 +537,7 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
     _ax = adjust_flag(_ax,_current_sample,_lib_mean)
 
     ### Adding cutoff markers
-    _ax = add_warn_fail_markers(_ax,_figinfo["_fail_ipReads_cutoff"],_figinfo["_warn_ipReads_cutoff"],_figinfo["_fail_color"],_figinfo["_warn_color"])
+    _ax = add_warn_fail_markers(_figinfo,_ax,"_ipReads_cutoff")
 
     # Current Sample Line and Label
     _line1 = _ax.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
@@ -725,39 +550,35 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
     _kde_line = matplotlib.lines.Line2D([0], [0], color="gray", linewidth=0.5, linestyle='-')
 
     # set up axes
-    _ax = legend_setup_1_6(_ax,_line1,_line2,_figinfo,_figinfo["_fail_ipReads_cutoff"],_figinfo["_warn_ipReads_cutoff"],"upper left")
+    _ax = legend_setup_1_6(_ax,_line1,_line2,_figinfo,"_ipReads_cutoff","upper left")
 
     #set axes to be visible or not
     _ax,_ax1 =  mk_axes(_ax,_ax1)
-    _ax = needs_fail_or_warn(_ax,_current_sample,_figinfo["_fail_ipReads_cutoff"],_figinfo["_warn_ipReads_cutoff"],"lower")
+    _ax = needs_fail_or_warn(_ax,_current_sample,_figinfo,"_ipReads_cutoff","lower")
 
     return _f
 
 
 # Plot 2 : Trimming Percentage
 def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_figinfo,_figure=None):
-    _xmin = _retro_df.loc[:,"Percent_PostTrim"].min()
-    _xmax = _retro_df.loc[:,"Percent_PostTrim"].max()
+  
+    if not _figure is None:
+        plt.gcf()
+                                                                         
+    _axis = _figure.add_subplot(_figinfo["_subplot_rows"],2, _position)    
+
+    _xmin,_xmax = _retro_df.loc[:,"Percent_PostTrim"].agg(["min","max"])
+
     _bins = make_bins(_retro_df.loc[:,"Percent_PostTrim"],_user_df.loc[:,"Percent_PostTrim"],_figinfo["_bin_num"])
 
-    _retro_df.loc[:, "Percent_PostTrim"] = _retro_df.loc[:, "Percent_PostTrim"]
-    _user_df.loc[:, "Percent_PostTrim"] = _user_df.loc[:, "Percent_PostTrim"]
-
     _out, _bins = pd.cut(_retro_df[_colname], bins=_bins, retbins=True, right=True, include_lowest=True)
+    
     _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
-
     _xtick_labs = [str(xt) for xt in _bins[0::5]]
-
-    _user_minusBatchMean_df = _user_df.drop(_user_df.tail(1).index)
 
 
     _current_sample = _ip_tuple.Percent_PostTrim
-    _lib_mean = _user_minusBatchMean_df[_colname].mean()
-
-    if not _figure is None:
-        plt.gcf()
-
-    _axis = _figure.add_subplot(_figinfo["_subplot_rows"],2, _position)
+    _lib_mean = _user_df[_colname].mean()
 
     _axis.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
@@ -765,9 +586,7 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     sns.distplot(_retro_df["Percent_PostTrim"], hist=False, bins=_bins, ax=_axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
     
     _axis.set_xlim(_xmin, _xmax)
-    
     _axis = set_ticks(_axis,_figinfo["_tick_size"])
-
     _axis.set_title(_plot_label, fontsize= _figinfo["_title_size"])
 
     _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
@@ -775,8 +594,7 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize= _figinfo["_label_size"])
 
     ### Adding cutoff markers
-    _axis = add_warn_fail_markers(_axis,_figinfo["_fail_trimmedReads_cutoff"],_figinfo["_warn_trimmedReads_cutoff"],
-                                  _figinfo["_fail_color"],_figinfo["_warn_color"])
+    _axis = add_warn_fail_markers(_figinfo,_axis,"_trimmedReads_cutoff")
     
     _axis = adjust_flag(_axis,_current_sample,_lib_mean)
 
@@ -791,10 +609,10 @@ def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _po
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
-    _axis = legend_setup_1_6(_axis,_line1,_line2,_figinfo,_figinfo["_fail_trimmedReads_cutoff"],_figinfo["_warn_trimmedReads_cutoff"],"upper left")
+    _axis = legend_setup_1_6(_axis,_line1,_line2,_figinfo,"_trimmedReads_cutoff","upper left")
 
     _axis,_axis1 =  mk_axes(_axis,_axis1)
-    _axis = needs_fail_or_warn(_axis,_current_sample,_figinfo["_fail_trimmedReads_cutoff"],_figinfo["_warn_trimmedReads_cutoff"],"lower")
+    _axis = needs_fail_or_warn(_axis,_current_sample,_figinfo,"_trimmedReads_cutoff","lower")
 
     return _figure
 
@@ -806,7 +624,6 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
    
     _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
-    # LabelEncoder().fit([x for y in _xtick_labels.get_values() for x in y])
 
     _xtick_labs = [str(xt) for xt in _bins[0::5]]
 
@@ -839,10 +656,7 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
 
     ### Adding cutoff markers
-    _axis_plt3 = add_warn_fail_markers(_axis_plt3,_figinfo["_fail_uniqAligned_cutoff"],
-                                       _figinfo["_warn_uniqAligned_cutoff"],
-                                       _figinfo["_fail_color"],
-                                       _figinfo["_warn_color"])
+    _axis_plt3 = add_warn_fail_markers(_figinfo,_axis_plt3,"_uniqAligned_cutoff")
     _axis_plt3 = adjust_flag(_axis_plt3,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
@@ -854,12 +668,10 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
-    _axis_plt3 = legend_setup_1_6(_axis_plt3,_line1,_line2,_figinfo,
-                                  _figinfo["_fail_uniqAligned_cutoff"],_figinfo["_warn_uniqAligned_cutoff"],"upper left")
+    _axis_plt3 = legend_setup_1_6(_axis_plt3,_line1,_line2,_figinfo,"_uniqAligned_cutoff","upper left")
 
     _axis_plt3,_axis1_plt3 =  mk_axes(_axis_plt3,_axis1_plt3)
-    _axis_plt3 = needs_fail_or_warn(_axis_plt3,_current_sample,_figinfo["_fail_uniqAligned_cutoff"],
-                                    _figinfo["_warn_uniqAligned_cutoff"],"lower")
+    _axis_plt3 = needs_fail_or_warn(_axis_plt3,_current_sample,_figinfo,"_uniqAligned_cutoff","lower")
     
     return _figure
 
@@ -900,8 +712,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
 
     ### Adding cutoff markers
-    _axis_plt4 = add_warn_fail_markers(_axis_plt4,_figinfo["_fail_exonMapping_cutoff"],_figinfo["_warn_exonMapping_cutoff"],
-                                       _figinfo["_fail_color"],_figinfo["_warn_color"])
+    _axis_plt4 = add_warn_fail_markers(_figinfo,_axis_plt4,"_exonMapping_cutoff")
 
     _axis_plt4.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
@@ -917,9 +728,9 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
 
-    _axis_plt4 = legend_setup_1_6(_axis_plt4,_line1,_line2,_figinfo,_figinfo["_fail_exonMapping_cutoff"],_figinfo["_warn_exonMapping_cutoff"],"upper left")
+    _axis_plt4 = legend_setup_1_6(_axis_plt4,_line1,_line2,_figinfo,"_exonMapping_cutoff","upper left")
     _axis_plt4,_axis1_plt4 =  mk_axes(_axis_plt4,_axis1_plt4)
-    _axis_plt4 = needs_fail_or_warn(_axis_plt4,_current_sample,_figinfo["_fail_exonMapping_cutoff"],_figinfo["_warn_exonMapping_cutoff"],"lower")
+    _axis_plt4 = needs_fail_or_warn(_axis_plt4,_current_sample,_figinfo,"_exonMapping_cutoff","lower")
     
     return _figure
 
@@ -968,8 +779,8 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     line_x1 = xmax
 
     line_y0 = 0
-    line_y1_warn = _figinfo["_warn_riboScatter_cutoff"] * (line_x1 - line_x0) + line_y0
-    line_y1_fail = _figinfo["_fail_riboScatter_cutoff"] * (line_x1 - line_x0) + line_y0
+    line_y1_warn = _figinfo["_warn_cutoffs"]["_riboScatter_cutoff"] * (line_x1 - line_x0) + line_y0
+    line_y1_fail = _figinfo["_fail_cutoffs"]["_riboScatter_cutoff"] * (line_x1 - line_x0) + line_y0
 
     _ax.plot([line_x0, line_x1], [line_y0, line_y1_warn], c=_figinfo["_warn_color"], linewidth=1, linestyle='--', alpha=0.3, label="Warn")
     _ax.plot([line_x0, line_x1], [line_y0, line_y1_fail], c=_figinfo["_fail_color"], linewidth=1, linestyle='--', alpha=0.3, label="Fail")
@@ -999,16 +810,15 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
                     _mean_label],
                 ["Current Sample", 
                     "Batch Samples",
-                    "Fail (" + "{:.0%}".format(_figinfo["_fail_riboScatter_cutoff"])  + ")",
-                    "Warn (" + "{:.0%}".format(_figinfo["_warn_riboScatter_cutoff"]) + ")",
+                    "Fail (" + "{:.0%}".format(_figinfo["_fail_cutoffs"]["_riboScatter_cutoff"])  + ")",
+                    "Warn (" + "{:.0%}".format(_figinfo["_warn_cutoffs"]["_riboScatter_cutoff"]) + ")",
                     "Mean rRNA/Aligned Reads (" + "{:.0%}".format(_slope_current) + ")"],
                 loc='upper left',
                 frameon=False,
                 fontsize=_figinfo["_legend_size"])
 
     _ax = mk_axes(_ax) 
-    _ax = needs_fail_or_warn(_ax,_slope_current,_figinfo["_fail_riboScatter_cutoff"],
-                             _figinfo["_warn_riboScatter_cutoff"],"upper")
+    _ax = needs_fail_or_warn(_ax,_slope_current,_figinfo,"_riboScatter_cutoff","upper")
    
     return _f
 
@@ -1101,11 +911,11 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     _axis3.set_ylim(_axis2.get_ylim()[0], _axis2.get_ylim()[1])
 
     _markers = [ # overrepresented
-    (_axis3,_figinfo["_fail_violin_cutoff_overrep_trimmed"], -0.4, 'Fail', _figinfo["_fail_color"]),
-    (_axis3, _figinfo["_warn_violin_cutoff_overrep_trimmed"], -0.6,'Warn', _figinfo["_warn_color"]),
+    (_axis3, _figinfo["_fail_cutoffs"]["_violin_cutoff_overrep_trimmed"], -0.4, 'Fail', _figinfo["_fail_color"]),
+    (_axis3, _figinfo["_warn_cutoffs"]["_violin_cutoff_overrep_trimmed"], -0.6,'Warn', _figinfo["_warn_color"]),
     # adapter 
-    (_axis3, _figinfo["_fail_violin_cutoff_adapter_trimmed"], .75, 'Fail', _figinfo["_fail_color"]),
-    (_axis3, _figinfo["_warn_violin_cutoff_adapter_trimmed"], .85, 'Warn', _figinfo["_warn_color"])]
+    (_axis3, _figinfo["_fail_cutoffs"]["_violin_cutoff_adapter_trimmed"], .75, 'Fail', _figinfo["_fail_color"]),
+    (_axis3, _figinfo["_warn_cutoffs"]["_violin_cutoff_adapter_trimmed"], .85, 'Warn', _figinfo["_warn_color"])]
 
     for _axs, _cutoff, yloc,label, color in _markers:
         _axs.plot(_cutoff, yloc, marker='v', ms=1, c=color, clip_on=False)
@@ -1139,10 +949,12 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
 
     plt.subplots_adjust(hspace=0)
 
-    if(_current_overrep_trim > _figinfo["_fail_violin_cutoff_overrep_trimmed"] or _current_adapter_trim > _figinfo["_fail_violin_cutoff_adapter_trimmed"]):
-        insert_flag_fail(_axis)
-    elif(_current_overrep_trim > _figinfo["_warn_violin_cutoff_overrep_trimmed"] or _current_adapter_trim > _figinfo["_warn_violin_cutoff_adapter_trimmed"]):
-        insert_flag_warn(_axis)
+    needs_fail_or_warn(_axis,_current_overrep_trim, _figinfo,"_violin_cutoff_overrep_trimmed","higher")
+    needs_fail_or_warn(_axis,_current_overrep_trim, _figinfo,"_violin_cutoff_adapter_trimmed","higher") 
+  #  if(_current_overrep_trim > _figinfo["_fail_violin_cutoff_overrep_trimmed"] or _current_adapter_trim > _figinfo["_fail_violin_cutoff_adapter_trimmed"]):
+  #      insert_flag_fail(_axis)
+  #  elif(_current_overrep_trim > _figinfo["_warn_violin_cutoff_overrep_trimmed"] or _current_adapter_trim > _figinfo["_warn_violin_cutoff_adapter_trimmed"]):
+  #      insert_flag_warn(_axis)
 
     return _f
 
@@ -1215,7 +1027,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
                  loc='lower center', frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
 
     _axis = mk_axes(_axis)
-    _axis = needs_fail_or_warn(_axis,_ks_pval,_figinfo["_fail_alpha"],_figinfo["_warn_alpha"],"lower")
+    _axis = needs_fail_or_warn(_axis,_ks_pval,_figinfo,"_alpha","lower")
 
     return _fig
 
@@ -1265,9 +1077,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
     _pvals  = stats.norm.sf(abs(_zscore))
     _curr_pval = _pvals[_curr_ndx]
 
-    # ZTest for mean and current sample against the normal distribution to get pvalue
-    _ztest_stat_raw, _ztest_pval_raw = ztest_prob(_current_samp_array, _mean_array, 0)
-
     if not _f is None:
         plt.gcf()
 
@@ -1313,7 +1122,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
                ["Current Sample", "Batch  Mean", "Pvalue (# Detected Genes): " + str(round(_curr_pval.item(), 3))], loc='upper right',
                frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
     _ax = mk_axes(_ax)
-    _ax = needs_fail_or_warn(_ax,_curr_pval,_figinfo["_fail_alpha"],_figinfo["_warn_alpha"],"lower")
+    _ax = needs_fail_or_warn(_ax,_curr_pval,_figinfo,"_alpha","lower")
 
     return _f
 
