@@ -33,6 +33,134 @@ from statsmodels.stats.weightstats import ztest
 import matplotlib.patches as mpatches
 from Sam_PyUtils import *
 
+class input_adapter:
+    """
+    This object is designed to handle the input provided by the user, shape it into the correct format, and return 
+    meaningful warnings and errors to avoid downstream confusion
+    
+    Input: The loaded pd of the input file
+    Output:The standardized file expected by the rest of the program, or an error
+    """
+
+    def __init__(self,_input_df):
+        self.input_df = input_df
+        self.input_human_readable_names = [
+            "Sample",
+            "Sequencing Depth",
+            "% of Reads After Trimming",
+            "# Uniquely Aligned Reads",
+            "% Uniquely Aligned Reads",
+            "% Exonic Reads / Aligned Reads"
+            "# Uniquely Aligned rRNA reads",
+            "% Overrepresented Sequences (Pre-trim)",
+            "% Adapter Content (Pre-trim)",
+            "% Overrepresented Sequences (Post-trim)",
+            "% Adapter Content (Post-trim)",
+            "Project",
+            "Batch"]
+        self.input_program_names = [
+            "Sample",
+            "Input_Size",
+            "Percent_PostTrim",
+            "Num_Uniquely_Aligned",
+            "Percent_Uniquely_Aligned",
+            "Num_Uniquely_Aligned_rRNA",
+            "Percent_Overrepresented_Seq_Untrimmed",
+            "Percent_Adapter_Content_Untrimmed",
+            "Percent_Overrepresent_Seq_Trimmed",
+            "Percent_Adapter_Content_Trimmed",
+            "Project",
+            "Batch"]
+        self.mapping_names = dict(zip(self.human_readable_names,self.input_program_names))
+
+    def _validate_column_names(self):
+        """Check if the column names of the input DataFrame are included in the input_human_readable_names list"""
+        input_columns = set(self.input_df.columns)
+        valid_columns = set(self.input_human_readable_names)
+        
+        if unrecognized_columns:
+            raise ValueError(f"Unrecognized columns: {, '.join(unrecognized_columns)}")    
+    def _fill_missing_values(self):
+        """ Fill empty columns if they are missing."""
+        self.input_df.fillna(0, inplace = True)
+        
+    def _reorder_columns(self):
+        """ Reorder columns to fit the format expected by the rest of the program"""
+        self.input_df = self.input_df[self.input_program_names]
+
+    def _change_column_names(self):
+        """ Change the user friendly column names to those expected by the internal program"""
+        self.input_df.rename(columns=self.mapping_names, inplace=True)
+
+    def transform_values(self):
+        """ Calculate columns that are transformations of the supplied inputs """
+        ### TO DO: MAKE IT SO YOU DON'T NEED TO INPUT THE % of Aligned Reads, this can be calculated as a combination of the 
+        ### Total sequencing depth, % Trimmed, and # Aligned
+        pass
+
+    def adapt_input(self):
+        self._validate_column_names()
+        self._fill_missing_values()
+        self._change_column_names()
+        self._reorder_columns()       
+
+class manual_cutoff_adapter:
+
+    def __init__(self,man_cutoff_df):
+        self.man_cutoff_df = man_cutoff_df
+        self.man_cutoff_df = man_cutoff        
+
+        self.human_readable_names = [
+            "Sequencing Depth",
+            "% of Reads After Trimming",
+            "% Uniquely Aligned Reads / Trimmed Reads",
+            "% Mapped Reads / Aligned Reads",
+            "rRNA Reads / Aligned Reads",
+            "% Overrep Sequences (Pre-Trim)",
+            "% Adapter Content (Pre-Trim)",
+            "% Overrep Sequences (Post-Trim)",
+            "% Adapter Content (Post-Trim)",
+            "# Detected Genes",
+            "Gene Body Coverage (Pval)"]
+
+        self.input_program_names = [
+            "_ipReads_cutoff",
+            "_trimmedReads_cutoff",
+            "_uniqAligned_cutoff",
+            "_exonMapping_cutoff",
+            "_riboScatter_cutoff",
+            "_violin_cutoff_overrep_untrimmed",
+            "_violin_cutoff_adapter_untrimmed",
+            "_violin_cutoff_overrep_trimmed",
+            "_violin_cutoff_adapter_trimmed",
+            "GeneBody_Coverage",
+            "Dist_of_gene_expression"]
+
+        self.mapping_names = dict(zip(self.human_readable_names,self.input_program_names))
+
+    def _validate_column_names(self):
+        """Check if the column names of the input DataFrame are included in the input_human_readable_names list"""
+        input_columns = set(self.input_df.columns)
+        valid_columns = set(self.input_human_readable_names)
+        
+        if unrecognized_columns:
+            raise ValueError(f"Unrecognized columns: {, '.join(unrecognized_columns)}")    
+    
+    def _change_column_names(self):
+        """ Change the user friendly column names to those expected by the internal program"""
+        self.input_df.rename(columns=self.mapping_names, inplace=True)
+
+    def _reorder_columns(self):
+        """ If arguments are supplied in an incorrect order, reorder columns as needed """
+        self.input_df = self.input_df[self.input_program_names]
+
+    def adapt_input(self):
+        self._validate_column_names()
+        self._fill_missing_values()
+        self._change_column_names()
+        self._reorder_columns()       
+
+ 
 def add_warn_fail_markers(_figinfo,ax,cutoff_key):
 
     def add_vert_marker(ax,cutoff,plot_scalar,clr,txt):
@@ -46,8 +174,8 @@ def add_warn_fail_markers(_figinfo,ax,cutoff_key):
 
     ax = add_vert_marker(ax,_figinfo["_warn_cutoffs"][cutoff_key],plot_scalar,_figinfo["_fail_color"],"Fail")
     ax = add_vert_marker(ax,_figinfo["_fail_cutoffs"][cutoff_key],plot_scalar,_figinfo["_warn_color"],"Warn")
+    
     return ax
-
    
 # This function calculates whether the current sample label orientation needs 
 # to be adjusted and returns the required vars
@@ -79,7 +207,7 @@ def legend_setup_1_6(_ax,_line1,_line2,_figinfo,cutoff_key,_loc):
                 ["Current Sample", 
                     "Batch Mean",
                     "Fail (" + str(round(_figinfo["_fail_cutoffs"][cutoff_key],2)) + ")",
-                    "Warn (" + str(round(_figinfo[_"warn_cutoffs"][cutoff_key],2)) + ")"],
+                    "Warn (" + str(round(_figinfo["_warn_cutoffs"][cutoff_key],2)) + ")"],
                 loc= _loc,
                 frameon=False,
                 fontsize=_figinfo["_legend_size"])
@@ -124,7 +252,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
     class FlagInserter:
         def __init__(self, ax=None):
             self.ax = ax or plt.gca()
-i           self.cutoff_warn = _figinfo["_warn_cutoffs"][cutoff_key]
+            self.cutoff_warn = _figinfo["_warn_cutoffs"][cutoff_key]
             self.cutoff_fail = _figinfo["_fail_cutoffs"][cutoff_key]
         def make_flag(self, flag_type):
             if flag_type == "fail":
@@ -159,8 +287,8 @@ i           self.cutoff_warn = _figinfo["_warn_cutoffs"][cutoff_key]
             flag_func(ax)
 
     flag_inserter = FlagInserter()
-    insert_flag(ax, self.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
-    insert_flag(ax, self.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
+    insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
+    insert_flag(ax, flag_inserter.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
     
     return ax
 
@@ -178,19 +306,6 @@ def get_ci_bound(vec, alpha, upper_lower="both"):
         return lower, upper
     else:
         raise ValueError("Invalid value for 'upper_lower'. Must be 'upper', 'lower', or 'both'.")
-
-
-# writing a custom function to calculate zscores as the implementation in scipi leaves something to be desired
-def calc_zscore(_newval,_comparevec):
-    
-    # get distribution information
-    _mn_comparevec = np.mean(_comparevec)
-    _std_comparevec= np.mean(_comparevec)
-
-    # calculate zscore
-    _zscr = (_newval - _mn_comparevec) / _std_comparevec
-
-    return _zscr
 
 # The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
 
@@ -376,7 +491,7 @@ def mkTitlePage(_figinfo):
     """
     
     def mk_cutoff_descript(descriptor,cutoff_set):
-
+        print("the cutoff set is",cutoff_set)
         cutoff_descriptor = (descriptor +': Default alpha =' + str(cutoff_set["_alpha"]) +
                                 '| Sequencing Depth = ' + str(round(cutoff_set["_ipReads_cutoff"],3)) +
                                 '| Trimming = ' + str(round(cutoff_set["_trimmedReads_cutoff"],3)) +  
@@ -386,7 +501,7 @@ def mkTitlePage(_figinfo):
                                 '| Adapter Contamination = ' + str(round(cutoff_set["_violin_cutoff_adapter_trimmed"],3)) + 
                                 '| Overrep. Seq  Contamination = ' + str(round(cutoff_set["_violin_cutoff_overrep_trimmed"],3)) + 
                                 '| Gene Body Coverage = ' + str(cutoff_set["_alpha"]) + 
-                                '| Detected Genes = ' + cutoff_set["_fail_numGene_cutoff"])
+                                '| Detected Genes = ' + cutoff_set["_numGene_cutoff"])
         return(cutoff_descriptor)  
 
     fig = plt.figure()
@@ -404,8 +519,8 @@ def mkTitlePage(_figinfo):
 
     # show cutoffs
 
-    warn_descript = mk_cutoff_descript("Warn cutoffs",_figinfo["_warn_cutoffs"] 
-    fail_descript = mk_cutoff_descript("Fail cutoffs",_figinfo["_fail_cutoffs"] 
+    warn_descript = mk_cutoff_descript("Warn cutoffs",_figinfo["_warn_cutoffs"]) 
+    fail_descript = mk_cutoff_descript("Fail cutoffs",_figinfo["_fail_cutoffs"]) 
 
 
     fig.text(s= warn_descript , 
@@ -455,9 +570,8 @@ def mkQC_heatmap_data(_userDf, _figinfo):
     _htmat = np.zeros((len(_userDf), 9))
 
     for _tuple in _userDf.itertuples():
-        for i, (column, warn_key, fail_key, strategy) in enumerate(strategies):
+        for i, (column, key, strategy) in enumerate(strategies):
             
-            print(_tuple)
             test_value = _userDf.iloc[_tuple.Index][column]
             warn_value = _figinfo["_warn_cutoffs"][key]
             fail_value = _figinfo["_fail_cutoffs"][key]
@@ -736,7 +850,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
 
 #### Plot 5: rRNA Scatter ####
 def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
-    _plotter_df = pd.concat([_background_df, _userDf])
+    _plotter_df = pd.concat([_background_df, _userDf],sort = True)
 
     # Assign color for current project's library (all samples in the current project)
     _plotter_df["scatter_color"] = np.where(_plotter_df["Sample"].isin(_userDf["Sample"]), "indigo", "lightgray")

@@ -109,16 +109,13 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         _warn_cutoffs = _man_warn_cutoff_dict
         _fail_cutoffs = _man_fail_cutoff_dict
-    
-    #_warn_cutoffs = prefix_dict("_warn",_warn_cutoffs)
-    #_fail_cutoffs = prefix_dict("_fail",_fail_cutoffs)
+        _warn_cutoffs["_alpha"] = _figinfo["_warn_alpha"]
+        _fail_cutoffs["_alpha"] = _figinfo["_fail_alpha"]
     # add cutoff info
     
     _figinfo["_fail_cutoffs"] = _fail_cutoffs
     _figinfo["_warn_cutoffs"] = _warn_cutoffs
-    #_figinfo.update(_fail_cutoffs)
-    #_figinfo.update(_warn_cutoffs)
-
+    print("the warn cutoffs are",_figinfo["_fail_cutoffs"])
     # Read Gene Coverage Data
     if _gc_file is not None:
         _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
