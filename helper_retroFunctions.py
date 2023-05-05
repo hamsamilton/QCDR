@@ -43,15 +43,15 @@ class input_adapter:
     """
 
     def __init__(self,_input_df):
-        self.input_df = input_df
-        self.input_human_readable_names = [
+        self.input_df = _input_df
+        self.human_readable_names = [
             "Sample",
             "Sequencing Depth",
             "% of Reads After Trimming",
             "# Uniquely Aligned Reads",
             "% Uniquely Aligned Reads",
-            "% Exonic Reads / Aligned Reads"
-            "# Uniquely Aligned rRNA reads",
+            "% Exonic Reads / Aligned Reads",
+            "# rRNA Reads",
             "% Overrepresented Sequences (Pre-trim)",
             "% Adapter Content (Pre-trim)",
             "% Overrepresented Sequences (Post-trim)",
@@ -64,10 +64,11 @@ class input_adapter:
             "Percent_PostTrim",
             "Num_Uniquely_Aligned",
             "Percent_Uniquely_Aligned",
+            "Percent_Exonic",
             "Num_Uniquely_Aligned_rRNA",
             "Percent_Overrepresented_Seq_Untrimmed",
             "Percent_Adapter_Content_Untrimmed",
-            "Percent_Overrepresent_Seq_Trimmed",
+            "Percent_Overrepresented_Seq_Trimmed",
             "Percent_Adapter_Content_Trimmed",
             "Project",
             "Batch"]
@@ -76,10 +77,12 @@ class input_adapter:
     def _validate_column_names(self):
         """Check if the column names of the input DataFrame are included in the input_human_readable_names list"""
         input_columns = set(self.input_df.columns)
-        valid_columns = set(self.input_human_readable_names)
-        
+        valid_columns = set(self.human_readable_names)
+        print("the input columns were",input_columns) 
+        unrecognized_columns = input_columns.difference(valid_columns)
+ 
         if unrecognized_columns:
-            raise ValueError(f"Unrecognized columns: {, '.join(unrecognized_columns)}")    
+            raise ValueError(f"Unrecognized columns: {', '.join(unrecognized_columns)}")    
     def _fill_missing_values(self):
         """ Fill empty columns if they are missing."""
         self.input_df.fillna(0, inplace = True)
@@ -108,9 +111,9 @@ class manual_cutoff_adapter:
 
     def __init__(self,man_cutoff_df):
         self.man_cutoff_df = man_cutoff_df
-        self.man_cutoff_df = man_cutoff        
-
+        print("the mancutoffdf looks like this",self.man_cutoff_df)
         self.human_readable_names = [
+            "Cutoff",
             "Sequencing Depth",
             "% of Reads After Trimming",
             "% Uniquely Aligned Reads / Trimmed Reads",
@@ -124,6 +127,7 @@ class manual_cutoff_adapter:
             "Gene Body Coverage (Pval)"]
 
         self.input_program_names = [
+            "cutoff",
             "_ipReads_cutoff",
             "_trimmedReads_cutoff",
             "_uniqAligned_cutoff",
@@ -140,27 +144,35 @@ class manual_cutoff_adapter:
 
     def _validate_column_names(self):
         """Check if the column names of the input DataFrame are included in the input_human_readable_names list"""
-        input_columns = set(self.input_df.columns)
-        valid_columns = set(self.input_human_readable_names)
+        input_columns = set(self.man_cutoff_df.columns)
+        valid_columns = set(self.human_readable_names)
         
+        print("the input columns were",input_columns) 
+        unrecognized_columns = input_columns.difference(valid_columns)
         if unrecognized_columns:
-            raise ValueError(f"Unrecognized columns: {, '.join(unrecognized_columns)}")    
+            raise ValueError(f"Unrecognized columns: {', '.join(unrecognized_columns)}")    
     
     def _change_column_names(self):
         """ Change the user friendly column names to those expected by the internal program"""
-        self.input_df.rename(columns=self.mapping_names, inplace=True)
+        self.man_cutoff_df.rename(columns=self.mapping_names, inplace=True)
 
     def _reorder_columns(self):
         """ If arguments are supplied in an incorrect order, reorder columns as needed """
-        self.input_df = self.input_df[self.input_program_names]
+        self.man_cutoff_df = self.man_cutoff_df[self.input_program_names]
 
+    def _transpose_df(self):
+        """transposes the df with additional operations to get the right columns names"""
+        self.man_cutoff_df = self.man_cutoff_df.transpose()
+        self.man_cutoff_df.columns = self.man_cutoff_df.iloc[0]
+        self.man_cutoff_df = self.man_cutoff_df.drop(self.man_cutoff_df.index[0])
+ 
     def adapt_input(self):
         self._validate_column_names()
-        self._fill_missing_values()
         self._change_column_names()
-        self._reorder_columns()       
+        self._reorder_columns()    
+        self._transpose_df()   
+        print("the adapted manual cutoffs look like this", self.man_cutoff_df)
 
- 
 def add_warn_fail_markers(_figinfo,ax,cutoff_key):
 
     def add_vert_marker(ax,cutoff,plot_scalar,clr,txt):
@@ -368,26 +380,15 @@ def fmt_million(_x, _pos):
 def fmt_contaminant(_c, _pos):
     return '{0:.2f}%'.format(_c)
 
-
 def fmt(_x, _pos):
     return '{0:.1f}'.format(_x)
-
 
 def fmt_cov(_x, _pos):
     return '{0:.2f}'.format(_x)
 
-
 def byMillion(_lib):
     return _lib / 1000000
 
-
-# This is a simple function designed to take a list of variables and transform it into a dictionary with the variable names as keys and their associated values as values
-def varlist_2dict(_list):
-    _dict = {}
-    for item in _list:
-        _dict.update({str(item),item})
-    
-    return _dict
 def values_to_percentiles(values):
     """
     Convert a vector of values to their associated percentile ranks on a standard normal distribution.
@@ -559,7 +560,7 @@ def mkQC_heatmap_data(_userDf, _figinfo):
         ("Percent_PostTrim", "_trimmedReads_cutoff", lower_status_strategy),
         ("Percent_Uniquely_Aligned","_uniqAligned_cutoff",lower_status_strategy),
         ("Percent_Exonic","_riboScatter_cutoff",lower_status_strategy),
-        ("Percent_Exonic","_riboScatter_cutoff",lower_status_strategy), # HOLD UNTIL I FIX THE ISSUES WITH RIBO
+        ("Num_Uniquely_Aligned_rRNA","_riboScatter_cutoff",lower_status_strategy), # HOLD UNTIL I FIX THE ISSUES WITH RIBO
         ("Percent_Overrepresented_Seq_Trimmed","_violin_cutoff_overrep_trimmed",upper_status_strategy),
         ("Percent_Adapter_Content_Trimmed","_violin_cutoff_adapter_trimmed",upper_status_strategy)]
     if _figinfo["_hist_exists"]:
@@ -571,8 +572,13 @@ def mkQC_heatmap_data(_userDf, _figinfo):
 
     for _tuple in _userDf.itertuples():
         for i, (column, key, strategy) in enumerate(strategies):
-            
-            test_value = _userDf.iloc[_tuple.Index][column]
+        
+            if column == "Num_Uniquely_Aligned_rRNA":
+                test_value = _userDf.iloc[_tuple.Index][column] / _userDf.iloc[_tuple.Index]["Num_Uniquely_Aligned"]
+   
+            else:
+                test_value = _userDf.iloc[_tuple.Index][column]
+
             warn_value = _figinfo["_warn_cutoffs"][key]
             fail_value = _figinfo["_fail_cutoffs"][key]
             _htmat[_tuple.Index, i] = strategy.compute_status(test_value, warn_value, fail_value)
