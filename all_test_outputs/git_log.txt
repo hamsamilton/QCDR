@@ -1,3 +1,9 @@
+commit 20d9261ae301db89b8c66a130b77e2692012c075
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Fri May 5 11:52:10 2023 -0500
+
+    - Fixed the calculation of the metric for calculating the cutoff for the summary heatmap for the ribosome. It's a bit complicated because it happens that the ribosome metric is a ratio and its the only ratio which adds a specific complexity to the whole program so what I wrote is like a terrible contingency
+
 commit dfee4f1f41682b5eb4c7660cdfabd4d7d4d938b7
 Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
 Date:   Wed Apr 12 18:38:27 2023 -0500

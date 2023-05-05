@@ -83,6 +83,7 @@ class input_adapter:
  
         if unrecognized_columns:
             raise ValueError(f"Unrecognized columns: {', '.join(unrecognized_columns)}")    
+
     def _fill_missing_values(self):
         """ Fill empty columns if they are missing."""
         self.input_df.fillna(0, inplace = True)
@@ -95,17 +96,24 @@ class input_adapter:
         """ Change the user friendly column names to those expected by the internal program"""
         self.input_df.rename(columns=self.mapping_names, inplace=True)
 
-    def transform_values(self):
+    def _transform_values(self):
         """ Calculate columns that are transformations of the supplied inputs """
         ### TO DO: MAKE IT SO YOU DON'T NEED TO INPUT THE % of Aligned Reads, this can be calculated as a combination of the 
         ### Total sequencing depth, % Trimmed, and # Aligned
-        pass
+        self.input_df["% Uniquely Aligned Reads"] = (
+        self.input_df["# Uniquely Aligned Reads"] / (self.input_df["Sequencing Depth"] * 
+                                                    self.input_df["% of Reads After Trimming"]))
 
     def adapt_input(self):
         self._validate_column_names()
         self._fill_missing_values()
+        print("before transformation",self.input_df.columns)
+        self._transform_values()
+        print("after transformation",self.input_df.columns)
         self._change_column_names()
+        print("after name transformation",self.input_df.columns)
         self._reorder_columns()       
+        print("after reorder",self.input_df.columns)
 
 class manual_cutoff_adapter:
 

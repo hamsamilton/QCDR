@@ -1,1 +1,1 @@
-python3 pyRetroPlotter_main.py -ip data/USER_testData_B11_2023_4_13.csv -out SCRIPTB11_mancutoffs.pdf -gc data/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv -hist data/sample11hist_data.csv -bgd data/SCRIPTretro_masterStatistics_allBatches_2023_4_13.csv -ctf data/Man_Input_Cutoff_test.xlsx
+python3 pyRetroPlotter_main.py -ip data/USER_testData_B11_2023_5_5.csv -out SCRIPTB11_mancutoffs.pdf -gc data/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv -hist data/sample11hist_data.csv -bgd data/SCRIPTretro_masterStatistics_allBatches_2023_5_5.csv -ctf data/Man_Input_Cutoff_test.xlsx
