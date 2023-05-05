@@ -1,4 +1,4 @@
-Sample,Sequencing Depth,% of Reads After Trimming,# Uniquely Aligned Reads,% Uniquely Aligned Reads,% Exonic Reads / Aligned Reads,# rRNA Reads,% Overrepresented Sequences (Pre-trim),% Adapter Content (Pre-trim),% Overrepresented Sequences (Post-trim),% Adapter Content (Post-trim),Project,Batch
+Sample,Sequencing Depth,% of Reads After Trimming,# Uniquely Aligned Reads,% Uniquely Aligned Reads,% Exonic Reads / Aligned Reads,# rRNA Reads,% Overrepresented Sequences (Pre-trim),% Adapter Content (Pre-trim),% Overrepresented Seqences (Post-trim),% Adapter Content (Post-trim),Project,Batch
 RNA_B01_01,13458264,92.03,2096032,16.92,40.37,768137,1.24,19.977,0,0.368,script_rnaseq_batch_01,batch_01
 RNA_B01_02,17001998,80.08,7466677,54.84,39.25,3515690,8.19,28.991,0.81,1.234,script_rnaseq_batch_01,batch_01
 RNA_B01_03,19675075,99.27,6831593,34.98,50.2,1871554,0.64,3.942,0.28,0.122,script_rnaseq_batch_01,batch_01
