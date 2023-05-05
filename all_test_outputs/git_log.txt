@@ -1,0 +1,360 @@
+commit dfee4f1f41682b5eb4c7660cdfabd4d7d4d938b7
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Wed Apr 12 18:38:27 2023 -0500
+
+    In the middle of very challenging ig changes to make adapters for input and cutoff files
+
+commit 14f77bd61a61e538469a99822df06080b35fda8f
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Mon Apr 10 16:28:07 2023 -0500
+
+    Continued refactoring: Instead of having all fail and warn cutoffs as different parts of the _figinfo dictioanry, make a dictionary of dictionaries for both so that you can traverse the fail / warn cutoffs in teh same way as required.
+    
+    Still need to bugfix. I tore up alot of code to make this work so it needs alot of help
+    
+    Moved some general code to the Sam_PyUtils files and deleted some old / defunct functions
+
+commit 0ce76bdc4ee5054a91a0bb95289b70f0499705fc
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Wed Apr 5 15:10:56 2023 -0500
+
+    alphas now refer to pvalues, may need to check to make sure any bugs are resolved
+
+commit ca25470a9f06e8ddd8ed30a2869ee31b110b4cb5
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Wed Apr 5 14:00:51 2023 -0500
+
+    COntinued refacotring, about to change the alph so it represents the desired pvalue not the covered interval of the normal distribution, hopefully this doesn't pull up too many other threads
+
+commit 044cc91231bf3a24ef6cc02d1678b503d7952cbb
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Tue Apr 4 14:17:16 2023 -0500
+
+    Continued code refactoring
+
+commit 67577d5b34afa3549a37f29546e1bdb7d8713427
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Mon Apr 3 16:06:26 2023 -0500
+
+    Started moving functions to a utility .py file
+    
+    Started some code refactoring
+
+commit 620b64199d2acfca5ae941f5a5b3a80e40b82e52
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Wed Mar 29 09:05:09 2023 -0500
+
+    - Added new histograms that are at what I think is a more appropriate bin density .5. It's much more clear what the bad samples are
+    
+    - The 95% confidence interval is now appropriately plotted
+
+commit 179f2cb72f4db85757e4b03f5fd1da1f28048afe
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Mon Mar 27 10:07:46 2023 -0500
+
+    Pvalue for GC test now calculated by calculating a distibution of KS-tests and calculating a pvalue from that distribution, seems to work much better
+
+commit 2402633573ec6ba044ffdc72ac5a5ecd842575b8
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Wed Mar 22 11:07:36 2023 -0500
+
+    Minor visual changes to output regarding plots not overlapping and axes names
+
+commit d7e34e3fbbb263939cb3f8515cd2e962e9148512
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Thu Feb 23 22:25:06 2023 -0600
+
+    Added an R function which can be run from command line which generates the gene histograms
+    
+    There were some changes made to the QCplotter algorithm that I cant parse right now but they seemed minor
+
+commit 16eb75f73de3024d7c53ead3d72d2027b4c51ceb
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Mon Jan 23 00:14:37 2023 -0600
+
+    Added new feature, a heatmap which displays the summary of warns and fails for all samples. Looks good. Seems to work but i need to run my testcases and check one by one
+
+commit b3e312ae8c4f46fe3a841701abdecbf3753df24c
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Mon Jan 16 20:58:55 2023 -0600
+
+    changed plot 8 x axis name
+
+commit 96bc862551c869f1e2e81418d31334d0aa3fd4d5
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Mon Jan 16 12:45:41 2023 -0600
+
+    Following Changes
+    
+    1) Title page with all the input/output information/and cutoffs
+        1a) Sequence contamination cutoff made more specific
+        2) Gene expression using actual value
+        3) Note: It would take too much time to change the GBC to show the KS statistic so I'm not focusing on this now
+    2) Legends should have fixed positions
+    3) Ribosomal RNA plot now showing fail/warn/slope in percents
+        a) Additional information given for slope line so it is more clear what it is.
+    4) Thinner histogram lines
+    5) Clearer and less cramped labels for Sequence Contamination Plotsi
+
+commit b162f5ca33245acc711320067f2fcd77d29642bb
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Thu Jan 5 11:30:58 2023 -0600
+
+    Added a command which runs all the test examples and saves their inputs, scripts, outputs, and version number
+    
+    Changed the manner in which defaults are calculated so one sided cutoff adjustments are calculated automatically given the input number
+
+commit 0aa582fb623d1728231da5741eac29b0f7cf7bab
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Tue Jan 3 16:05:54 2023 -0600
+
+    Changes to titles
+    Ribosomal RNA plot is now more legible
+    Changes to legend names so it is always referred to as the batch mean rather than the library mean
+
+commit d97b65dccca686d30c3c81f9f28fd9a55fd1de43
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Tue Jan 3 14:58:51 2023 -0600
+
+    I also added test case commands to demonstrate the algorithm functioning under different constraits
+
+commit bf5cef9f8120371b9e66c233a365d21a7931be36
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Tue Jan 3 14:54:22 2023 -0600
+
+    Finished "object oriented" rework. Finally got to tap into the fruit of this work which is that it was easy to modify the plot so that GC and hist do not need to be included and return a 6 panel plot if neither are This still isn't as good as true OO but it's ok for the purposes of this plot.
+
+commit 15b27014ff3613c5973a18537664a1476da8fcf0
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Tue Jan 3 11:33:35 2023 -0600
+
+    I think I accidentally deleted some part of the 7th function Looking through old repos now
+
+commit d01fa4d3ce71be847200d3c9f038f870bcd93a91
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Tue Jan 3 11:06:16 2023 -0600
+
+    Recovered plotting function 8 after suffering some minor heart attacks thinking I had lost all my code since Nov 7th. I think somehow parts of plot 7 were also removed so I am diving through old repos to find that information now after doing more updating to work with the noew oo schema
+
+commit ebd4bf3d48c0067ff18853e88856cb1730ec3334
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Tue Jan 3 09:55:42 2023 -0600
+
+    Continuing to make the changes to create the pseudo object oriented programming stucture. Accidentally deleted plot 8 function. Need to recover. Good luck to me
+
+commit 3fcf0a9801b9b132f2a8dc5fdd9a3bf6740388ab
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Fri Dec 30 22:43:55 2022 -0600
+
+    added new function which controls axis tick creation for all plots
+
+commit 3f56b35694c9f9e31526836f03ced7b49577ca8f
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Fri Dec 30 19:07:30 2022 -0600
+
+    Began work to save all the variables as a dictionary which is then piped to the other subfunctions. It's work but I think it is better than having so many arguments need to be sent to each
+    function as much of it is abstracted at this point including typesizes etc. I think it is analogous to initializing a class at this point I almost wonder if I should have written a subfigure class with methods which plot particular things. It is getting to that point. I don't think that is necessary though this will be able to do most of the functionality. The main functionality being able to modify variables passed to the helper functions based on the initial
+    ized with, especially 8 vs 6 plots as the spacing needs to change. We will see this is kind of a big step for me and I've never done organization like this and don't have a senior dev or something to ask what the best option is so it's unlikely to be perfect.
+
+commit 8076b505103c37f74817d9151a3991e034beffb5
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Fri Dec 30 00:37:31 2022 -0600
+
+    Changed various titles and axes. Added a label for the mean line in plot 5
+
+commit 8e0b24afa1a8e5d339cdb2d0ec314925a08509a7
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Thu Dec 29 00:24:49 2022 -0600
+
+    Staggered fail marker so it can stack with warn more easily. It is lower so it isn't obscured as much by the actual fail / warn panel when they occur (Could consider decreasing the size of these)
+
+commit 0ff19c629248eeb665d3ba6d1572850c37188fd7
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Wed Dec 28 23:27:00 2022 -0600
+
+    -- Abstracted fontsizes to standardize title/label/ticksizes
+    -- Changed Gene Coverage Name
+    -- Changed Warn Color from Gold to GoldenRod
+
+commit e0dba7c0137ba73b9134fce335415b7f11be416b
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Wed Dec 28 19:45:33 2022 -0600
+
+    Added feature where exact cutoffs are visible. Implemented two separate ways to show to debby, on the legends and on top. Will likely need some iterating
+
+commit 623c8f0f034787e915ec06216b77532ae1abcc0f
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Wed Dec 28 10:55:11 2022 -0600
+
+    There have been alot of changes, which I haven't been keeping line by line track of partially been trying to get everything done before break. These changes primarily reflect the overall goal of getting the statistical cutoffs correct and adding particular features so that individuals can add custom cutoffs for particular features etc.
+
+commit 8acf1a5ecfbfd1bd194e64c59554888e22691894
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Sat Dec 17 01:12:11 2022 -0600
+
+    Made many changes aimed at improving the ability to work with and properly plot user inputs
+
+commit d71f90b28ee47ebe98bfe3c1f4770b02231750c2
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Thu Dec 8 16:33:06 2022 -0600
+
+    Added feature where a user can supply their own cutoffs for the plots
+
+commit 38ab76cb03c4a1944d9e68d5fea2b9a619eba0f3
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Thu Dec 8 13:47:28 2022 -0600
+
+    Began initial work to allow users to specify custom inputs for warn / fail lines. Work still incoming
+
+commit 724f93fec0eaac1f2c231b433b9359d0dc25e80a
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Thu Dec 8 09:33:07 2022 -0600
+
+    Two major changes.
+    
+    First, for the violin plots, the warn and fail markers now work for both the adapters and the overrep.
+    
+    Second specifying the -bgd argument should work correctly now.
+
+commit bb5492a782e3815acf51bfa47f0349a9dc20ffa7
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Thu Nov 24 20:23:19 2022 -0600
+
+    Largely finished code functionaliation and cleanup. There is more I could do surely but I think at this point we are very likely to run into diminshing returns. Highly considering removing one of the
+    subplots for the contamination metric. I'm not sure why we need to care about both and it honestly looks really ugly.
+
+commit d568d2632a89d7fe8debfbd5887d516aa46fa351
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Thu Nov 24 13:30:35 2022 -0600
+
+    Continued functionalization and code cleanup. Specifically made it so that the line text for each line is called by a single func
+
+commit 34e19a68cadd8f55d61e37e9a22d4f2b100d6ebb
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Wed Nov 23 23:13:29 2022 -0600
+
+    Continued functionalizing work
+    
+    wrote a function which determines what axes are shown and what they look like, removing duplicate code from all the individual plots
+
+commit 2f6d45106643ce6d7f9a412b3a1246a92e2a74b0
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Mon Nov 21 01:54:05 2022 -0600
+
+    Added a new set of histogram data, this with a different breakpoint .25 which should be less noisy than .1
+    
+    Begin some really guts oriented work to functionalize some heavily repeated and thus inefficient code. Specifically I wrote a function which decides whether or not to insert the fail/warn box and removed all manual instances of this code that existed
+
+commit e1584bd7db426d61e9b930745ea7809e9e4fe89d
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Fri Nov 18 20:40:58 2022 -0600
+
+    Changed colors back to gold
+    
+    Deleted lots of useless print statments
+    
+    Rewrote code so that the 8th plot is performing the proper statistical test IE, by number of expressed genes rather than by comparing the distributions as before.
+
+commit dc9fda127e2e3e31cffb33faf8dbd118255457d7
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Sat Nov 12 23:08:44 2022 -0600
+
+    Finished the changes I made regarding making text sizes more legible. It is worth noting that there will need to be a change regarding global variables, or functionalizing the way the axes are generated for this to be maintainable. Putting this off for now.
+    
+    Continued to clean up old code and function. At this point it may be better to look at an earlier branch to look at some of Gaurav's old features that became defunct. etc.
+    
+    Cleaned the folder of old pdfs that were cloggint he difrectory.
+
+commit 6a64421299edac5daef717fe4a961b4dcfb687b6
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Sat Nov 12 21:18:03 2022 -0600
+
+    In the middle of a bunch of changes: Making an intermediate git commit to track the changes and my progress
+    
+    - Fixed issues with the fail/warn markers where they were too narrows because i was using the standard error rather than the standard deviation.
+    
+    - Fixed issues with the axes and axis text for plot 8, gene historame, changed the X-axis name
+    
+    - A lot of work changing various sizes of text. Unfortunately it isn't well standardized so it is alot of hunting for fontsize arguments. In the future I am curious if it is possible to functionalize some of these paramaters so as to call something resemblin g astandard plot. i do this often in R so I assume matplotlib offers a similar functionalizty.
+    
+    - I am starting to put some work into cleaning up the code, deleting old defunct code, print statements etc.
+
+commit 8b0c1696e65c2200a03fbc1bbe7f8103c71c7f20
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Fri Nov 11 14:16:17 2022 -0600
+
+    Added some fixes: the histplot function now prints, although the margins are currently wrong.
+    
+    fixed it so all 4 plots are printed on one page rather than 3
+
+commit a0bc506607073e0270d764ba7fea6c5727d0c522
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Fri Nov 4 15:58:44 2022 -0500
+
+    Made a series of changes to make this work better. Mostly, got the gene body plot to work in the quest call format and now the warn and fail markers can be set using pvalue distributions. Some bugfixing but not finished regarding printing the histograms, which currently seems to be bugged and hard coded to take certain x values. Needs to work dynamically based on the range tracked by the histplot
+
+commit 9d3626175901d0dda813a5a6011e8d5bc495c87e
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Tue Nov 1 09:44:25 2022 -0500
+
+    Made changes so the hist function is also plotted withing the command line iteration #
+
+commit 2d7cd49bcd58e7130e006e6d27049615ceea2313
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Mon Oct 31 16:06:10 2022 -0500
+
+    Initial changes, mostly bugfixing the code so that the gene body information properly plots. Still work in progress
+
+commit 68afb081bbb8089e55ad568c5d38bdf4ba882408
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Mon Oct 31 10:43:31 2022 -0500
+
+    Made the virtual environment within the project, I tried to make it ignore changes to the environment but I was unable to. Oh well
+
+commit 4745ac442c3042b2b1503a527531932791fc8938
+Author: Samuel Hamilton <samuelhamilton2024@u.northwestern.edu>
+Date:   Sun Oct 30 21:21:44 2022 -0500
+
+    Gaurav left the lab so I, Sam Hamilton, am testing to make sure that this is properly working`
+
+commit b7e2e3118e9dcc42776657f804d4518dab21866e
+Author: gauravgadhvi <ggadhvi@hawk.iit.edu>
+Date:   Mon Aug 8 18:07:02 2022 -0500
+
+    Version switch to native Quest
+
+commit 41c330253a5a1cbcd66e84448b2268f4fcdfbab5
+Author: gauravgadhvi <ggadhvi@hawk.iit.edu>
+Date:   Wed Jul 27 10:59:08 2022 -0500
+
+    added scatter
+
+commit 6094fad2b8fdb590a058057d5a6da90f5b444266
+Author: gauravgadhvi <ggadhvi@hawk.iit.edu>
+Date:   Mon Jul 25 19:07:06 2022 -0500
+
+    Refined retroPlotter_main fn, added plot_ipSize fn
+
+commit c101655cba1950d3833e6d8dfb1cfc51bbd542ed
+Author: gauravgadhvi <ggadhvi@hawk.iit.edu>
+Date:   Tue Jul 19 17:57:55 2022 -0500
+
+    Added argument parsing
+
+commit ddae903c420a748874e86be9ddb93d63f9d78c30
+Author: gauravgadhvi <ggadhvi@hawk.iit.edu>
+Date:   Mon Jul 18 17:54:26 2022 -0500
+
+    Updated Historical dataset and added test USER data
+
+commit 5f6d8db59506027d632bb148241eead5217594fa
+Author: gauravgadhvi <ggadhvi@hawk.iit.edu>
+Date:   Mon Jul 18 17:34:30 2022 -0500
+
+    Initial skeleton design and markup
+
+commit eef1e2f76421242da0cee056ba4e8071b3c86d6d
+Author: Gaurav Gadhvi <gauravgadhvi@users.noreply.github.com>
+Date:   Mon Jul 18 12:10:01 2022 -0500
+
+    Initial commit

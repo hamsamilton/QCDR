@@ -38,10 +38,14 @@ from statsmodels.stats.weightstats import ztest
 '''RetroPlotter caller function for reading data and passing it to individual plotters. Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions'''
 
 def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file):
-   
+    
      # Read input file and load USER data
     _user_df = pd.read_csv(_input_file, sep=",")
-
+ 
+    input_adaptr=input_adapter(_user_df)   
+    input_adaptr.adapt_input()
+    _user_df = input_adaptr.input_df
+    print("this is the user_df",_user_df)
     # Add last row in the USER df with current batch's mean values for the final summary page
     _batch_summary_df = ["Batch_Mean",
                          _user_df.Input_Size.mean(),
@@ -63,8 +67,14 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     ## Read Background file and load HISTORICAL background data
     _bgd_df = pd.read_csv(_bgd_file, sep=",")
 
+    input_adaptr=input_adapter(_bgd_df)   
+    input_adaptr.adapt_input()
+    _bgd_df = input_adaptr.input_df
+    print("this is the bgd_df",_bgd_df)
+
+
     # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
-    _bgd_df.loc[:, 'Input_Size'] = _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
+    _bgd_df.loc[:, 'Input_Size'] =  _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
     _user_df.loc[:, 'Input_Size'] = _user_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
 
     # Make standard cutoffs for warn/fail
@@ -99,8 +109,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
-        _man_warn_cutoff_dict = _manual_cutoffs.set_index('cutoff')['Warn'].to_dict()
-        _man_fail_cutoff_dict = _manual_cutoffs.set_index('cutoff')['Fail'].to_dict()
+        
+        manual_cutoff_adaptr = manual_cutoff_adapter(_manual_cutoffs)
+        manual_cutoff_adaptr.adapt_input()
+        
+        _man_warn_cutoff_dict = manual_cutoff_adaptr.man_cutoff_df['Warn'].to_dict()
+        _man_fail_cutoff_dict = manual_cutoff_adaptr.man_cutoff_df['Fail'].to_dict()
  
         # for cutoffs with unspecified values, replace with the automatically generated cutoffs
 
@@ -115,7 +129,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     
     _figinfo["_fail_cutoffs"] = _fail_cutoffs
     _figinfo["_warn_cutoffs"] = _warn_cutoffs
-    print("the warn cutoffs are",_figinfo["_fail_cutoffs"])
+    
     # Read Gene Coverage Data
     if _gc_file is not None:
         _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
