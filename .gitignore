@@ -1,5 +1,0 @@
-# git ignore files specify which files do not need to be tracked by git
-
-*.pdf # too big, becomes unwieldy to track these.
-pyRetroPlotterEnv2   # better to track the requirements.txt file than the huge python virtual environment within the project
-` 
