@@ -1,4 +1,0 @@
-#!/bin/zsh
-
-# fib with fib background and gc and hist, no cutoffs
-python3 pyRetroPlotter_main.py -ip data/fib4pyRetroplotter.csv -out testingDec15.pdf -gc data/fibGBC_output.csv -hist data/fibhist.254pltr.csv -bgd data/fib4pyRetroplotter.csv 

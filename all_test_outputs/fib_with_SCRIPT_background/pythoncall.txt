@@ -1,1 +1,0 @@
-python3 pyRetroPlotter_main.py -ip data/fib4pyRetroplotter_2023_5_5.csv -out fib_with_SCRIPT_background.pdf -gc data/fibGBC_output.csv -hist data/fibhist.254pltr.csv -bgd data/SCRIPTretro_masterStatistics_allBatches_2023_5_5.csv
