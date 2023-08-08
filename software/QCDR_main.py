@@ -133,7 +133,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     
     # Read Gene Coverage Data
     if _gc_file is not None:
-        _gc_df = pd.read_csv(_gc_file, index_col="Xaxis")
+        _gc_df = pd.read_csv(_gc_file)
         
         # Adding the Library Mean column at the end of the GC dataframe
         _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
@@ -223,11 +223,11 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_figinfo,fig)
 
         # Plotting figure 7: Expression Distribution Plot
-        if _gc_file is not None:
+        if _hist_file is not None:
             fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,7,"Gene Expression",_figinfo,fig)           
 
         # Plotting figure 8: Gene Body Coverage Plot
-        if _hist_file is not None:
+        if _gc_file is not None:
             fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 8, "GeneBody Coverage",_figinfo,fig)
 
         # Add sample info at the top-left corner of the page

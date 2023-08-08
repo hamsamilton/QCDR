@@ -6,6 +6,7 @@ This software is currently in alpha, made available early to align with ISCB 202
 
 QCDR is written in Python and designed to be run in command line.
 For ease of user, QCDR comes with a containerized environment for use. It can be activated using 
+
 source activate QCDRenv 
 
 Once the environment is activated, the only file that needs to be filled with information is the input file. At its most simple, the User_Input.csv file contained within the data/User_Template folder should be filled with information about the User's data. If a user does not wish to supply data for a given metric, the column can be left blank. Once filled, the main command can be run by navigating to the software folder and entering 
@@ -33,7 +34,7 @@ Once created, it can be included within the main function by
 
 python3 pyRetroPlotter_main.py -ip ../data/User_Template/User_Input.csv -out /path/to/outlocation.pdf -bgd ../data/User_Template/User_Input.csv -hist /histdataloc.csv
 
-A gene coverage distribution plot can also be created. These use the files created by RseQC as input. An example file can be found at data/SCRIPT/SCRIPT_B11_GC_info.csv
+ gene coverage distribution plot can also be created. This requires inputting an additional table describing the normalized gene body coverage across samples. We have built a separate tool to generate these tables. The software and instructions for use can be found at https://github.com/hamsamilton/ezGBC. An example file can be found at data/SCRIPT/SCRIPT_B11_GC_info.cs
 
 python3 pyRetroPlotter_main.py -ip ../data/User_Template/User_Input.csv -out /path/to/outlocation.pdf -bgd ../data/User_Template/User_Input.csv -gc gcdata.csv
 
