@@ -64,7 +64,7 @@ class input_adapter:
             "Percent_PostTrim",
             "Num_Uniquely_Aligned",
             "Percent_Uniquely_Aligned",
-            "Percent_Exonic",
+            "Percen_Exonic",
             "Num_Uniquely_Aligned_rRNA",
             "Percent_Overrepresented_Seq_Untrimmed",
             "Percent_Adapter_Content_Untrimmed",
@@ -98,27 +98,28 @@ class input_adapter:
 
     def _transform_values(self):
         """ Calculate columns that are transformations of the supplied inputs """
-        ### TO DO: MAKE IT SO YOU DON'T NEED TO INPUT THE % of Aligned Reads, this can be calculated as a combination of the 
-        ### Total sequencing depth, % Trimmed, and # Aligned
         self.input_df["% Uniquely Aligned Reads"] = (
         (self.input_df["# Uniquely Aligned Reads"]) / (self.input_df["Sequencing Depth"] * self.input_df["% of Reads After Trimming"])) * 10000
         
     def adapt_input(self):
         self._validate_column_names()
         self._fill_missing_values()
-        print("before transformation",self.input_df)
         self._transform_values()
-        print("after transformation",self.input_df["% Uniquely Aligned Reads"])
         self._change_column_names()
-        print("after name transformation",self.input_df.columns)
         self._reorder_columns()       
-        print("after reorder",self.input_df.columns)
 
 class manual_cutoff_adapter:
 
+    """
+    This object is designed to handle the manual cutoff file provided by the user, shape it into the correct format, and return 
+    meaningful warnings and errors to avoid downstream confusion
+    
+    Input: The loaded pd of the manual cutoff adapter
+    Output:The standardized file expected by the rest of the program, or an error
+    """
+
     def __init__(self,man_cutoff_df):
         self.man_cutoff_df = man_cutoff_df
-        print("the mancutoffdf looks like this",self.man_cutoff_df)
         self.human_readable_names = [
             "Cutoff",
             "Sequencing Depth",
@@ -144,8 +145,8 @@ class manual_cutoff_adapter:
             "_violin_cutoff_adapter_untrimmed",
             "_violin_cutoff_overrep_trimmed",
             "_violin_cutoff_adapter_trimmed",
-            "GeneBody_Coverage",
-            "Dist_of_gene_expression"]
+            "Dist_of_gene_expression",
+            "GeneBody_Coverage"]
 
         self.mapping_names = dict(zip(self.human_readable_names,self.input_program_names))
 
@@ -154,7 +155,6 @@ class manual_cutoff_adapter:
         input_columns = set(self.man_cutoff_df.columns)
         valid_columns = set(self.human_readable_names)
         
-        print("the input columns were",input_columns) 
         unrecognized_columns = input_columns.difference(valid_columns)
         if unrecognized_columns:
             raise ValueError(f"Unrecognized columns: {', '.join(unrecognized_columns)}")    
