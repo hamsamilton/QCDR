@@ -5,10 +5,8 @@ import os
 import math as math
 import argparse
 matplotlib.use('PDF')
-import seaborn
 import pickle
 import matplotlib.pyplot as plt
-import sqlite3
 import sys
 import json
 import seaborn as sns
@@ -16,23 +14,18 @@ import time
 import shutil
 import glob
 import csv
-import sqlalchemy as sq
 import subprocess
 import numpy as np
 import pandas as pd
-import xlsxwriter
 from helper_retroFunctions import *
 from Sam_PyUtils import *
 from sklearn.linear_model import LinearRegression
-from itertools import zip_longest
 from scipy.stats import norm
 from scipy import stats
 from sklearn.preprocessing import LabelEncoder
 from matplotlib.backends.backend_pdf import PdfPages
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.offsetbox
-from datetime import datetime
-# from pandas.plotting import register_matplotlib_converters
 from statsmodels.stats.weightstats import ztest
 
 '''RetroPlotter caller function for reading data and passing it to individual plotters. Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions'''
@@ -45,7 +38,6 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     input_adaptr=input_adapter(_user_df)   
     input_adaptr.adapt_input()
     _user_df = input_adaptr.input_df
-    print("this is the user_df",_user_df)
     # Add last row in the USER df with current batch's mean values for the final summary page
     _batch_summary_df = ["Batch_Mean",
                          _user_df.Input_Size.mean(),
@@ -133,11 +125,11 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     
     # Read Gene Coverage Data
     if _gc_file is not None:
-        _gc_df = pd.read_csv(_gc_file)
+        _gc_df = pd.read_csv(_gc_file).iloc[:,1:]
         
         # Adding the Library Mean column at the end of the GC dataframe
         _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
-        
+        print(_gc_df)    
         gc_KSvals = GC_KSstats(_gc_df)
         
         # Calculate pvalues for plotting by the summary heatmap
