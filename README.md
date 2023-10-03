@@ -1,5 +1,5 @@
 # Quality Control software for Diagnosing RNA-seq (QC DR)
-![QCDR](QCDR.png)
+![QCDR](QCDR_logo.png)
 
 This is a software package designed to facilitate RNA-seq Quality Control analysis by creating visualizations and performing for key QC metrics. 
 
