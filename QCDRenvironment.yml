@@ -1,0 +1,4 @@
+name: QCDRenv
+channels:
+  - defaults
+prefix: /home/sdh463/.conda/envs/QCDRenv

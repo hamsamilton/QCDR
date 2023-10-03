@@ -6,7 +6,6 @@ import argparse
 matplotlib.use('PDF')
 import seaborn
 import matplotlib.pyplot as plt
-import sqlite3
 import sys
 import json
 import seaborn as sns
@@ -14,11 +13,9 @@ import time
 import shutil
 import glob
 import csv
-import sqlalchemy as sq
 import subprocess
 import numpy as np
 import pandas as pd
-import xlsxwriter
 from sklearn.linear_model import LinearRegression
 from itertools import zip_longest
 from scipy.stats import norm
@@ -32,53 +29,28 @@ from datetime import datetime
 from statsmodels.stats.weightstats import ztest
 import matplotlib.patches as mpatches
 from Sam_PyUtils import *
-
-class input_adapter:
+import bootstrapped.bootstrap as bs
+import bootstrapped.stats_functions as bs_stats
+import bootstrapped.compare_functions as bs_compare
+class UI_adapter:
     """
-    This object is designed to handle the input provided by the user, shape it into the correct format, and return 
+    The parent class designed to handle the inputs provided by the user, shape it into the correct format, and return 
     meaningful warnings and errors to avoid downstream confusion
-    
-    Input: The loaded pd of the input file
-    Output:The standardized file expected by the rest of the program, or an error
     """
+    
+    def __init__(self,input_df):
+        self.input_df = input_df
 
-    def __init__(self,_input_df):
-        self.input_df = _input_df
-        self.human_readable_names = [
-            "Sample",
-            "Sequencing Depth",
-            "% of Reads After Trimming",
-            "# Uniquely Aligned Reads",
-            "% Uniquely Aligned Reads",
-            "% Exonic Reads / Aligned Reads",
-            "# rRNA Reads",
-            "% Overrepresented Sequences (Pre-trim)",
-            "% Adapter Content (Pre-trim)",
-            "% Overrepresented Sequences (Post-trim)",
-            "% Adapter Content (Post-trim)",
-            "Project",
-            "Batch"]
-        self.input_program_names = [
-            "Sample",
-            "Input_Size",
-            "Percent_PostTrim",
-            "Num_Uniquely_Aligned",
-            "Percent_Uniquely_Aligned",
-            "Percen_Exonic",
-            "Num_Uniquely_Aligned_rRNA",
-            "Percent_Overrepresented_Seq_Untrimmed",
-            "Percent_Adapter_Content_Untrimmed",
-            "Percent_Overrepresented_Seq_Trimmed",
-            "Percent_Adapter_Content_Trimmed",
-            "Project",
-            "Batch"]
-        self.mapping_names = dict(zip(self.human_readable_names,self.input_program_names))
+    human_readable_names = [] # implemented by subclass
+    input_program_names  = [] # implemented by subclass
 
+    def make_mapping_names(self):       
+            self.mapping_names = dict(zip(self.human_readable_names,self.input_program_names))
+    # store the library of methods that different subclasses use depending on their situation.   
     def _validate_column_names(self):
         """Check if the column names of the input DataFrame are included in the input_human_readable_names list"""
         input_columns = set(self.input_df.columns)
         valid_columns = set(self.human_readable_names)
-        print("the input columns were",input_columns) 
         unrecognized_columns = input_columns.difference(valid_columns)
  
         if unrecognized_columns:
@@ -87,28 +59,76 @@ class input_adapter:
     def _fill_missing_values(self):
         """ Fill empty columns if they are missing."""
         self.input_df.fillna(0, inplace = True)
-        
+
     def _reorder_columns(self):
         """ Reorder columns to fit the format expected by the rest of the program"""
+        missing_columns = [col for col in self.input_program_names if col not in self.input_df.columns]
+        if missing_columns:
+            raise KeyError(f"The following columns are missing from the DataFrame: {missing_columns}")
         self.input_df = self.input_df[self.input_program_names]
 
     def _change_column_names(self):
         """ Change the user friendly column names to those expected by the internal program"""
+        print(self.mapping_names)
+        print(self.input_df.columns)
         self.input_df.rename(columns=self.mapping_names, inplace=True)
-
+        print(self.input_df.columns)
     def _transform_values(self):
         """ Calculate columns that are transformations of the supplied inputs """
         self.input_df["% Uniquely Aligned Reads"] = (
         (self.input_df["# Uniquely Aligned Reads"]) / (self.input_df["Sequencing Depth"] * self.input_df["% of Reads After Trimming"])) * 10000
-        
+
+    def adapt_input(self): 
+        # specific methods required by each subclass to be implemented by subclass
+        pass
+
+class input_adapter(UI_adapter):
+    """
+    This object is designed to handle the input provided by the user, shape it into the correct format, and return 
+    meaningful warnings and errors to avoid downstream confusion
+    
+    Input: The loaded pd of the input file
+    Output:The standardized file expected by the rest of the program, or an error
+    """
+
+    human_readable_names = [
+        "Sample",
+        "Sequencing Depth",
+        "% of Reads After Trimming",
+        "# Uniquely Aligned Reads",
+        "% Uniquely Aligned Reads",
+        "% Exonic Reads / Aligned Reads",
+        "# rRNA Reads",
+        "% Overrepresented Sequences (Pre-trim)",
+        "% Adapter Content (Pre-trim)",
+        "% Overrepresented Sequences (Post-trim)",
+        "% Adapter Content (Post-trim)",
+        "Project",
+        "Batch"]
+    input_program_names = [
+        "Sample",
+        "Input_Size",
+        "Percent_PostTrim",
+        "Num_Uniquely_Aligned",
+        "Percent_Uniquely_Aligned",
+        "Percent_Exonic",
+        "Num_Uniquely_Aligned_rRNA",
+        "Percent_Overrepresented_Seq_Untrimmed",
+        "Percent_Adapter_Content_Untrimmed",
+        "Percent_Overrepresented_Seq_Trimmed",
+        "Percent_Adapter_Content_Trimmed",
+        "Project",
+        "Batch"]
+
     def adapt_input(self):
+        self.make_mapping_names()
         self._validate_column_names()
         self._fill_missing_values()
         self._transform_values()
         self._change_column_names()
         self._reorder_columns()       
 
-class manual_cutoff_adapter:
+class manual_cutoff_adapter(UI_adapter):
 
     """
     This object is designed to handle the manual cutoff file provided by the user, shape it into the correct format, and return 
@@ -118,67 +138,46 @@ class manual_cutoff_adapter:
     Output:The standardized file expected by the rest of the program, or an error
     """
 
-    def __init__(self,man_cutoff_df):
-        self.man_cutoff_df = man_cutoff_df
-        self.human_readable_names = [
-            "Cutoff",
-            "Sequencing Depth",
-            "% of Reads After Trimming",
-            "% Uniquely Aligned Reads / Trimmed Reads",
-            "% Mapped Reads / Aligned Reads",
-            "rRNA Reads / Aligned Reads",
-            "% Overrep Sequences (Pre-Trim)",
-            "% Adapter Content (Pre-Trim)",
-            "% Overrep Sequences (Post-Trim)",
-            "% Adapter Content (Post-Trim)",
-            "# Detected Genes",
-            "Gene Body Coverage (Pval)"]
+    human_readable_names = [
+        "Cutoff",
+        "Sequencing Depth",
+        "% of Reads After Trimming",
+        "% Uniquely Aligned Reads / Trimmed Reads",
+        "% Mapped Reads / Aligned Reads",
+        "rRNA Reads / Aligned Reads",
+        "% Overrep Sequences (Pre-Trim)",
+        "% Adapter Content (Pre-Trim)",
+        "% Overrep Sequences (Post-Trim)",
+        "% Adapter Content (Post-Trim)",
+        "# Detected Genes",
+        "Gene Body Coverage (Pval)"]
 
-        self.input_program_names = [
-            "cutoff",
-            "_ipReads_cutoff",
-            "_trimmedReads_cutoff",
-            "_uniqAligned_cutoff",
-            "_exonMapping_cutoff",
-            "_riboScatter_cutoff",
-            "_violin_cutoff_overrep_untrimmed",
-            "_violin_cutoff_adapter_untrimmed",
-            "_violin_cutoff_overrep_trimmed",
-            "_violin_cutoff_adapter_trimmed",
-            "Dist_of_gene_expression",
-            "GeneBody_Coverage"]
-
-        self.mapping_names = dict(zip(self.human_readable_names,self.input_program_names))
-
-    def _validate_column_names(self):
-        """Check if the column names of the input DataFrame are included in the input_human_readable_names list"""
-        input_columns = set(self.man_cutoff_df.columns)
-        valid_columns = set(self.human_readable_names)
-        
-        unrecognized_columns = input_columns.difference(valid_columns)
-        if unrecognized_columns:
-            raise ValueError(f"Unrecognized columns: {', '.join(unrecognized_columns)}")    
-    
-    def _change_column_names(self):
-        """ Change the user friendly column names to those expected by the internal program"""
-        self.man_cutoff_df.rename(columns=self.mapping_names, inplace=True)
-
-    def _reorder_columns(self):
-        """ If arguments are supplied in an incorrect order, reorder columns as needed """
-        self.man_cutoff_df = self.man_cutoff_df[self.input_program_names]
+    input_program_names = [
+        "cutoff",
+        "_ipReads_cutoff",
+        "_trimmedReads_cutoff",
+        "_uniqAligned_cutoff",
+        "_exonMapping_cutoff",
+        "_riboScatter_cutoff",
+        "_violin_cutoff_overrep_untrimmed",
+        "_violin_cutoff_adapter_untrimmed",
+        "_violin_cutoff_overrep_trimmed",
+        "_violin_cutoff_adapter_trimmed",
+        "Dist_of_gene_expression",
+        "GeneBody_Coverage"]
 
     def _transpose_df(self):
         """transposes the df with additional operations to get the right columns names"""
-        self.man_cutoff_df = self.man_cutoff_df.transpose()
-        self.man_cutoff_df.columns = self.man_cutoff_df.iloc[0]
-        self.man_cutoff_df = self.man_cutoff_df.drop(self.man_cutoff_df.index[0])
+        self.input_df = self.input_df.transpose()
+        self.input_df.columns = self.input_df.iloc[0]
+        self.input_df = self.input_df.drop(self.input_df.index[0])
  
     def adapt_input(self):
+        self.make_mapping_names()
         self._validate_column_names()
         self._change_column_names()
         self._reorder_columns()    
         self._transpose_df()   
-        print("the adapted manual cutoffs look like this", self.man_cutoff_df)
 
 def add_warn_fail_markers(_figinfo,ax,cutoff_key):
 
@@ -347,16 +346,26 @@ class CutoffCalculator:
         
         return self.cutoffs_dict
 
-    def calculate_cutoff(self, column, upper_lower, cutoff_name):
-        vec = self.bgd_df.loc[:, column]
-        cutoff = get_ci_bound(vec, self.onesided_alph, upper_lower)
-        self.cutoffs_dict[cutoff_name] = cutoff
-
     def calculate_cutoff_ratio(self, column1, column2, upper_lower, cutoff_name):
-        vec = self.bgd_df.loc[:, column1] / self.bgd_df.loc[:, column2]
-        cutoff = get_ci_bound(vec, self.onesided_alph, upper_lower)
-        print("Rrna cutoff value was",cutoff)
-        self.cutoffs_dict[cutoff_name] = cutoff
+        vec = np.array(self.bgd_df.loc[:, column1] / self.bgd_df.loc[:, column2])
+        bootstrap_mean = bs.bootstrap(vec, stat_func=bs_stats.mean).value
+        bootstrap_std  = bs.bootstrap(vec, stat_func=bs_stats.std).value
+        conf_size = norm.ppf(self.onesided_alph) * bootstrap_std
+        if upper_lower == "upper":
+            self.cutoffs_dict[cutoff_name] = bootstrap_mean - conf_size
+        if upper_lower == "lower":
+            self.cutoffs_dict[cutoff_name] = bootstrap_mean + conf_size
+
+    def calculate_cutoff(self,column,upper_lower,cutoff_name):
+        vec = np.array(self.bgd_df.loc[:, column])
+        bootstrap_mean = bs.bootstrap(vec, stat_func=bs_stats.mean).value
+        bootstrap_std  = bs.bootstrap(vec, stat_func=bs_stats.std).value
+        conf_size = norm.ppf(self.onesided_alph) * bootstrap_std
+        if upper_lower == "upper":
+            self.cutoffs_dict[cutoff_name] = bootstrap_mean - conf_size
+        if upper_lower == "lower":
+            self.cutoffs_dict[cutoff_name] = bootstrap_mean + conf_size
+
 
 def gen_cutoffs(bgd_df, alph):
     calculator = CutoffCalculator(bgd_df, alph)
@@ -365,25 +374,20 @@ def gen_cutoffs(bgd_df, alph):
 def fmt_number(number, pos=None):
     if number == 0:
         return '0M'
-
     else:
         magnitude = 0
         while abs(number) >= 1000:
             magnitude += 1
             number /= 1000.0
         return '%.0f%s' % (number, ['', 'K', 'M', 'B', 'T', 'Q'][magnitude])
-
-
 def fmt_scatter_million(_x, _pos):
     return '%1.1f' % (_x * 1e-6)
-
 
 def fmt_interval(_x, _pos):
     return '0:.0s%'.format(_x)
 
 def fmt_million(_x, _pos):
     return '{0:.0f}'.format(_x)
-
 
 def fmt_contaminant(_c, _pos):
     return '{0:.2f}%'.format(_c)
@@ -634,9 +638,6 @@ def mkQC_heatmap(heatmap_data):
 
 def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
 
-    if not _f is None:
-        plt.gcf()
-                                                             
     _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _pos)
  
     _bins = make_bins(_background_df.loc[:,"Input_Size"],_userDf.loc[:,"Input_Size"],_figinfo["_bin_num"])
@@ -690,9 +691,6 @@ def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
 # Plot 2 : Trimming Percentage
 def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_figinfo,_figure=None):
   
-    if not _figure is None:
-        plt.gcf()
-                                                                         
     _axis = _figure.add_subplot(_figinfo["_subplot_rows"],2, _position)    
 
     _xmin,_xmax = _retro_df.loc[:,"Percent_PostTrim"].agg(["min","max"])
@@ -760,15 +758,11 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
     _current_sample = _ip_tuple.Percent_Uniquely_Aligned
     _lib_mean = _user_minusBatchMean_df[_colname].mean()
 
-    if not _figure is None:
-        plt.gcf()
-
     _axis_plt3 = _figure.add_subplot(_figinfo["_subplot_rows"], 2, _position)
 
     _axis_plt3.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
     _axis1_plt3 = _axis_plt3.twinx()
-    #_retro_df.plot(y=_colname, kind='kde', legend=False, ax=_axis1_plt3, color='dimgray', mark_right=True, lw=0.7, alpha=0.8)
     sns.distplot(_retro_df[_colname], hist=False, bins=_bins, ax=_axis1_plt3, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
 
@@ -819,9 +813,7 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
 
     _current_sample = _ip_tuple.Percent_Exonic
     _lib_mean = _user_minusBatchMean_df[_colname].mean()
-
-    if not _figure is None:
-        plt.gcf()
+    
     _axis_plt4 = _figure.add_subplot(_figinfo["_subplot_rows"], 2, _position)
 
     _axis_plt4.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
@@ -871,8 +863,6 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
 
     # Assign separate color for current sample on each page
     _plotter_df.loc[_plotter_df["Sample"] == _in_tup[1], "scatter_color"] = _figinfo["_curr_sample_color"]
-    if not _f is None:
-        plt.gcf()
 
     _ax = plt.subplot(_figinfo["_subplot_rows"], 2, _pos)
 
@@ -990,10 +980,6 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     # Define color palette
     _contaminant_pal = {"Overrepresented": "lightgray", "Adapter": "gray"}
 
-    if not _f is None: # i think this is a useful piece of code but i'm not sure it belongs in each individual figure call
-        plt.gcf() # I think it should just load the figure at the beginning. I honestly don't know however as I'm not the most fluent in
-                        # matplotlib style and syntax
-
     _gridsp = matplotlib.gridspec.GridSpec(_figinfo["_subplot_rows"]*2, 2, figure=_f)
     
     _axis = _f.add_subplot(_gridsp[4, 1:])
@@ -1105,10 +1091,6 @@ def GC_KSstats(_coverage_df):
 #  GeneBody Coverage Plot
 def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     
-    # initialize list to store pvals so if returnP is true it can be returned in itself
-    if not _fig is None:
-        plt.gcf()
-
     _axis = _fig.add_subplot(_figinfo["_subplot_rows"], 2, _position)
 
     # Calculate mean GeneBody Coverage for the entire library
@@ -1169,7 +1151,6 @@ def calcHistPval(_hist_df):
     
     return(_pvals)
 
-    # code for calculating Z value of number of expressed genes. In need of some improvement.
 # Plot 8 : Gene Expression Distribution Plot 
 def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
     _index_array = _hist_df.iloc[:, 0]
@@ -1204,9 +1185,6 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
     _zscore = stats.zscore(_sum_df)
     _pvals  = stats.norm.sf(abs(_zscore))
     _curr_pval = _pvals[_curr_ndx]
-
-    if not _f is None:
-        plt.gcf()
 
     _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _pos)
 

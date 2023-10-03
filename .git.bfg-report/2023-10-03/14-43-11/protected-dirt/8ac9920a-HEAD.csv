@@ -1,0 +1,7 @@
+e836eb34644e7ed7c32959247033dfd2a65a01ac,DELETE,regular-file,data/SCRIPT/SCRIPT_B11_GC_info.csv,35800,
+c3b6d2ecdc509862ec3cfad96796558276828178,DELETE,executable,data/SCRIPT/SCRIPT_B11histdata.5.csv,3326,
+9989487b7a59831416f83e12549bcca223fb72fb,DELETE,regular-file,data/SCRIPT/SCRIPT_B11stats.csv,2716,
+e87beb6ccff476f45974e5deffd4ae3bc05e622b,DELETE,regular-file,data/SCRIPT/SCRIPT_CountTable.xlsx,58825984,
+acfc43878fbc69ddf23870d72569b6021bafe447,DELETE,regular-file,data/SCRIPT/SCRIPT_GC_info.csv,389298,
+965237e29919c719caae258d053a5af476d3cc56,DELETE,regular-file,data/SCRIPT/SCRIPT_stats_allbatches.csv,27020,
+7d845058fbc694a311703995800540970137ea9d,DELETE,regular-file,data/SCRIPT/manual_cutoff_table.xslx,9154,
