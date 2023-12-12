@@ -333,6 +333,7 @@ class CutoffCalculator:
         self.onesided_alph = 2*alph
         self.cutoffs_dict = {}
         self.cutoffs_dict["_alpha"] = alph
+
     def __call__(self):
         self.calculate_cutoff("Input_Size", "lower", "_ipReads_cutoff")
         self.calculate_cutoff("Percent_PostTrim", "lower", "_trimmedReads_cutoff")
@@ -371,35 +372,15 @@ def gen_cutoffs(bgd_df, alph):
     calculator = CutoffCalculator(bgd_df, alph)
     return calculator()
 
-def fmt_number(number, pos=None):
-    if number == 0:
-        return '0M'
-    else:
-        magnitude = 0
-        while abs(number) >= 1000:
-            magnitude += 1
-            number /= 1000.0
-        return '%.0f%s' % (number, ['', 'K', 'M', 'B', 'T', 'Q'][magnitude])
+
 def fmt_scatter_million(_x, _pos):
     return '%1.1f' % (_x * 1e-6)
-
-def fmt_interval(_x, _pos):
-    return '0:.0s%'.format(_x)
 
 def fmt_million(_x, _pos):
     return '{0:.0f}'.format(_x)
 
-def fmt_contaminant(_c, _pos):
-    return '{0:.2f}%'.format(_c)
-
 def fmt(_x, _pos):
     return '{0:.1f}'.format(_x)
-
-def fmt_cov(_x, _pos):
-    return '{0:.2f}'.format(_x)
-
-def byMillion(_lib):
-    return _lib / 1000000
 
 def values_to_percentiles(values):
     """
@@ -490,7 +471,6 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
 def make_bins(vec1,vec2,num_bins):
 
     plt_min,plt_max = pd.concat([vec1,vec2]).agg(['min','max'])
-   
     bins = np.linspace(plt_min,plt_max, num_bins + 1)
     
     return bins
@@ -503,17 +483,18 @@ def mkTitlePage(_figinfo):
     function which contains whether a sample passed, failed, or was warned for each test
     """
     
+    
     def mk_cutoff_descript(descriptor,cutoff_set):
-        print("the cutoff set is",cutoff_set)
-        cutoff_descriptor = (descriptor +': Default alpha =' + str(cutoff_set["_alpha"]) +
-                                '| Sequencing Depth = ' + str(round(cutoff_set["_ipReads_cutoff"],3)) +
-                                '| Trimming = ' + str(round(cutoff_set["_trimmedReads_cutoff"],3)) +  
-                                '| Alignment = ' + str(round(cutoff_set["_uniqAligned_cutoff"],3)) +  
-                                '| Gene Exon Mapping = ' + str(round(cutoff_set["_exonMapping_cutoff"],3)) + 
-                                '\n| Ribosomal RNA = ' + str(round(cutoff_set["_riboScatter_cutoff"],3)) + 
-                                '| Adapter Contamination = ' + str(round(cutoff_set["_violin_cutoff_adapter_trimmed"],3)) + 
-                                '| Overrep. Seq  Contamination = ' + str(round(cutoff_set["_violin_cutoff_overrep_trimmed"],3)) + 
-                                '| Gene Body Coverage = ' + str(cutoff_set["_alpha"]) + 
+        
+        cutoff_descriptor = (descriptor +': Default alpha =' + cutoff_set["_alpha"]  +
+                                '| Sequencing Depth = ' + '{:.3f}'.format(cutoff_set["_ipReads_cutoff"],3)) +
+                                '| Trimming = ' + '{:.3f}'.format(cutoff_set["_trimmedReads_cutoff"],3)) +  
+                                '| Alignment = ' + '{:.3f}'.format(cutoff_set["_uniqAligned_cutoff"],3)) +  
+                                '| Gene Exon Mapping = ' + '{:.3f}'.format(cutoff_set["_exonMapping_cutoff"],3)) + 
+                                '\n| Ribosomal RNA = ' + '{:.3f}'.format(cutoff_set["_riboScatter_cutoff"],3)) + 
+                                '| Adapter Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_adapter_trimmed"],3)) + 
+                                '| Overrep. Seq  Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_overrep_trimmed"],3)) + 
+                                '| Gene Body Coverage = ' + cutoff_set["_alpha"] + 
                                 '| Detected Genes = ' + cutoff_set["_numGene_cutoff"])
         return(cutoff_descriptor)  
 
@@ -572,7 +553,7 @@ def mkQC_heatmap_data(_userDf, _figinfo):
         ("Percent_PostTrim", "_trimmedReads_cutoff", lower_status_strategy),
         ("Percent_Uniquely_Aligned","_uniqAligned_cutoff",lower_status_strategy),
         ("Percent_Exonic","_riboScatter_cutoff",lower_status_strategy),
-        ("Num_Uniquely_Aligned_rRNA","_riboScatter_cutoff",upper_status_strategy), # HOLD UNTIL I FIX THE ISSUES WITH RIBO
+        ("Num_Uniquely_Aligned_rRNA","_riboScatter_cutoff",upper_status_strategy), # HOLD UNTIL I FIX THE ISSUES WITH RIBO Pretty sure this is fixed actually
         ("Percent_Overrepresented_Seq_Trimmed","_violin_cutoff_overrep_trimmed",upper_status_strategy),
         ("Percent_Adapter_Content_Trimmed","_violin_cutoff_adapter_trimmed",upper_status_strategy)]
     if _figinfo["_hist_exists"]:
@@ -636,141 +617,128 @@ def mkQC_heatmap(heatmap_data):
     
     return fig2
 
-def plotHist_ipSize(_in_tuple, _userDf, _background_df, _pos,_figinfo,_f=None):
 
-    _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _pos)
+
+def plotHist_ipSize(_ip_tuple, _userDf, _background_df, _position,_figinfo,_figure=None):
+
+    axis = _figure.add_subplot(_figinfo["_subplot_rows"], 2, _position)
  
-    _bins = make_bins(_background_df.loc[:,"Input_Size"],_userDf.loc[:,"Input_Size"],_figinfo["_bin_num"])
+    _xmin,_xmax = _background_df.loc[:,"Input_Size"].agg(["min","max"])
+    _bins = make_bins(_background_df.loc[:,"Input_Size"],_user_df.loc[:,"Input_Size"],_figinfo["_bin_num"])
     
-    _out, _bins = pd.cut(_background_df['Input_Size'], bins=_bins, retbins=True, right=True, include_lowest=False)
-    _xlabs = [str(xt) for xt in _bins[0::5]]
+    _lib_mean = _user_df.loc[:, 'Input_Size'].mean()
+    _current_sample = _user_df.loc[:,'Input_Size'][_ip_tuple.Index]
 
-    _lib_mean = _userDf.loc[:, 'Input_Size'].mean()
-    _current_sample = _userDf.loc[:,'Input_Size'][_in_tuple.Index]
+    _background_df["Input_Size"].plot(kind='hist', bins=_bins, ax=axis, color='lightgray')
 
-    _background_df["Input_Size"].plot(kind='hist', bins=_bins, ax=_ax, color='lightgray')
+    axis1 = axis.twinx()
+    sns.distplot(_background_df["Input_Size"], hist=False, bins=_bins, ax=axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
+    axis.set_xlim(_xmin,_xmax)
+    axis = set_ticks(axis,_figinfo["_tick_size"])
 
-    _ax1 = _ax.twinx()
-    sns.distplot(_background_df["Input_Size"], hist=False, bins=_bins, ax=_ax1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
+    axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_million))
 
-    _ax = set_ticks(_ax,_figinfo["_tick_size"])
+    axis.set_title("Sequencing Depth",fontsize = _figinfo["_title_size"])
+    axis.set_xlabel('Total Reads (Millions)', labelpad=1, fontsize= _figinfo["_label_size"])
 
-    _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_million))
+    axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    axis.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
 
-    _ax.set_title("Sequencing Depth",fontsize = _figinfo["_title_size"])
-    _ax.set_xlabel('Total Reads (Millions)', labelpad=1, fontsize= _figinfo["_label_size"])
-
-    _ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _ax.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
-
-    _ax = adjust_flag(_ax,_current_sample,_lib_mean)
+    axis = adjust_flag(axis,_current_sample,_lib_mean)
 
     ### Adding cutoff markers
-    _ax = add_warn_fail_markers(_figinfo,_ax,"_ipReads_cutoff")
+    axis = add_warn_fail_markers(_figinfo,axis,"_ipReads_cutoff")
 
     # Current Sample Line and Label
-    _line1 = _ax.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
+    _line1 = axis.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
                          label='{:2.2f}M'.format(_current_sample))
 
     # Current Library Mean Line and Label
-    _line2 = _ax.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
+    _line2 = axis.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
                          label='{:2.2f}M'.format(_lib_mean))
 
     _kde_line = matplotlib.lines.Line2D([0], [0], color="gray", linewidth=0.5, linestyle='-')
 
     # set up axes
-    _ax = legend_setup_1_6(_ax,_line1,_line2,_figinfo,"_ipReads_cutoff","upper left")
+    axis = legend_setup_1_6(axis,_line1,_line2,_figinfo,"_ipReads_cutoff","upper left")
 
     #set axes to be visible or not
-    _ax,_ax1 =  mk_axes(_ax,_ax1)
-    _ax = needs_fail_or_warn(_ax,_current_sample,_figinfo,"_ipReads_cutoff","lower")
+    axis,axis1 =  mk_axes(axis,axis1)
+    axis = needs_fail_or_warn(axis,_current_sample,_figinfo,"_ipReads_cutoff","lower")
 
-    return _f
+    return _figure
 
 
 # Plot 2 : Trimming Percentage
-def plotHist_trimming(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_figinfo,_figure=None):
+def plotHist_trimming(_ip_tuple, _user_df, _background_df, _colname, _position,_figinfo,_figure=None):
   
-    _axis = _figure.add_subplot(_figinfo["_subplot_rows"],2, _position)    
+    axis = _figure.add_subplot(_figinfo["_subplot_rows"],2, _position)    
 
-    _xmin,_xmax = _retro_df.loc[:,"Percent_PostTrim"].agg(["min","max"])
+    _xmin,_xmax = _background_df.loc[:,_colname].agg(["min","max"])
 
-    _bins = make_bins(_retro_df.loc[:,"Percent_PostTrim"],_user_df.loc[:,"Percent_PostTrim"],_figinfo["_bin_num"])
+    _bins = make_bins(_background_df.loc[:,_colname],_user_df.loc[:,_colname],_figinfo["_bin_num"])
 
-    _out, _bins = pd.cut(_retro_df[_colname], bins=_bins, retbins=True, right=True, include_lowest=True)
-    
-    _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
-    _xtick_labs = [str(xt) for xt in _bins[0::5]]
-
-
-    _current_sample = _ip_tuple.Percent_PostTrim
+    _current_sample = _user_df.loc[:,_colname][_ip_tuple.Index]
     _lib_mean = _user_df[_colname].mean()
 
-    _axis.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
+    axis.hist(x=_background_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
-    _axis1 = _axis.twinx()
-    sns.distplot(_retro_df["Percent_PostTrim"], hist=False, bins=_bins, ax=_axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
+    axis1 = axis.twinx()
+    sns.distplot(_background_df[_colname], hist=False, bins=_bins, ax=axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
     
-    _axis.set_xlim(_xmin, _xmax)
-    _axis = set_ticks(_axis,_figinfo["_tick_size"])
-    _axis.set_title(_plot_label, fontsize= _figinfo["_title_size"])
+    axis.set_xlim(_xmin, _xmax)
+    axis = set_ticks(axis,_figinfo["_tick_size"])
+    axis.set_title("Trimming", fontsize= _figinfo["_title_size"])
 
-    _axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _axis.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
-    _axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize= _figinfo["_label_size"])
+    axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    axis.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
+    axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize= _figinfo["_label_size"])
 
     ### Adding cutoff markers
-    _axis = add_warn_fail_markers(_figinfo,_axis,"_trimmedReads_cutoff")
+    axis = add_warn_fail_markers(_figinfo,axis,"_trimmedReads_cutoff")
     
-    _axis = adjust_flag(_axis,_current_sample,_lib_mean)
+    axis = adjust_flag(axis,_current_sample,_lib_mean)
 
     # Current Sample Line and Label
-    _line1 = _axis.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
+    _line1 = axis.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
                            label='{:2.2f}%'.format(_current_sample))
 
     # Current Library Mean Line and Label
-    _line2 = _axis.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
+    _line2 = axis.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
                            label='{:2.2f}%'.format(_lib_mean))
 
     ## Superimpose the Kernel Density Estimate line over the distribution
     _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
 
-    _axis = legend_setup_1_6(_axis,_line1,_line2,_figinfo,"_trimmedReads_cutoff","upper left")
+    axis = legend_setup_1_6(axis,_line1,_line2,_figinfo,"_trimmedReads_cutoff","upper left")
 
-    _axis,_axis1 =  mk_axes(_axis,_axis1)
-    _axis = needs_fail_or_warn(_axis,_current_sample,_figinfo,"_trimmedReads_cutoff","lower")
+    axis,axis1 =  mk_axes(axis,axis1)
+    axis = needs_fail_or_warn(axis,_current_sample,_figinfo,"_trimmedReads_cutoff","lower")
 
     return _figure
 
 
 #### Plot 3: Alignment Percentage ####
-def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_figinfo,_figure=None):
+def plotHist_alignment(_ip_tuple, _user_df, _background_df, _colname, _plot_label,_figinfo,_figure=None):
    
-    bin_data = np.arange(0, 100 + 1,101 / _figinfo["_bin_num"] )
-    _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
-   
-    _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
+    _bins = np.arange(0, 100 + 1,101 / _figinfo["_bin_num"] )
 
-    _xtick_labs = [str(xt) for xt in _bins[0::5]]
+    _current_sample = _user_df.loc[:,_colname][_ip_tuple.Index]
 
-    _user_minusBatchMean_df = _user_df.drop(_user_df.tail(1).index)
-
-    _current_sample = _ip_tuple.Percent_Uniquely_Aligned
-    _lib_mean = _user_minusBatchMean_df[_colname].mean()
-
+    _lib_mean = _user_df[_colname].mean()
     _axis_plt3 = _figure.add_subplot(_figinfo["_subplot_rows"], 2, _position)
 
-    _axis_plt3.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
+    _axis_plt3.hist(x=_background_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
     _axis1_plt3 = _axis_plt3.twinx()
-    sns.distplot(_retro_df[_colname], hist=False, bins=_bins, ax=_axis1_plt3, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
+    sns.distplot(_background_df[_colname], hist=False, bins=_bins, ax=_axis1_plt3, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
 
     _axis_plt3.set_xlim(0, 105)
 
     _axis_plt3 = set_ticks(_axis_plt3,_figinfo["_tick_size"])
 
-    _axis_plt3.set_title(_plot_label, fontsize=_figinfo["_title_size"])
+    _axis_plt3.set_title("Alignment", fontsize=_figinfo["_title_size"])
 
     # Set labels
     _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize= _figinfo["_label_size"])
@@ -800,14 +768,9 @@ def plotHist_alignment(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _p
 
 
 #### Plot 4: Gene Exon Mapping ####
-def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, _position,_figinfo,_figure=None):
+def plotHist_exonMapping(_ip_tuple, _user_df, _background_df, _colname,_position,_figinfo,_figure=None):
     
-    bin_data = np.arange(0, 100 + 1, 101/_figinfo["_bin_num"])
-
-    _out, _bins = pd.cut(_retro_df[_colname], bins=bin_data, retbins=True, right=True, include_lowest=True)
-    _xtick_labels = pd.Series(_out.value_counts(sort=True).index.categories)
-
-    _xtick_labs = [str(xt) for xt in _bins[0::5]]
+    _bins = np.arange(0, 100 + 1, 101/_figinfo["_bin_num"])
 
     _user_minusBatchMean_df = _user_df.drop(_user_df.tail(1).index)
 
@@ -816,17 +779,16 @@ def plotHist_exonMapping(_ip_tuple, _user_df, _retro_df, _colname, _plot_label, 
     
     _axis_plt4 = _figure.add_subplot(_figinfo["_subplot_rows"], 2, _position)
 
-    _axis_plt4.hist(x=_retro_df[_colname], bins=_bins, histtype='bar', color='lightgray')
+    _axis_plt4.hist(x=_background_df[_colname], bins=_bins, histtype='bar', color='lightgray')
 
     _axis1_plt4 = _axis_plt4.twinx()
-    #_retro_df.plot(y=_colname, kind='kde', legend=False, ax=_axis1_plt4, color='dimgray', mark_right=True, lw=0.7, alpha=0.8)
-    sns.distplot(_retro_df[_colname], hist=False, bins=_bins, ax=_axis1_plt4, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
+    sns.distplot(_background_df[_colname], hist=False, bins=_bins, ax=_axis1_plt4, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
 
 
     _axis_plt4.set_xlim(0, 105)
 
     _axis_plt4 = set_ticks(_axis_plt4,_figinfo["_tick_size"])
-    _axis_plt4.set_title(_plot_label, fontsize=_figinfo["_title_size"])
+    _axis_plt4.set_title("Exon Mapping", fontsize=_figinfo["_title_size"])
 
     _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=_figinfo["_label_size"])
     _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
@@ -1058,7 +1020,9 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     _line_mean_adapter_trim = _axis2.axvline(x=_mean_adapter_trim, ymin=0.05, ymax=0.45, alpha=0.8, color='indigo',
                                              linestyle='--', linewidth=0.35, label='{:.2f}%'.format(_mean_adapter_trim))
 
-    _axis.legend([_line_overrep_trim, _line_mean_overrep_trim], ["Current Sample", "Batch Mean"], loc='upper right',
+    _axis.le
+
+gend([_line_overrep_trim, _line_mean_overrep_trim], ["Current Sample", "Batch Mean"], loc='upper right',
                  frameon=False, ncol=1, fontsize=_figinfo["_legend_size"])
 
     plt.subplots_adjust(hspace=0)
