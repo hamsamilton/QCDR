@@ -50,8 +50,8 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                          _user_df.Percent_Adapter_Content_Untrimmed.mean(),
                          _user_df.Percent_Overrepresented_Seq_Trimmed.mean(),
                          _user_df.Percent_Adapter_Content_Trimmed.mean(),
-                         _user_df.iloc[0, 11],
-                         _user_df.iloc[0, 12]]
+                         _user_df.Project[0]
+                         _user_df.Batch[0]
 
     ## Add Batch mean as the last row of the USER dataframe
     _user_df.loc[len(_user_df)] = _batch_summary_df
@@ -62,17 +62,10 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     input_adaptr=input_adapter(_bgd_df)   
     input_adaptr.adapt_input()
     _bgd_df = input_adaptr.input_df
-    print("this is the bgd_df",_bgd_df)
-
-
-    # Convert Input_Size to per Million (/1000000) for ease of plotting first panel
-    _bgd_df.loc[:, 'Input_Size'] =  _bgd_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
-    _user_df.loc[:, 'Input_Size'] = _user_df.loc[:, 'Input_Size'].apply(lambda j: (j / 1000000))
 
     # Make standard cutoffs for warn/fail
     _fail_cutoffs = gen_cutoffs(bgd_df = _bgd_df,alph = _fail_alpha)
     _warn_cutoffs = gen_cutoffs(bgd_df = _bgd_df,alph = _warn_alpha)
-    print("fail cutoffs are",_fail_cutoffs) 
 
     # add an additional row if the gc or hist data was addeda
     if _gc_file is None and _hist_file is None:
@@ -129,15 +122,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         
         # Adding the Library Mean column at the end of the GC dataframe
         _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
-        print(_gc_df)    
         gc_KSvals = GC_KSstats(_gc_df)
         
-        # Calculate pvalues for plotting by the summary heatmap
-        _gc_vals = stats.norm.sf(stats.zscore(gc_KSvals))
+        # Convert GC into KS vals and calculate the distribution to get a pvalue
+        _figinfo["_gbc_pvals"] = stats.norm.sf(stats.zscore(GC_KSstats(_gc_df)))
+        _user_df["_gbc_pvals"]  = stats.norm.sf(stats.zscore(GC_KSstats(_gc_df)))
 
-        # Convert the distribution of stuff
-        _figinfo["_gbc_pvals"] = _gc_vals
-        _user_df["_gbc_pvals"]  = _gc_vals
         _figinfo["_gbc_exists"] = True
     else:
         _figinfo["_gbc_exists"] = False
@@ -165,6 +155,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = "None"
         _figinfo["_hist_pvals"]  = None 
         _figinfo["_hist_exists"] = False
+
     ###### Begin Plotting process ######
 
     # Open the given PDF output file
@@ -181,6 +172,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _summary_heatmap_data["Sample"] = _user_df.Sample
     my_range = list(range(0,len(_user_df),20))
     my_range.append(len(_user_df))
+
     for i in range(0,len(my_range)-1):
         new_rng = list(range(my_range[i],my_range[i+1]))
         _sub_df = _summary_heatmap_data.iloc[new_rng]
@@ -198,14 +190,14 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1,_figinfo,fig)
 
         # Plotting figure 2: Percentage of Reads after Trimming
-        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", "Trimming", 2,_figinfo,fig)
+        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", 2,_figinfo,fig)
 
         # Plotting figure 3: Percentage of Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned", "Alignment", 3,
+        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned",3,
                                                        _figinfo,fig)
 
         # Plotting figure 4: Percentage of Reads Mapped to Exons
-        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", "Exon Mapping", 4,
+        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", 4,
                                                          _figinfo, fig)
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
