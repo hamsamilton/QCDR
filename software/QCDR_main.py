@@ -50,8 +50,8 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                          _user_df.Percent_Adapter_Content_Untrimmed.mean(),
                          _user_df.Percent_Overrepresented_Seq_Trimmed.mean(),
                          _user_df.Percent_Adapter_Content_Trimmed.mean(),
-                         _user_df.Project[0]
-                         _user_df.Batch[0]
+                         _user_df.Project[0],
+                         _user_df.Batch[0]]
 
     ## Add Batch mean as the last row of the USER dataframe
     _user_df.loc[len(_user_df)] = _batch_summary_df

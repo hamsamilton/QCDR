@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py", line 12, in <module>
+    import seaborn as sns
+ModuleNotFoundError: No module named 'seaborn'

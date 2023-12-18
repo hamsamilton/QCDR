@@ -46,11 +46,13 @@ class UI_adapter:
 
     def make_mapping_names(self):       
             self.mapping_names = dict(zip(self.human_readable_names,self.input_program_names))
-    # store the library of methods that different subclasses use depending on their situation.   
+    
     def _validate_column_names(self):
         """Check if the column names of the input DataFrame are included in the input_human_readable_names list"""
         input_columns = set(self.input_df.columns)
+        print(input_columns)
         valid_columns = set(self.human_readable_names)
+        print(valid_columns)
         unrecognized_columns = input_columns.difference(valid_columns)
  
         if unrecognized_columns:
@@ -486,16 +488,16 @@ def mkTitlePage(_figinfo):
     
     def mk_cutoff_descript(descriptor,cutoff_set):
         
-        cutoff_descriptor = (descriptor +': Default alpha =' + cutoff_set["_alpha"]  +
-                                '| Sequencing Depth = ' + '{:.3f}'.format(cutoff_set["_ipReads_cutoff"],3)) +
-                                '| Trimming = ' + '{:.3f}'.format(cutoff_set["_trimmedReads_cutoff"],3)) +  
-                                '| Alignment = ' + '{:.3f}'.format(cutoff_set["_uniqAligned_cutoff"],3)) +  
-                                '| Gene Exon Mapping = ' + '{:.3f}'.format(cutoff_set["_exonMapping_cutoff"],3)) + 
-                                '\n| Ribosomal RNA = ' + '{:.3f}'.format(cutoff_set["_riboScatter_cutoff"],3)) + 
-                                '| Adapter Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_adapter_trimmed"],3)) + 
-                                '| Overrep. Seq  Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_overrep_trimmed"],3)) + 
-                                '| Gene Body Coverage = ' + cutoff_set["_alpha"] + 
-                                '| Detected Genes = ' + cutoff_set["_numGene_cutoff"])
+        cutoff_descriptor = (descriptor +': Default alpha =' + str(cutoff_set["_alpha"])  +
+                                '| Sequencing Depth = ' + '{:.3f}'.format(cutoff_set["_ipReads_cutoff"],3) +
+                                '| Trimming = ' + '{:.3f}'.format(cutoff_set["_trimmedReads_cutoff"],3) +  
+                                '| Alignment = ' + '{:.3f}'.format(cutoff_set["_uniqAligned_cutoff"],3) +  
+                                '| Gene Exon Mapping = ' + '{:.3f}'.format(cutoff_set["_exonMapping_cutoff"],3) + 
+                                '\n| Ribosomal RNA = ' + '{:.3f}'.format(cutoff_set["_riboScatter_cutoff"],3) + 
+                                '| Adapter Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_adapter_trimmed"],3) + 
+                                '| Overrep. Seq  Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_overrep_trimmed"],3) + 
+                                '| Gene Body Coverage = ' + str(cutoff_set["_alpha"]) + 
+                                '| Detected Genes = ' + str(cutoff_set["_numGene_cutoff"]))
         return(cutoff_descriptor)  
 
     fig = plt.figure()
@@ -619,7 +621,7 @@ def mkQC_heatmap(heatmap_data):
 
 
 
-def plotHist_ipSize(_ip_tuple, _userDf, _background_df, _position,_figinfo,_figure=None):
+def plotHist_ipSize(_ip_tuple, _user_df, _background_df, _position,_figinfo,_figure=None):
 
     axis = _figure.add_subplot(_figinfo["_subplot_rows"], 2, _position)
  
@@ -719,7 +721,7 @@ def plotHist_trimming(_ip_tuple, _user_df, _background_df, _colname, _position,_
 
 
 #### Plot 3: Alignment Percentage ####
-def plotHist_alignment(_ip_tuple, _user_df, _background_df, _colname, _plot_label,_figinfo,_figure=None):
+def plotHist_alignment(_ip_tuple, _user_df, _background_df, _colname, _position,_figinfo,_figure=None):
    
     _bins = np.arange(0, 100 + 1,101 / _figinfo["_bin_num"] )
 
@@ -1020,19 +1022,13 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     _line_mean_adapter_trim = _axis2.axvline(x=_mean_adapter_trim, ymin=0.05, ymax=0.45, alpha=0.8, color='indigo',
                                              linestyle='--', linewidth=0.35, label='{:.2f}%'.format(_mean_adapter_trim))
 
-    _axis.le
-
-gend([_line_overrep_trim, _line_mean_overrep_trim], ["Current Sample", "Batch Mean"], loc='upper right',
+    _axis.legend([_line_overrep_trim, _line_mean_overrep_trim], ["Current Sample", "Batch Mean"], loc='upper right',
                  frameon=False, ncol=1, fontsize=_figinfo["_legend_size"])
 
     plt.subplots_adjust(hspace=0)
 
     needs_fail_or_warn(_axis,_current_overrep_trim, _figinfo,"_violin_cutoff_overrep_trimmed","higher")
     needs_fail_or_warn(_axis,_current_overrep_trim, _figinfo,"_violin_cutoff_adapter_trimmed","higher") 
-  #  if(_current_overrep_trim > _figinfo["_fail_violin_cutoff_overrep_trimmed"] or _current_adapter_trim > _figinfo["_fail_violin_cutoff_adapter_trimmed"]):
-  #      insert_flag_fail(_axis)
-  #  elif(_current_overrep_trim > _figinfo["_warn_violin_cutoff_overrep_trimmed"] or _current_adapter_trim > _figinfo["_warn_violin_cutoff_adapter_trimmed"]):
-  #      insert_flag_warn(_axis)
 
     return _f
 
