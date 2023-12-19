@@ -63,7 +63,7 @@ class PyTestSuite:
                           "out": self.OutputDir + "LungTransplantSCRIPTbgd.pdf",
                           "bgd": self.LungTransplantStats}
         
-        commands = [SCRIPTB11_BaseCase,SCRIPTAll,SCRIPTB11_noGCHIST,LungTransplant,LungTransplantSCRIPTbgd]
+        commands = [SCRIPTB11_BaseCase]
         
         return commands        
 

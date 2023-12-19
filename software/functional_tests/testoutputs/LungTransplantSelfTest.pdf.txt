@@ -1,4 +1,34 @@
+Input File : /projects/b1063/Gaurav/QCDR/data/LungTransplant/LungTransplantStats
+Output File : /projects/b1063/Gaurav/QCDR/software/functional_tests/testoutputs/LungTransplantSelfTest.pdf
+Background File : ../../data/LungTransplant/LungTransplantStats
+cutoffs_provided : False
+failalpha : 0.05
+warnalpha : 0.1
 Traceback (most recent call last):
-  File "/projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py", line 12, in <module>
-    import seaborn as sns
-ModuleNotFoundError: No module named 'seaborn'
+  File "/projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py", line 276, in <module>
+    retroPlotter_main(_ip_filename, _op_filename, _bgd_filename,_gc_file,_hist_file)
+  File "/projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py", line 36, in retroPlotter_main
+    _user_df = pd.read_csv(_input_file, sep=",")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/pandas/util/_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/pandas/util/_decorators.py", line 331, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 950, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 605, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1442, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1735, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/pandas/io/common.py", line 856, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/projects/b1063/Gaurav/QCDR/data/LungTransplant/LungTransplantStats'

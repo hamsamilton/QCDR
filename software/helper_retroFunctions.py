@@ -1,3 +1,4 @@
+import math
 import matplotlib
 from abc import ABC, abstractmethod
 import matplotlib.gridspec as gridspec
@@ -32,6 +33,21 @@ from Sam_PyUtils import *
 import bootstrapped.bootstrap as bs
 import bootstrapped.stats_functions as bs_stats
 import bootstrapped.compare_functions as bs_compare
+from abc import ABC, abstractmethod
+
+# Functions for formatting values....Turn into object?
+def fmt_scatter_million(_x,_pos= None):
+    return f'{_x * 1e-6:.1f}M'
+
+def fmt_million(_x,_pos = None):
+    return '{0:.0f}'.format(_x)
+
+def fmt_percent(x,pos = None):
+    return f'{x:.0f}%'
+ 
+def fmt(_x, _pos):
+    return '{0:.1f}'.format(_x)
+
 class UI_adapter:
     """
     The parent class designed to handle the inputs provided by the user, shape it into the correct format, and return 
@@ -71,10 +87,8 @@ class UI_adapter:
 
     def _change_column_names(self):
         """ Change the user friendly column names to those expected by the internal program"""
-        print(self.mapping_names)
-        print(self.input_df.columns)
         self.input_df.rename(columns=self.mapping_names, inplace=True)
-        print(self.input_df.columns)
+
     def _transform_values(self):
         """ Calculate columns that are transformations of the supplied inputs """
         self.input_df["% Uniquely Aligned Reads"] = (
@@ -199,25 +213,25 @@ def add_warn_fail_markers(_figinfo,ax,cutoff_key):
    
 # This function calculates whether the current sample label orientation needs 
 # to be adjusted and returns the required vars
-def adjust_flag(_ax,_current_sample,_lib_mean):
+def adjust_flag(_ax,_current_sample,_lib_mean,Formatter= fmt_scatter_million):
     if _current_sample >=  _lib_mean:
         # plot the current sample line
-        _ax.text(_current_sample + (get_axis_range(_ax.get_xlim())/ 100), (_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
+        _ax.text(_current_sample + (get_axis_range(_ax.get_xlim())/ 100), (_ax.get_ylim()[1] / 2), Formatter(_current_sample),
                  rotation= 270, fontsize=3, zorder=2)
         # plot the library mean line
-        _ax.text(_lib_mean - (get_axis_range(_ax.get_xlim())/30),((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation=90,
+        _ax.text(_lib_mean - (get_axis_range(_ax.get_xlim())/30),((_ax.get_ylim()[1] / 2) + 1), Formatter(_lib_mean), rotation=90,
                  fontsize=3, zorder=2)
     else:
         # plot the current sample line
-        _ax.text(_current_sample - (get_axis_range(_ax.get_xlim())/50),(_ax.get_ylim()[1] / 2), '{:2.2f}M'.format(_current_sample),
+        _ax.text(_current_sample - (get_axis_range(_ax.get_xlim())/50),(_ax.get_ylim()[1] / 2), Formatter(_current_sample),
                  rotation= 90, fontsize=3, zorder=2)
         # plot the library mean line
-        _ax.text(_lib_mean + (get_axis_range(_ax.get_xlim())/80), ((_ax.get_ylim()[1] / 2) + 1), '{:2.2f}M'.format(_lib_mean), rotation= 270,
+        _ax.text(_lib_mean + (get_axis_range(_ax.get_xlim())/80), ((_ax.get_ylim()[1] / 2) + 1), Formatter(_lib_mean), rotation= 270,
                  fontsize=3, zorder=2)
     return _ax
 
 # set the legend for figures with warn / fail IE 1_6)
-def legend_setup_1_6(_ax,_line1,_line2,_figinfo,cutoff_key,_loc):
+def legend_setup_1_6(_ax,_line1,_line2,_figinfo,cutoff_key,_loc,formatter = fmt_million):
     _fail_label = mpatches.Patch(color=_figinfo["_fail_color"], label='Fail Cutoff')   
     _warn_label=  mpatches.Patch(color=_figinfo["_warn_color"], label='Warn Cutoff')    
     _ax.legend([_line1,
@@ -226,8 +240,8 @@ def legend_setup_1_6(_ax,_line1,_line2,_figinfo,cutoff_key,_loc):
                     _warn_label],
                 ["Current Sample", 
                     "Batch Mean",
-                    "Fail (" + str(round(_figinfo["_fail_cutoffs"][cutoff_key],2)) + ")",
-                    "Warn (" + str(round(_figinfo["_warn_cutoffs"][cutoff_key],2)) + ")"],
+                    "Fail (" + formatter(_figinfo["_fail_cutoffs"][cutoff_key]) + ")",
+                    "Warn (" + formatter(_figinfo["_warn_cutoffs"][cutoff_key]) + ")"],
                 loc= _loc,
                 frameon=False,
                 fontsize=_figinfo["_legend_size"])
@@ -374,16 +388,6 @@ def gen_cutoffs(bgd_df, alph):
     calculator = CutoffCalculator(bgd_df, alph)
     return calculator()
 
-
-def fmt_scatter_million(_x, _pos):
-    return '%1.1f' % (_x * 1e-6)
-
-def fmt_million(_x, _pos):
-    return '{0:.0f}'.format(_x)
-
-def fmt(_x, _pos):
-    return '{0:.1f}'.format(_x)
-
 def values_to_percentiles(values):
     """
     Convert a vector of values to their associated percentile ranks on a standard normal distribution.
@@ -514,7 +518,6 @@ def mkTitlePage(_figinfo):
     fontsize = 6,ha="center",va="center")
 
     # show cutoffs
-
     warn_descript = mk_cutoff_descript("Warn cutoffs",_figinfo["_warn_cutoffs"]) 
     fail_descript = mk_cutoff_descript("Fail cutoffs",_figinfo["_fail_cutoffs"]) 
 
@@ -530,7 +533,7 @@ def mkTitlePage(_figinfo):
 
     return fig
 
-
+# Used for calculating 
 class MetricStatusStrategy(ABC):
     @abstractmethod
     def compute_status(self, test_value, warn_value, fail_value):
@@ -620,203 +623,122 @@ def mkQC_heatmap(heatmap_data):
     return fig2
 
 
+class AbstractHistPlotter(ABC):
 
-def plotHist_ipSize(_ip_tuple, _user_df, _background_df, _position,_figinfo,_figure=None):
-
-    axis = _figure.add_subplot(_figinfo["_subplot_rows"], 2, _position)
- 
-    _xmin,_xmax = _background_df.loc[:,"Input_Size"].agg(["min","max"])
-    _bins = make_bins(_background_df.loc[:,"Input_Size"],_user_df.loc[:,"Input_Size"],_figinfo["_bin_num"])
     
-    _lib_mean = _user_df.loc[:, 'Input_Size'].mean()
-    _current_sample = _user_df.loc[:,'Input_Size'][_ip_tuple.Index]
-
-    _background_df["Input_Size"].plot(kind='hist', bins=_bins, ax=axis, color='lightgray')
-
-    axis1 = axis.twinx()
-    sns.distplot(_background_df["Input_Size"], hist=False, bins=_bins, ax=axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
-    axis.set_xlim(_xmin,_xmax)
-    axis = set_ticks(axis,_figinfo["_tick_size"])
-
-    axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_million))
-
-    axis.set_title("Sequencing Depth",fontsize = _figinfo["_title_size"])
-    axis.set_xlabel('Total Reads (Millions)', labelpad=1, fontsize= _figinfo["_label_size"])
-
-    axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    axis.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
-
-    axis = adjust_flag(axis,_current_sample,_lib_mean)
-
-    ### Adding cutoff markers
-    axis = add_warn_fail_markers(_figinfo,axis,"_ipReads_cutoff")
-
-    # Current Sample Line and Label
-    _line1 = axis.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
-                         label='{:2.2f}M'.format(_current_sample))
-
-    # Current Library Mean Line and Label
-    _line2 = axis.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
-                         label='{:2.2f}M'.format(_lib_mean))
-
-    _kde_line = matplotlib.lines.Line2D([0], [0], color="gray", linewidth=0.5, linestyle='-')
-
-    # set up axes
-    axis = legend_setup_1_6(axis,_line1,_line2,_figinfo,"_ipReads_cutoff","upper left")
-
-    #set axes to be visible or not
-    axis,axis1 =  mk_axes(axis,axis1)
-    axis = needs_fail_or_warn(axis,_current_sample,_figinfo,"_ipReads_cutoff","lower")
-
-    return _figure
-
-
-# Plot 2 : Trimming Percentage
-def plotHist_trimming(_ip_tuple, _user_df, _background_df, _colname, _position,_figinfo,_figure=None):
-  
-    axis = _figure.add_subplot(_figinfo["_subplot_rows"],2, _position)    
-
-    _xmin,_xmax = _background_df.loc[:,_colname].agg(["min","max"])
-
-    _bins = make_bins(_background_df.loc[:,_colname],_user_df.loc[:,_colname],_figinfo["_bin_num"])
-
-    _current_sample = _user_df.loc[:,_colname][_ip_tuple.Index]
-    _lib_mean = _user_df[_colname].mean()
-
-    axis.hist(x=_background_df[_colname], bins=_bins, histtype='bar', color='lightgray')
-
-    axis1 = axis.twinx()
-    sns.distplot(_background_df[_colname], hist=False, bins=_bins, ax=axis1, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
-    
-    axis.set_xlim(_xmin, _xmax)
-    axis = set_ticks(axis,_figinfo["_tick_size"])
-    axis.set_title("Trimming", fontsize= _figinfo["_title_size"])
-
-    axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    axis.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
-    axis.set_xlabel('% Post-Trim / Total Reads', labelpad=1, fontsize= _figinfo["_label_size"])
-
-    ### Adding cutoff markers
-    axis = add_warn_fail_markers(_figinfo,axis,"_trimmedReads_cutoff")
-    
-    axis = adjust_flag(axis,_current_sample,_lib_mean)
-
-    # Current Sample Line and Label
-    _line1 = axis.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
-                           label='{:2.2f}%'.format(_current_sample))
-
-    # Current Library Mean Line and Label
-    _line2 = axis.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
-                           label='{:2.2f}%'.format(_lib_mean))
-
-    ## Superimpose the Kernel Density Estimate line over the distribution
-    _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
-
-    axis = legend_setup_1_6(axis,_line1,_line2,_figinfo,"_trimmedReads_cutoff","upper left")
-
-    axis,axis1 =  mk_axes(axis,axis1)
-    axis = needs_fail_or_warn(axis,_current_sample,_figinfo,"_trimmedReads_cutoff","lower")
-
-    return _figure
-
-
-#### Plot 3: Alignment Percentage ####
-def plotHist_alignment(_ip_tuple, _user_df, _background_df, _colname, _position,_figinfo,_figure=None):
-   
-    _bins = np.arange(0, 100 + 1,101 / _figinfo["_bin_num"] )
-
-    _current_sample = _user_df.loc[:,_colname][_ip_tuple.Index]
-
-    _lib_mean = _user_df[_colname].mean()
-    _axis_plt3 = _figure.add_subplot(_figinfo["_subplot_rows"], 2, _position)
-
-    _axis_plt3.hist(x=_background_df[_colname], bins=_bins, histtype='bar', color='lightgray')
-
-    _axis1_plt3 = _axis_plt3.twinx()
-    sns.distplot(_background_df[_colname], hist=False, bins=_bins, ax=_axis1_plt3, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
-
-
-    _axis_plt3.set_xlim(0, 105)
-
-    _axis_plt3 = set_ticks(_axis_plt3,_figinfo["_tick_size"])
-
-    _axis_plt3.set_title("Alignment", fontsize=_figinfo["_title_size"])
-
-    # Set labels
-    _axis_plt3.set_xlabel('% Uniquely Aligned / Post-Trim Reads', labelpad=1, fontsize= _figinfo["_label_size"])
-    _axis_plt3.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    _axis_plt3.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
-
-    ### Adding cutoff markers
-    _axis_plt3 = add_warn_fail_markers(_figinfo,_axis_plt3,"_uniqAligned_cutoff")
-    _axis_plt3 = adjust_flag(_axis_plt3,_current_sample,_lib_mean)
-
-    # Current Sample Line and Label
-    _line1 = _axis_plt3.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
-
-    # Current Library Mean Line and Label
-    _line2 = _axis_plt3.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5, label='{:2.2f}%'.format(_lib_mean))
-
-    ## Superimpose the Kernel Density Estimate line over the distribution
-    _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
-
-    _axis_plt3 = legend_setup_1_6(_axis_plt3,_line1,_line2,_figinfo,"_uniqAligned_cutoff","upper left")
-
-    _axis_plt3,_axis1_plt3 =  mk_axes(_axis_plt3,_axis1_plt3)
-    _axis_plt3 = needs_fail_or_warn(_axis_plt3,_current_sample,_figinfo,"_uniqAligned_cutoff","lower")
-    
-    return _figure
-
-
-
-#### Plot 4: Gene Exon Mapping ####
-def plotHist_exonMapping(_ip_tuple, _user_df, _background_df, _colname,_position,_figinfo,_figure=None):
-    
-    _bins = np.arange(0, 100 + 1, 101/_figinfo["_bin_num"])
-
-    _user_minusBatchMean_df = _user_df.drop(_user_df.tail(1).index)
-
-    _current_sample = _ip_tuple.Percent_Exonic
-    _lib_mean = _user_minusBatchMean_df[_colname].mean()
-    
-    _axis_plt4 = _figure.add_subplot(_figinfo["_subplot_rows"], 2, _position)
-
-    _axis_plt4.hist(x=_background_df[_colname], bins=_bins, histtype='bar', color='lightgray')
-
-    _axis1_plt4 = _axis_plt4.twinx()
-    sns.distplot(_background_df[_colname], hist=False, bins=_bins, ax=_axis1_plt4, color='dimgray', kde_kws={'lw': 0.7}, hist_kws={'alpha': 0.8})
-
-
-    _axis_plt4.set_xlim(0, 105)
-
-    _axis_plt4 = set_ticks(_axis_plt4,_figinfo["_tick_size"])
-    _axis_plt4.set_title("Exon Mapping", fontsize=_figinfo["_title_size"])
-
-    _axis_plt4.set_xlabel('% Mapped / Aligned Reads', labelpad=1, fontsize=_figinfo["_label_size"])
-    _axis_plt4.set_ylabel('Frequency', labelpad=2, fontsize= _figinfo["_label_size"])
-
-    ### Adding cutoff markers
-    _axis_plt4 = add_warn_fail_markers(_figinfo,_axis_plt4,"_exonMapping_cutoff")
-
-    _axis_plt4.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-
-    _axis_plt4 = adjust_flag(_axis_plt4,_current_sample,_lib_mean)
-
-    # Current Sample Line and Label
-    _line1 = _axis_plt4.axvline(x=_current_sample, alpha=0.8, color=_figinfo["_curr_sample_color"], linestyle='-', linewidth=0.5, label='{:2.2f}%'.format(_current_sample))
-
-    # Current Library Mean Line and Label
-    _line2 = _axis_plt4.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5, label='{:2.2f}%'.format(_lib_mean))
-
-    ## Superimpose the Kernel Density Estimate line over the distribution
-    _kde_line = matplotlib.lines.Line2D([0], [0], color="dimgray", linewidth=0.5, linestyle='-')
-
-
-    _axis_plt4 = legend_setup_1_6(_axis_plt4,_line1,_line2,_figinfo,"_exonMapping_cutoff","upper left")
-    _axis_plt4,_axis1_plt4 =  mk_axes(_axis_plt4,_axis1_plt4)
-    _axis_plt4 = needs_fail_or_warn(_axis_plt4,_current_sample,_figinfo,"_exonMapping_cutoff","lower")
-    
-    return _figure
+    # Default values for subclass-specific attributes. Overwritten by concrete subclasses
+    VarName   = None
+    CutoffKey = None
+    Formatter = None
+    PlotTitle = None
+    XAxisTitle= None
+
+    def __init__(self,_ip_tuple, _user_df, _background_df, _position,_figinfo,_figure=None):
+        self.IpTuple = _ip_tuple #Which sample"
+        self.Position= _position#"Where to put the plot"
+        self.BgdDf   = _background_df
+        self.UserDf  = _user_df
+        self.FigInfo = _figinfo 
+        self.Figure  = _figure  #"The Sample Sheet being added to"
+
+    def InitDependentFields(self):
+        self.UserVals = self.UserDf[self.VarName]
+        self.BgdVals  = self.BgdDf[self.VarName] #"the background to compare the sample to"
+
+    def AddHist(self):
+
+        _bins = make_bins(self.BgdVals,self.UserVals,self.FigInfo["_bin_num"])
+        
+        _lib_mean = self.UserVals.mean()
+        _current_sample = self.UserVals[self.IpTuple.Index]
+
+        axis = self.Figure.add_subplot(self.FigInfo["_subplot_rows"], 2, self.Position)
+
+        sns.histplot(self.BgdVals, bins = _bins,ax=axis, color='lightgray',
+                 edgecolor="lightgray")
+
+        axis1 = axis.twinx()
+        sns.kdeplot(self.BgdVals,ax=axis1, color='black', lw=0.5) 
+        # set limits
+        _xmin,_xmax = self.BgdVals.agg(["min","max"])
+        axis.set_xlim(_xmin,_xmax)
+        axis = set_ticks(axis,self.FigInfo["_tick_size"])
+
+        axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(self.Formatter))
+
+        axis.set_title(self.PlotTitle,fontsize = self.FigInfo["_title_size"])
+        axis.set_xlabel(self.XAxisTitle, labelpad=1, fontsize= self.FigInfo["_label_size"])
+
+        axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        axis.set_ylabel('Frequency', labelpad=2, fontsize= self.FigInfo["_label_size"])
+
+        axis = adjust_flag(axis,_current_sample,_lib_mean,self.Formatter)
+
+        ### Adding cutoff markers
+        axis = add_warn_fail_markers(self.FigInfo,axis,self.CutoffKey)
+
+        # Current Sample Line and Label
+        SampleLine = axis.axvline(x=_current_sample, alpha=0.8, color=self.FigInfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
+                             label = self.Formatter(_current_sample))
+
+        # Current Library Mean Line and Label
+        BgdLine = axis.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
+                             label = self.Formatter(_lib_mean))
+
+        # set up axes
+        axis = legend_setup_1_6(axis,SampleLine,BgdLine,self.FigInfo,self.CutoffKey,"upper left",self.Formatter)
+
+        #set axes to be visible or not
+        axis,axis1 =  mk_axes(axis,axis1)
+        axis = needs_fail_or_warn(axis,_current_sample,self.FigInfo,self.CutoffKey,"lower")
+
+class ReadDepthHistPlotter(AbstractHistPlotter):
+
+    def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
+        self.VarName    =  "Input_Size"
+        self.CutoffKey  = "_ipReads_cutoff"
+        self.Formatter  = fmt_scatter_million
+        self.PlotTitle  = "SequencingDepth"
+        self.XAxisTitle = "Total Reads"
+        super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
+        self.InitDependentFields()
+        self.AddHist()
+
+class TrimmingPlotter(AbstractHistPlotter):
+
+    def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
+        self.VarName   = "Percent_PostTrim"
+        self.CutoffKey = "_trimmedReads_cutoff"
+        self.Formatter = fmt_percent
+        self.PlotTitle = "Trimming"
+        self.XAxisTitle = "Post-Trim / Total Reads"
+        super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
+        self.InitDependentFields()
+        self.AddHist()
+
+class AlignmentPlotter(AbstractHistPlotter):
+
+    def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
+        self.VarName  = "Percent_Uniquely_Aligned"
+        self.CutoffKey= "_uniqAligned_cutoff"
+        self.Formatter= fmt_percent
+        self.PlotTitle= "Alignment"
+        self.XAxisTitle= " Uniquely Aligned / Post-Trim Reads"
+        super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
+        self.InitDependentFields()
+        self.AddHist()
+
+class ExonMappingPlotter(AbstractHistPlotter):
+
+    def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
+        self.VarName  = "Percent_Exonic"
+        self.CutoffKey= "_exonMapping_cutoff"
+        self.Formatter= fmt_percent
+        self.PlotTitle= "Exon Mapping"
+        self.XAxisTitle= "Mapped / Aligned Reads"
+        super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
+        self.InitDependentFields()
+        self.AddHist()
 
 #### Plot 5: rRNA Scatter ####
 def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):

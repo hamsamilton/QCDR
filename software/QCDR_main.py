@@ -187,18 +187,20 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = plt.figure(frameon=False)
 
         # Plotting figure 1: Input Size
-        fig = helper_retroFunctions.plotHist_ipSize(_tuple, _user_df, _bgd_df, 1,_figinfo,fig)
+        InputSize = ReadDepthHistPlotter(_tuple,_user_df,_bgd_df,1,_figinfo,fig) 
+        fig = InputSize.Figure
 
         # Plotting figure 2: Percentage of Reads after Trimming
-        fig = helper_retroFunctions.plotHist_trimming(_tuple, _user_df, _bgd_df, "Percent_PostTrim", 2,_figinfo,fig)
+        TrimmingPercent = TrimmingPlotter(_tuple, _user_df, _bgd_df,2,_figinfo,fig)
+        fig = TrimmingPercent.Figure
 
         # Plotting figure 3: Percentage of Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotHist_alignment(_tuple, _user_df, _bgd_df, "Percent_Uniquely_Aligned",3,
-                                                       _figinfo,fig)
+        Alignment = AlignmentPlotter(_tuple, _user_df, _bgd_df,3,_figinfo,fig)
+        fig = Alignment.Figure
 
         # Plotting figure 4: Percentage of Reads Mapped to Exons
-        fig = helper_retroFunctions.plotHist_exonMapping(_tuple, _user_df, _bgd_df, "Percent_Exonic", 4,
-                                                         _figinfo, fig)
+        ExonMapping = ExonMappingPlotter(_tuple, _user_df, _bgd_df,4,_figinfo,fig)
+        fig = ExonMapping.Figure
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
         fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_figinfo,fig)
@@ -275,15 +277,3 @@ if __name__ == "__main__":
     
     retroPlotter_main(_ip_filename, _op_filename, _bgd_filename,_gc_file,_hist_file)
 
-
-    
-
-    '''
-    ## Batch11   
-    
-    retroPlotter_mat3("/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11",
-                      "SCRIPT_RNAseq_Batch_11",
-                      "/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11/Output/3-STAROutput_Bam/GeneBody_Coverage/SCRIPT_RNAseq_Batch_11_GeneCoverageData.csv",
-                      "/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11/Output/4-htseqCounts/Histogram_Plot/CPM_SCRIPT_RNAseq_Batch_11_final_count_bincounts_0.5.csv",
-                      "/projects/b1042/WinterLab/SCRIPT_ComplexityAnalysis/Datasets/SCRIPT_RNAseq_Batch_11/Output/3-STAROutput_Bam/stats")
-    '''
