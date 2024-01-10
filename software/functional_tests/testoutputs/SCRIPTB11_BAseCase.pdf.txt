@@ -10,10 +10,10 @@ Background File : ../../data/SCRIPT/SCRIPT_stats_allbatches.csv
 cutoffs_provided : False
 failalpha : 0.05
 warnalpha : 0.1
-{'% Adapter Content (Post-trim)', '% Exonic Reads / Aligned Reads', 'Sample', 'Project', '% Overrepresented Sequences (Pre-trim)', '# Uniquely Aligned Reads', 'Sequencing Depth', '# rRNA Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch'}
-{'% Adapter Content (Post-trim)', 'Sample', '% Exonic Reads / Aligned Reads', 'Project', '% Overrepresented Sequences (Pre-trim)', '# Uniquely Aligned Reads', 'Sequencing Depth', '# rRNA Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Uniquely Aligned Reads', '% Overrepresented Sequences (Post-trim)', 'Batch'}
-{'% Adapter Content (Post-trim)', '% Exonic Reads / Aligned Reads', 'Sample', 'Project', '% Overrepresented Sequences (Pre-trim)', '# Uniquely Aligned Reads', 'Sequencing Depth', '# rRNA Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch'}
-{'% Adapter Content (Post-trim)', 'Sample', '% Exonic Reads / Aligned Reads', 'Project', '% Overrepresented Sequences (Pre-trim)', '# Uniquely Aligned Reads', 'Sequencing Depth', '# rRNA Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Uniquely Aligned Reads', '% Overrepresented Sequences (Post-trim)', 'Batch'}
+{'% Exonic Reads / Aligned Reads', 'Project', '# rRNA Reads', '# Uniquely Aligned Reads', 'Sample', '% Overrepresented Sequences (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch', '% Adapter Content (Post-trim)', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', 'Sequencing Depth'}
+{'% Exonic Reads / Aligned Reads', 'Project', '# rRNA Reads', '# Uniquely Aligned Reads', '% Uniquely Aligned Reads', 'Sample', '% Overrepresented Sequences (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch', '% Adapter Content (Post-trim)', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', 'Sequencing Depth'}
+{'% Exonic Reads / Aligned Reads', 'Project', '# rRNA Reads', '# Uniquely Aligned Reads', 'Sample', '% Overrepresented Sequences (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch', '% Adapter Content (Post-trim)', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', 'Sequencing Depth'}
+{'% Exonic Reads / Aligned Reads', 'Project', '# rRNA Reads', '# Uniquely Aligned Reads', '% Uniquely Aligned Reads', 'Sample', '% Overrepresented Sequences (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch', '% Adapter Content (Post-trim)', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', 'Sequencing Depth'}
 rRNA test value is 0.2224429509831095
 rRNA test value is 0.12967478916431116
 rRNA test value is 0.15396499825768553
@@ -39,28 +39,3 @@ rRNA test value is 0.08184833042703887
 rRNA test value is 0.08482101858918885
 rRNA test value is 0.037057052977961545
 rRNA test value is 0.1193022973645785
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0
-1493.0

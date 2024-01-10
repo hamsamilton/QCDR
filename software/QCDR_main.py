@@ -214,7 +214,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Plotting figure 8: Gene Body Coverage Plot
         if _gc_file is not None:
-            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 8, "GeneBody Coverage",_figinfo,fig)
+            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 8,_figinfo,fig)
 
         # Add sample info at the top-left corner of the page
         fig.text(s='Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,

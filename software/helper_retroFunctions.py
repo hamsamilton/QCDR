@@ -971,7 +971,7 @@ def GC_KSstats(_coverage_df):
     return _kslst
 
 #  GeneBody Coverage Plot
-def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
+def plotGC(_ipTuple, _coverage_df, _position,_figinfo,_fig=None):
     
     _axis = _fig.add_subplot(_figinfo["_subplot_rows"], 2, _position)
 
@@ -984,8 +984,6 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _ks_pval  = _ks_pvals[_ipTuple[0]]
     # Calculate Confidence Interval for the mean GC line
 
-    # Calculate 95% interval for each position
-    _err = _coverage_df.std(axis=1)*2
 
     # Plot current sample with library mean
     _x = np.arange(1, 101, 1)
@@ -994,23 +992,24 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _axis.plot(_x, _coverage_df, color="lightgray",alpha = .4, linewidth=0.5, linestyle='-')
     _axis.plot(_x, _coverage_df[_ipTuple[1]], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-')
     _axis.plot(_x, _mean_df['gc_mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8)
+    
 
+    # Calculate 95% interval for each position
+    _err = _coverage_df.std(axis=1)*2
     _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
 
     _axis = set_ticks(_axis,_figinfo["_tick_size"])
 
     _axis.set_xlim(0, 105)
-    _axis.set_title("GeneBody Coverage", fontsize=_figinfo["_title_size"])
 
-    _axis.set_xlabel("Gene Percentile (5' " + u"\u2192" + " 3')", fontsize=_figinfo["_label_size"], labelpad=2)
-    _axis.set_ylabel("Read Density", fontsize=_figinfo["_label_size"], labelpad=2)
+    _axis.set_title("GeneBody Coverage", fontsize=_figinfo["_title_size"])
+    _axis.set_xlabel("Gene Percentile (5' " + u"\u2192" + " 3')", fontsize=_figinfo["_label_size"])
+    _axis.set_ylabel("Read Density", fontsize=_figinfo["_label_size"])
     
     # make the symbols for the legend
     _current_sample_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
     _background_lines = matplotlib.lines.Line2D([0], [0], color="lightgray", linewidth=0.5, linestyle='-', alpha=0.6)
     _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
-    _extra_confidenceInterval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='yellow', fill=True,
-                                                             edgecolor='yellow', linewidth=1.2, alpha=0.5)
     _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
 
     _axis.legend([_current_sample_line, _library_line,_background_lines, _extra_ksPval],
@@ -1062,10 +1061,9 @@ class AbstractLinePlotter(ABC):
 # Plot 8 : Gene Expression Distribution Plot 
 def plotNegBin(_ipTuple, _hist_df, _user_df,_position,_figinfo,_f=None):
     _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _position)
-    _index_array = _hist_df.iloc[:, 0]
 
     _low_vals = []
-    for _i in _index_array:
+    for _i in _hist_df.iloc[:, 0]:
         _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
 
     ## Preparing the data_df and libMean_df for all bins
@@ -1084,37 +1082,20 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_position,_figinfo,_f=None):
     _curr_pval = _pvals[_curr_ndx]
 
 
-    _col_names = [_cl for _cl in _hist_df.columns]
-
-    ## Plotting all current library distributions with the current sample highlighted on each page
-    for _col in _col_names:
-
-        if _col == _ipTuple[1]:
-            plt.plot(_low_vals, _hist_df[_col], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', zorder=24)
-        else:
-            plt.plot(_low_vals, _hist_df[_col], color='silver', linewidth=0.5, linestyle='-')
-
-    ## Plotting the mean distribution
+    _ax.plot(_low_vals, _hist_df, color='silver', linewidth=0.5, linestyle='-',alpha = .4)
+    _ax.plot(_low_vals, _hist_df[_ipTuple[1]], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', zorder=24)
     _ax.plot(_low_vals, _libMean_df['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
 
     _ax = set_ticks(_ax,_figinfo["_tick_size"])
 
     _ax.set_xlim(0, 10)
-    _ax.set_ylim(0, _hist_df.max(axis=1).max())
 
     _ax.set_title("Gene Expression", fontsize=_figinfo["_title_size"])
-
-    _ax.set_xlabel("Expression Level (log2(CPM)+1)", fontsize=_figinfo["_label_size"], labelpad=2)
-    _ax.set_ylabel("Frequency", fontsize=_figinfo["_label_size"], labelpad=2)
-
-    _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_low_vals[::5]))
-    _ax.xaxis.set_major_formatter(matplotlib.ticker.FixedFormatter(_low_vals[::5]))
-    _ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(500))
-    _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
+    _ax.set_xlabel("Expression Level (log2(CPM)+1)", fontsize=_figinfo["_label_size"])
+    _ax.set_ylabel("Frequency", fontsize=_figinfo["_label_size"] )
 
     _current_samp_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
     _lib_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
-
     _extra_Ztest_Pval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
                                                      linewidth=0)
 
