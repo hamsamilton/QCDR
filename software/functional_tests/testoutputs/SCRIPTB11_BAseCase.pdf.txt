@@ -1,8 +1,8 @@
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1016: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:967: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1016: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:967: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1016: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:967: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
 Input File : /projects/b1063/Gaurav/QCDR/data/SCRIPT/SCRIPT_B11stats.csv
 Output File : /projects/b1063/Gaurav/QCDR/software/functional_tests/testoutputs/SCRIPTB11_BAseCase.pdf
@@ -10,10 +10,10 @@ Background File : ../../data/SCRIPT/SCRIPT_stats_allbatches.csv
 cutoffs_provided : False
 failalpha : 0.05
 warnalpha : 0.1
-{'% Adapter Content (Pre-trim)', '% of Reads After Trimming', '% Overrepresented Sequences (Pre-trim)', 'Sequencing Depth', '% Exonic Reads / Aligned Reads', 'Project', '% Adapter Content (Post-trim)', '% Overrepresented Sequences (Post-trim)', 'Sample', '# rRNA Reads', 'Batch', '# Uniquely Aligned Reads'}
-{'% Uniquely Aligned Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Overrepresented Sequences (Pre-trim)', 'Sequencing Depth', '% Exonic Reads / Aligned Reads', 'Project', '% Adapter Content (Post-trim)', '% Overrepresented Sequences (Post-trim)', 'Sample', '# rRNA Reads', 'Batch', '# Uniquely Aligned Reads'}
-{'% Adapter Content (Pre-trim)', '% of Reads After Trimming', '% Overrepresented Sequences (Pre-trim)', 'Sequencing Depth', '% Exonic Reads / Aligned Reads', 'Project', '% Adapter Content (Post-trim)', '% Overrepresented Sequences (Post-trim)', 'Sample', '# rRNA Reads', 'Batch', '# Uniquely Aligned Reads'}
-{'% Uniquely Aligned Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Overrepresented Sequences (Pre-trim)', 'Sequencing Depth', '% Exonic Reads / Aligned Reads', 'Project', '% Adapter Content (Post-trim)', '% Overrepresented Sequences (Post-trim)', 'Sample', '# rRNA Reads', 'Batch', '# Uniquely Aligned Reads'}
+{'% Adapter Content (Post-trim)', '% Exonic Reads / Aligned Reads', 'Sample', 'Project', '% Overrepresented Sequences (Pre-trim)', '# Uniquely Aligned Reads', 'Sequencing Depth', '# rRNA Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch'}
+{'% Adapter Content (Post-trim)', 'Sample', '% Exonic Reads / Aligned Reads', 'Project', '% Overrepresented Sequences (Pre-trim)', '# Uniquely Aligned Reads', 'Sequencing Depth', '# rRNA Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Uniquely Aligned Reads', '% Overrepresented Sequences (Post-trim)', 'Batch'}
+{'% Adapter Content (Post-trim)', '% Exonic Reads / Aligned Reads', 'Sample', 'Project', '% Overrepresented Sequences (Pre-trim)', '# Uniquely Aligned Reads', 'Sequencing Depth', '# rRNA Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch'}
+{'% Adapter Content (Post-trim)', 'Sample', '% Exonic Reads / Aligned Reads', 'Project', '% Overrepresented Sequences (Pre-trim)', '# Uniquely Aligned Reads', 'Sequencing Depth', '# rRNA Reads', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', '% Uniquely Aligned Reads', '% Overrepresented Sequences (Post-trim)', 'Batch'}
 rRNA test value is 0.2224429509831095
 rRNA test value is 0.12967478916431116
 rRNA test value is 0.15396499825768553
@@ -39,3 +39,28 @@ rRNA test value is 0.08184833042703887
 rRNA test value is 0.08482101858918885
 rRNA test value is 0.037057052977961545
 rRNA test value is 0.1193022973645785
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0
+1493.0

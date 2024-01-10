@@ -210,7 +210,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Plotting figure 7: Expression Distribution Plot
         if _hist_file is not None:
-            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,7,"Gene Expression",_figinfo,fig)           
+            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,7,_figinfo,fig)           
 
         # Plotting figure 8: Gene Body Coverage Plot
         if _gc_file is not None:

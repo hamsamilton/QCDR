@@ -1000,7 +1000,7 @@ def plotGC(_ipTuple, _coverage_df, _position, _plot_title,_figinfo,_fig=None):
     _axis = set_ticks(_axis,_figinfo["_tick_size"])
 
     _axis.set_xlim(0, 105)
-    _axis.set_title(_plot_title, fontsize=_figinfo["_title_size"])
+    _axis.set_title("GeneBody Coverage", fontsize=_figinfo["_title_size"])
 
     _axis.set_xlabel("Gene Percentile (5' " + u"\u2192" + " 3')", fontsize=_figinfo["_label_size"], labelpad=2)
     _axis.set_ylabel("Read Density", fontsize=_figinfo["_label_size"], labelpad=2)
@@ -1033,76 +1033,88 @@ def calcHistPval(_hist_df):
     
     return(_pvals)
 
+class AbstractLinePlotter(ABC):
+
+    def __init__(self,_ipTuple,_hist_df,_user_df,_position,_figinfo,_figure=None):
+        self.IpTuple = _ipTuple
+        self.Position= _position
+        self.UserDf  = _user_df
+        self.FigInfo = _figinfo
+        self.Figure  = _figure
+        self.HistDf  = _hist_df
+
+    def AddLinePlot(self):
+        _ax = self.Figure.add_subplot(self.FigInfo["_subplot_rows"],2,self.Position)
+        
+        _index_array = self.HistDf.iloc[:, 0]
+
+        _low_vals =  []
+        _high_vals = []
+
+        for _i in _index_array:
+            _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
+            _high_vals.append(float(_i.strip('(').strip(']').split(',')[1]))
+
+            
+        
+
+
 # Plot 8 : Gene Expression Distribution Plot 
-def plotNegBin(_ipTuple, _hist_df, _user_df,_pos, _plot_title,_figinfo,_f=None):
+def plotNegBin(_ipTuple, _hist_df, _user_df,_position,_figinfo,_f=None):
+    _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _position)
     _index_array = _hist_df.iloc[:, 0]
 
     _low_vals = []
-    _high_vals = []
-
     for _i in _index_array:
         _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
-        _high_vals.append(float(_i.strip('(').strip(']').split(',')[1]))
-
-    _x_vals = _low_vals
 
     ## Preparing the data_df and libMean_df for all bins
-    _data_df = _hist_df.drop(['Unnamed: 0'], axis=1)
+    _hist_df = _hist_df.drop(['Unnamed: 0'], axis=1)
     _libMean_df = pd.DataFrame()
-    _libMean_df['Mean'] = _data_df.iloc[:, :-1].mean(numeric_only=True, axis=1)
+    _libMean_df['Mean'] = _hist_df.iloc[:, :-1].mean(numeric_only=True, axis=1)
 
-    _data_df_dropped = _data_df
-    _mean_df_dropped = _libMean_df
-
-    _max_df = pd.DataFrame()
-    _max_df['max_val'] = _data_df.max(axis=1)
-    _max_df.index == _ipTuple[1]
-    _mean_array = _mean_df_dropped.Mean.values
-    _current_samp_array = _data_df_dropped[_ipTuple[1]].values
+    _current_samp_array = _hist_df[_ipTuple[1]].values
 
     # code for calculating Z value of number of expressed genes. In need of some improvement.
-    _sum_df = _data_df_dropped.sum().round()
+    _sum_df = _hist_df.sum().round()
     _curr_sum = _current_samp_array.sum().round()
     _curr_ndx = np.where(_sum_df == _curr_sum)[0][0]
     _zscore = stats.zscore(_sum_df)
     _pvals  = stats.norm.sf(abs(_zscore))
     _curr_pval = _pvals[_curr_ndx]
 
-    _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _pos)
 
-    _col_names = [_cl for _cl in _data_df_dropped.columns]
+    _col_names = [_cl for _cl in _hist_df.columns]
 
     ## Plotting all current library distributions with the current sample highlighted on each page
     for _col in _col_names:
 
         if _col == _ipTuple[1]:
-            plt.plot(_x_vals, _data_df_dropped[_col], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', zorder=24)
+            plt.plot(_low_vals, _hist_df[_col], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', zorder=24)
         else:
-            plt.plot(_x_vals, _data_df_dropped[_col], color='silver', linewidth=0.5, linestyle='-')
+            plt.plot(_low_vals, _hist_df[_col], color='silver', linewidth=0.5, linestyle='-')
 
     ## Plotting the mean distribution
-    _ax.plot(_x_vals, _mean_df_dropped['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
+    _ax.plot(_low_vals, _libMean_df['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
 
     _ax = set_ticks(_ax,_figinfo["_tick_size"])
 
     _ax.set_xlim(0, 10)
-    _ax.set_ylim(0, _max_df['max_val'].max())
+    _ax.set_ylim(0, _hist_df.max(axis=1).max())
 
-    _ax.set_title(_plot_title, fontsize=_figinfo["_title_size"])
+    _ax.set_title("Gene Expression", fontsize=_figinfo["_title_size"])
 
     _ax.set_xlabel("Expression Level (log2(CPM)+1)", fontsize=_figinfo["_label_size"], labelpad=2)
     _ax.set_ylabel("Frequency", fontsize=_figinfo["_label_size"], labelpad=2)
 
-    _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_x_vals[::5]))
-    _ax.xaxis.set_major_formatter(matplotlib.ticker.FixedFormatter(_x_vals[::5]))
+    _ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(_low_vals[::5]))
+    _ax.xaxis.set_major_formatter(matplotlib.ticker.FixedFormatter(_low_vals[::5]))
     _ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(500))
     _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt))
 
     _current_samp_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
     _lib_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
 
-    _extra_Ztest_stat = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
-                                                     linewidth=0)
     _extra_Ztest_Pval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
                                                      linewidth=0)
 
