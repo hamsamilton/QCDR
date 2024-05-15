@@ -1,5 +1,6 @@
 import math
 import matplotlib
+matplotlib.use('Agg')
 from abc import ABC, abstractmethod
 import matplotlib.gridspec as gridspec
 import os
@@ -66,9 +67,7 @@ class UI_adapter:
     def _validate_column_names(self):
         """Check if the column names of the input DataFrame are included in the input_human_readable_names list"""
         input_columns = set(self.input_df.columns)
-        print(input_columns)
         valid_columns = set(self.human_readable_names)
-        print(valid_columns)
         unrecognized_columns = input_columns.difference(valid_columns)
  
         if unrecognized_columns:
@@ -266,14 +265,13 @@ def mk_axes(_plt_ax,_kd_ax = None):
     
     if _kd_ax != None: 
         # set the kernel density axis to be invisible 
-        _kd_ax.yaxis.set_ticks([])
-        _kd_ax.yaxis.label.set_visible(False)
+        _kd_ax.yaxis.set_visible(False)
+        _kd_ax.xaxis.set_visible(False)
 
         _kd_ax.spines['top'].set_visible(False)
         _kd_ax.spines['right'].set_visible(False)
         _kd_ax.spines['bottom'].set_visible(False)
         _kd_ax.spines['left'].set_visible(False)
-
         return _plt_ax,_kd_ax
     else:
         return _plt_ax
@@ -558,7 +556,7 @@ def mkQC_heatmap_data(_userDf, _figinfo):
         ("Percent_PostTrim", "_trimmedReads_cutoff", lower_status_strategy),
         ("Percent_Uniquely_Aligned","_uniqAligned_cutoff",lower_status_strategy),
         ("Percent_Exonic","_riboScatter_cutoff",lower_status_strategy),
-        ("Num_Uniquely_Aligned_rRNA","_riboScatter_cutoff",upper_status_strategy), # HOLD UNTIL I FIX THE ISSUES WITH RIBO Pretty sure this is fixed actually
+        ("Num_Uniquely_Aligned_rRNA","_riboScatter_cutoff",upper_status_strategy), 
         ("Percent_Overrepresented_Seq_Trimmed","_violin_cutoff_overrep_trimmed",upper_status_strategy),
         ("Percent_Adapter_Content_Trimmed","_violin_cutoff_adapter_trimmed",upper_status_strategy)]
     if _figinfo["_hist_exists"]:
@@ -573,7 +571,6 @@ def mkQC_heatmap_data(_userDf, _figinfo):
         
             if column == "Num_Uniquely_Aligned_rRNA":
                 test_value = _userDf.iloc[_tuple.Index][column] / _userDf.iloc[_tuple.Index]["Num_Uniquely_Aligned"]
-                print("rRNA test value is",test_value)
             else:
                 test_value = _userDf.iloc[_tuple.Index][column]
 
@@ -591,19 +588,45 @@ def mkQC_heatmap(heatmap_data):
 
     take input from mkQC_heatmap_data as input
     """
+
+    # get how many rows there are
+    numrows, numcols= heatmap_data.shape
+    cellwidth = .25
+    cellheight = .1
+
+    fig_width = numcols * cellwidth
+    fig_height= numrows * cellheight
+
+    page_height = 5
+    page_width = 6.3
     colors = ["grey","goldenrod","red"]
     cm = matplotlib.colors.ListedColormap(colors)
     sample_names = heatmap_data.Sample
     heatmap_data = heatmap_data.drop("Sample",axis = 1)
-    fig2,ax = plt.subplots()
+    fig2,ax = plt.subplots(figsize=(page_width, page_height))
     fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')  
     seaborn.heatmap(heatmap_data.values,ax=ax,
                     xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
                                   "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
                                  "# Detected Genes","Gene Body Coverage"],
                     yticklabels=sample_names,
-                    cmap = cm)
+                    cmap = cm,
+                    cbar_kws = {'aspect': 2,
+                                'shrink' : 2,
+                                'pad' : .025})
     # change y-axis tick label font size
+
+
+        
+    width_padding = (1 - fig_width / page_width) / 2 
+    height_padding = (1 - fig_height / page_height) / 2 
+    print(width_padding, height_padding)
+    fig2.subplots_adjust(left=  width_padding,
+                        right= 1 -  width_padding,
+                        top= 1 - height_padding,
+                        bottom= height_padding)
+
+
     ax.set_yticklabels(ax.get_yticklabels(), fontsize = 5)
     # change x-axis tick label font size
     ax.set_xticklabels(ax.get_xticklabels(), fontsize = 5)
@@ -618,7 +641,7 @@ def mkQC_heatmap(heatmap_data):
     ax.collections[0].colorbar.ax.tick_params(labelsize=5)
     cbar.set_ticklabels(['Passed', 'Warned', 'Failed'])
 
-    plt.subplots_adjust(left=0.3, bottom=0.3, right=0.7, top=0.8)
+#    plt.subplots_adjust(left=0.3, bottom=0.3, right=0.7, top=0.8)
     
     return fig2
 
@@ -648,7 +671,7 @@ class AbstractHistPlotter(ABC):
     def AddHist(self):
 
         _bins = make_bins(self.BgdVals,self.UserVals,self.FigInfo["_bin_num"])
-        
+ 
         _lib_mean = self.UserVals.mean()
         _current_sample = self.UserVals[self.IpTuple.Index]
 
@@ -658,18 +681,19 @@ class AbstractHistPlotter(ABC):
                  edgecolor="lightgray")
 
         axis1 = axis.twinx()
-        sns.kdeplot(self.BgdVals,ax=axis1, color='black', lw=0.5) 
+        sns.kdeplot(self.BgdVals,ax=axis1, color='black', lw=0.5,bw_adjust = .5) 
         # set limits
         _xmin,_xmax = self.BgdVals.agg(["min","max"])
         axis.set_xlim(_xmin,_xmax)
         axis = set_ticks(axis,self.FigInfo["_tick_size"])
 
+        axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
+        axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
         axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(self.Formatter))
 
         axis.set_title(self.PlotTitle,fontsize = self.FigInfo["_title_size"])
         axis.set_xlabel(self.XAxisTitle, labelpad=1, fontsize= self.FigInfo["_label_size"])
 
-        axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         axis.set_ylabel('Frequency', labelpad=2, fontsize= self.FigInfo["_label_size"])
 
         axis = adjust_flag(axis,_current_sample,_lib_mean,self.Formatter)
@@ -742,6 +766,8 @@ class ExonMappingPlotter(AbstractHistPlotter):
 
 #### Plot 5: rRNA Scatter ####
 def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
+    _ax = plt.subplot(_figinfo["_subplot_rows"], 2, _pos)
+
     _plotter_df = pd.concat([_background_df, _userDf],sort = True)
 
     # Assign color for current project's library (all samples in the current project)
@@ -750,7 +776,6 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     # Assign separate color for current sample on each page
     _plotter_df.loc[_plotter_df["Sample"] == _in_tup[1], "scatter_color"] = _figinfo["_curr_sample_color"]
 
-    _ax = plt.subplot(_figinfo["_subplot_rows"], 2, _pos)
 
 
     ## Regression line (gradient slope)
@@ -760,53 +785,108 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     linear_regressor.fit(X, Y)
     Y_pred = linear_regressor.predict(X)
 
-    _ax.plot(X, Y_pred, c='black', linewidth=0.7, linestyle='-', alpha=1)
-    _ax.scatter(x=_plotter_df['Num_Uniquely_Aligned'], y=_plotter_df['Num_Uniquely_Aligned_rRNA'], s=0.8, c=_plotter_df["scatter_color"])
+    _ax.plot(X,
+             Y_pred,    
+             c='black',
+             linewidth=0.7,
+             linestyle='-',
+             alpha=1)
+    _ax.scatter(x=_plotter_df['Num_Uniquely_Aligned'],
+                y=_plotter_df['Num_Uniquely_Aligned_rRNA'],     
+                s=0.8,
+                c=_plotter_df["scatter_color"])
 
     #separate scatter call for the sample so it can have a nique size and shape
     _intupdf = _plotter_df.loc[_plotter_df["Sample"] == _in_tup[1]]
-    _ax.scatter(x=_intupdf['Num_Uniquely_Aligned'], y=_intupdf['Num_Uniquely_Aligned_rRNA'],marker = "*", s=20, c=_intupdf["scatter_color"])
-    _ax.set_title("Ribosomal RNA", fontsize= _figinfo["_title_size"])
-    _ax = set_ticks(_ax,_figinfo["_tick_size"])
+    _ax.scatter(x      =_intupdf['Num_Uniquely_Aligned'], 
+                y      =_intupdf['Num_Uniquely_Aligned_rRNA'],
+                marker = "*", 
+                s      =20, 
+                c      =_intupdf["scatter_color"])
 
-    _ax.set_xlabel("Total Uniquely Aligned Reads (Millions)", fontsize= _figinfo["_label_size"], labelpad=2)
-    _ax.set_ylabel("Aligned rRNA Reads (Millions)", fontsize= _figinfo["_label_size"], labelpad=2)
+    _ax.set_title("Ribosomal RNA", 
+                  fontsize = _figinfo["_title_size"])
+    _ax = set_ticks(_ax,
+                    _figinfo["_tick_size"])
 
-    x_bottom, x_top = plt.xlim()
-    y_bottom, y_top = plt.ylim()
+    _ax.set_xlabel("Total Uniquely Aligned Reads", 
+                   fontsize= _figinfo["_label_size"],
+                   labelpad =2)
+
+    _ax.set_ylabel("Aligned rRNA Reads",
+                   fontsize= _figinfo["_label_size"], 
+                   labelpad= 2)
 
     # Plotting the ratio line 
-    _slope_current = float(_in_tup[7] / _in_tup[4])
+    _slope_current = float(_in_tup[7] / _in_tup[4]) # Make it so this doesn't use relative values?
 
     xmin, xmax = _ax.get_xlim()
     line_x0 = 0
-    line_x1 = xmax
-
     line_y0 = 0
-    line_y1_warn = _figinfo["_warn_cutoffs"]["_riboScatter_cutoff"] * (line_x1 - line_x0) + line_y0
-    line_y1_fail = _figinfo["_fail_cutoffs"]["_riboScatter_cutoff"] * (line_x1 - line_x0) + line_y0
 
-    _ax.plot([line_x0, line_x1], [line_y0, line_y1_warn], c=_figinfo["_warn_color"], linewidth=1, linestyle='--', alpha=0.3, label="Warn")
-    _ax.plot([line_x0, line_x1], [line_y0, line_y1_fail], c=_figinfo["_fail_color"], linewidth=1, linestyle='--', alpha=0.3, label="Fail")
+    line_y1_warn = _figinfo["_warn_cutoffs"]["_riboScatter_cutoff"] * (xmax - line_x0) + line_y0
+    line_y1_fail = _figinfo["_fail_cutoffs"]["_riboScatter_cutoff"] * (xmax - line_x0) + line_y0
+
+    _ax.plot([line_x0, 
+              xmax],
+             [line_y0, 
+              line_y1_warn],
+             c         =_figinfo["_warn_color"], 
+             linewidth = 1, 
+             linestyle = '--', 
+             alpha     = 0.3, 
+             label     = "Warn")
+    _ax.plot([line_x0,
+              xmax],
+             [line_y0,
+              line_y1_fail],
+             c=_figinfo["_fail_color"],
+             linewidth = 1,
+             linestyle = '--',
+             alpha     = 0.3,
+             label     = "Fail")
 
     # Set axes margins for padding on both axes
     _ax.margins(0.01)
 
-    _ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(2500000))
-    _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
+    _ax.set_aspect('auto', 
+                   adjustable = 'box', 
+                   anchor     = 'SW')
 
-    #_ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(2500000))
-    _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
+    _historic_data = matplotlib.lines.Line2D([0],
+                                             [0],
+                                             color           = 'w',
+                                             markerfacecolor = 'darkgray',
+                                             marker          = 'o',
+                                             linewidth       = 1,
+                                             markersize      = 3.5)
+    _curr_lib = matplotlib.lines.Line2D([0],
+                                        [0],
+                                        color           = 'w',
+                                        markerfacecolor = 'indigo',
+                                        marker          = 'o',
+                                        linewidth       = 1,
+                                        markersize      = 3.5)
 
-    _ax.set_aspect('auto', adjustable='box', anchor='SW')
+    _regression_gradient = matplotlib.lines.Line2D([0],
+                                                   [0],
+                                                   color     = 'black',
+                                                   linewidth = .6)
 
-    _historic_data = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='darkgray', marker='o', linewidth=1, markersize=3.5)
-    _curr_lib = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor='indigo', marker='o', linewidth=1, markersize=3.5)
-    _regression_gradient = matplotlib.lines.Line2D([0], [0], color='black', linewidth=0.6)
-    _curr_samp = matplotlib.lines.Line2D([0], [0], color='w', markerfacecolor=_figinfo["_curr_sample_color"], marker='*', linewidth=1, markersize=6)
-    _mean_label = mpatches.Patch(color='black', label='Mean Slope')   
-    _fail_label = mpatches.Patch(color=_figinfo["_fail_color"], label='Fail Cutoff')   
-    _warn_label=  mpatches.Patch(color=_figinfo["_warn_color"], label='Warn Cutoff')    
+    _curr_samp = matplotlib.lines.Line2D([0],
+                                         [0],
+                                         color           = 'w',
+                                         markerfacecolor = _figinfo["_curr_sample_color"],
+                                         marker          = '*',
+                                         linewidth       = 1,
+                                         markersize      = 6)
+
+    _mean_label = mpatches.Patch(color = 'black',
+                                 label = 'Mean Slope')   
+    _fail_label = mpatches.Patch(color = _figinfo["_fail_color"],
+                                 label = 'Fail Cutoff')   
+    _warn_label = mpatches.Patch(color = _figinfo["_warn_color"],
+                                 label = 'Warn Cutoff')    
     _ax.legend([_curr_samp,
                     _curr_lib,
                     _fail_label,
@@ -817,13 +897,17 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
                     "Fail (" + "{:.0%}".format(_figinfo["_fail_cutoffs"]["_riboScatter_cutoff"])  + ")",
                     "Warn (" + "{:.0%}".format(_figinfo["_warn_cutoffs"]["_riboScatter_cutoff"]) + ")",
                     "Mean rRNA/Aligned Reads (" + "{:.0%}".format(_slope_current) + ")"],
-                loc='upper left',
-                frameon=False,
-                fontsize=_figinfo["_legend_size"])
+                loc      = 'upper left',
+                frameon  = False,
+                fontsize = _figinfo["_legend_size"])
 
     _ax = mk_axes(_ax) 
-    _ax = needs_fail_or_warn(_ax,_slope_current,_figinfo,"_riboScatter_cutoff","upper")
-   
+    _ax = needs_fail_or_warn(_ax,
+                             _slope_current,
+                             _figinfo,
+                             "_riboScatter_cutoff",
+                             "upper")
+ 
     return _f
 
 #### Plot 6: Sequence Contamination - Violin Plot ####
@@ -980,45 +1064,98 @@ def plotGC(_ipTuple, _coverage_df, _position,_figinfo,_fig=None):
     _mean_df['gc_mean'] = _coverage_df.median(axis=1)
 
     # acquire the pvalue information from the _figinfo object
-    _ks_pvals = _figinfo['_gbc_pvals']
-    _ks_pval  = _ks_pvals[_ipTuple[0]]
-    # Calculate Confidence Interval for the mean GC line
-
+    _ks_pval = _figinfo['_gbc_pvals'][_ipTuple[0]]
 
     # Plot current sample with library mean
     _x = np.arange(1, 101, 1)
 
 
-    _axis.plot(_x, _coverage_df, color="lightgray",alpha = .4, linewidth=0.5, linestyle='-')
-    _axis.plot(_x, _coverage_df[_ipTuple[1]], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-')
-    _axis.plot(_x, _mean_df['gc_mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8)
-    
+    _axis.plot(_x, 
+               _coverage_df, 
+               color     = "lightgray",
+               alpha     = .4,
+               linewidth = 0.5,
+               linestyle = '-')
+    _axis.plot(_x,
+               _coverage_df[_ipTuple[1]],
+               color     = _figinfo["_curr_sample_color"],
+               linewidth = 0.5,
+               linestyle = '-')
+    _axis.plot(_x, 
+               _mean_df['gc_mean'],
+               color     = 'indigo',
+               linewidth = 0.5,
+               linestyle = '--',
+               alpha     = 0.8)
+                    
 
     # Calculate 95% interval for each position
     _err = _coverage_df.std(axis=1)*2
-    _axis.fill_between(_x, _mean_df['gc_mean'] - _err, _mean_df['gc_mean'] + _err, facecolor='yellow', alpha=0.5)
+    _axis.fill_between(_x,
+                       _mean_df['gc_mean'] - _err,
+                       _mean_df['gc_mean'] + _err,
+                       facecolor = 'yellow',
+                       alpha     =  0.5)
 
-    _axis = set_ticks(_axis,_figinfo["_tick_size"])
+    _axis = set_ticks(_axis,
+                      _figinfo["_tick_size"])
 
     _axis.set_xlim(0, 105)
 
-    _axis.set_title("GeneBody Coverage", fontsize=_figinfo["_title_size"])
-    _axis.set_xlabel("Gene Percentile (5' " + u"\u2192" + " 3')", fontsize=_figinfo["_label_size"])
-    _axis.set_ylabel("Read Density", fontsize=_figinfo["_label_size"])
+    _axis.set_title("GeneBody Coverage", 
+                    fontsize = _figinfo["_title_size"])
+    _axis.set_xlabel("Gene Percentile (5' " + u"\u2192" + " 3')",
+                     fontsize = _figinfo["_label_size"])
+    _axis.set_ylabel("Read Density",
+                     fontsize = _figinfo["_label_size"])
     
     # make the symbols for the legend
-    _current_sample_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
-    _background_lines = matplotlib.lines.Line2D([0], [0], color="lightgray", linewidth=0.5, linestyle='-', alpha=0.6)
-    _library_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
-    _extra_ksPval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None', linewidth=0)
+    _current_sample_line = matplotlib.lines.Line2D([0],
+                                                   [0],
+                                                   color     = _figinfo["_curr_sample_color"],
+                                                   linewidth = 0.5,
+                                                   linestyle = '-',
+                                                   alpha     = 0.8)
+    _background_lines = matplotlib.lines.Line2D([0], 
+                                                [0],
+                                                color     = "lightgray",
+                                                linewidth = 0.5,
+                                                linestyle = '-', 
+                                                alpha     = 0.6)
+    _library_line = matplotlib.lines.Line2D([0],
+                                            [0],
+                                            color     = "indigo",
+                                            linewidth =0.5,
+                                            linestyle ='--',
+                                            alpha     =0.8)
+    Pval = matplotlib.patches.Rectangle((0, 0),
+                                        1,
+                                        1,
+                                        facecolor = 'w',
+                                        fill      = False, 
+                                        edgecolor = 'None',
+                                        linewidth = 0)
 
-    _axis.legend([_current_sample_line, _library_line,_background_lines, _extra_ksPval],
-                 ["Current Sample", "Batch Mean",
-                 "Batch Samples",  "KS Pvalue: " + str(round(_ks_pval, 3))],
-                 loc='lower center', frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
+    _axis.legend([_current_sample_line, 
+                  _library_line,
+                  _background_lines,
+                  Pval],
+                 ["Current Sample",
+                  "Batch Mean",
+                  "Batch Samples",
+                  "KS Pvalue: " + str(round(_ks_pval,
+                                            3))],
+                 loc      = 'lower center', 
+                 frameon  = False,
+                 fontsize = _figinfo["_legend_size"],
+                 ncol     = 1)
 
     _axis = mk_axes(_axis)
-    _axis = needs_fail_or_warn(_axis,_ks_pval,_figinfo,"_alpha","lower")
+    _axis = needs_fail_or_warn(_axis,
+                               _ks_pval,
+                               _figinfo,
+                               "_alpha",
+                               "lower")
 
     return _fig
 

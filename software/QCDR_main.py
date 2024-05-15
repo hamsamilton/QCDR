@@ -1,3 +1,5 @@
+import cProfile
+import pstats
 import matplotlib
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
@@ -31,7 +33,9 @@ from statsmodels.stats.weightstats import ztest
 '''RetroPlotter caller function for reading data and passing it to individual plotters. Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions'''
 
 def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file):
-    
+
+
+
      # Read input file and load USER data
     _user_df = pd.read_csv(_input_file, sep=",")
  
@@ -232,7 +236,8 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
 
 if __name__ == "__main__":
-    
+    profiler = cProfile.Profile()
+    profiler.enable()
     ### Run RetroParser to take input using commandline arguments (USER Input)
     parser = argparse.ArgumentParser(description="RetroPlotter Argument Parser")
 
@@ -254,9 +259,9 @@ if __name__ == "__main__":
     parser.add_argument("-ctf", "--cutoffs", required=False, default = False,help="[OPTIONAL] Provide optional cutoffs for warn fail cutoffs.\n -ctf [CUTOFF_PATH],\t --cutoff [CUTOFF_PATH] \n")
 
     parser.add_argument("-fla", "--failalpha", required=False, default = .05,help="[OPTIONAL] Provide an alpha cutoff for failure.\n -fla [FAIL_ALPHA],\t--fail-alpha [FAIL_ALPHA]\n") 
-    
+
     parser.add_argument("-wrna", "--warnalpha", required=False,type=float, default = .1,help="[OPTIONAL] Provide an alpha cutoff for warn.\n -wrna [WARN_ALPHA],\t--warnalpha [WARN_ALPHA]\n")
- 
+
     args = parser.parse_args()
 
     _ip_filename     = args.input_filename
@@ -267,13 +272,18 @@ if __name__ == "__main__":
     _cutoff_filename = args.cutoffs
     _fail_alpha      = float(args.failalpha)
     _warn_alpha      = float(args.warnalpha)    
-   
+
     print(f"Input File : {_ip_filename}")
     print(f"Output File : {_op_filename}")
     print(f"Background File : {_bgd_filename}")
     print(f"cutoffs_provided : {_cutoff_filename}")
     print(f"failalpha : {_fail_alpha}")
     print(f"warnalpha : {_warn_alpha}")
-    
+
     retroPlotter_main(_ip_filename, _op_filename, _bgd_filename,_gc_file,_hist_file)
 
+    profiler.disable()
+
+    ps = pstats.Stats(profiler,stream=sys.stdout).sort_stats('cumulative')
+    ps.print_stats(20)
+    print('DOne')

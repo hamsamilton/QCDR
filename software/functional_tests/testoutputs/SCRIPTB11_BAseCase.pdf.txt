@@ -1,8 +1,8 @@
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:967: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1050: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:967: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1050: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:967: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1050: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
 Input File : /projects/b1063/Gaurav/QCDR/data/SCRIPT/SCRIPT_B11stats.csv
 Output File : /projects/b1063/Gaurav/QCDR/software/functional_tests/testoutputs/SCRIPTB11_BAseCase.pdf
@@ -10,32 +10,34 @@ Background File : ../../data/SCRIPT/SCRIPT_stats_allbatches.csv
 cutoffs_provided : False
 failalpha : 0.05
 warnalpha : 0.1
-{'% Exonic Reads / Aligned Reads', 'Project', '# rRNA Reads', '# Uniquely Aligned Reads', 'Sample', '% Overrepresented Sequences (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch', '% Adapter Content (Post-trim)', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', 'Sequencing Depth'}
-{'% Exonic Reads / Aligned Reads', 'Project', '# rRNA Reads', '# Uniquely Aligned Reads', '% Uniquely Aligned Reads', 'Sample', '% Overrepresented Sequences (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch', '% Adapter Content (Post-trim)', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', 'Sequencing Depth'}
-{'% Exonic Reads / Aligned Reads', 'Project', '# rRNA Reads', '# Uniquely Aligned Reads', 'Sample', '% Overrepresented Sequences (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch', '% Adapter Content (Post-trim)', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', 'Sequencing Depth'}
-{'% Exonic Reads / Aligned Reads', 'Project', '# rRNA Reads', '# Uniquely Aligned Reads', '% Uniquely Aligned Reads', 'Sample', '% Overrepresented Sequences (Pre-trim)', '% Overrepresented Sequences (Post-trim)', 'Batch', '% Adapter Content (Post-trim)', '% of Reads After Trimming', '% Adapter Content (Pre-trim)', 'Sequencing Depth'}
-rRNA test value is 0.2224429509831095
-rRNA test value is 0.12967478916431116
-rRNA test value is 0.15396499825768553
-rRNA test value is 0.162250984620337
-rRNA test value is 0.16133678007750676
-rRNA test value is 0.15528470082005869
-rRNA test value is 0.16049074169607755
-rRNA test value is 0.1160531461036243
-rRNA test value is 0.11604796634125357
-rRNA test value is 0.09477015422598994
-rRNA test value is 0.1663998842121341
-rRNA test value is 0.13535695719428384
-rRNA test value is 0.11668869750494067
-rRNA test value is 0.12456004969737355
-rRNA test value is 0.1530021653519575
-rRNA test value is 0.11442187565679214
-rRNA test value is 0.12827206314465514
-rRNA test value is 0.0537525444958378
-rRNA test value is 0.0378312171924604
-rRNA test value is 0.11410293298581498
-rRNA test value is 0.07738338540044551
-rRNA test value is 0.08184833042703887
-rRNA test value is 0.08482101858918885
-rRNA test value is 0.037057052977961545
-rRNA test value is 0.1193022973645785
+0.30158730158730157 0.3
+0.30158730158730157 0.45
+         53988409 function calls (52573437 primitive calls) in 79.137 seconds
+
+   Ordered by: cumulative time
+   List reduced from 3622 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.007    0.007   79.181   79.181 /projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py:35(retroPlotter_main)
+      100    0.010    0.000   38.294    0.383 /projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:670(AddHist)
+      100    0.004    0.000   21.511    0.215 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:1597(kdeplot)
+      100    0.007    0.000   21.081    0.211 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:901(plot_univariate_density)
+     2906    0.207    0.000   19.837    0.007 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1257(_update_ticks)
+5846/4596    0.044    0.000   19.467    0.004 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py:73(wrapper)
+      908    0.001    0.000   18.217    0.020 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1427(get_ticklabels)
+      908    0.004    0.000   18.215    0.020 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1411(get_majorticklabels)
+       25    0.007    0.000   16.583    0.663 /projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:913(plotViolin_dualAxis)
+       28    0.000    0.000   15.537    0.555 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backends/backend_pdf.py:2749(savefig)
+       28    0.000    0.000   15.536    0.555 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3220(savefig)
+       28    0.001    0.000   15.535    0.555 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2241(print_figure)
+       30    0.000    0.000   15.522    0.517 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:93(draw_wrapper)
+ 28421/30    0.162    0.000   15.522    0.517 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:54(draw_wrapper)
+       30    0.001    0.000   15.521    0.517 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3120(draw)
+   388/30    0.012    0.000   15.483    0.516 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/image.py:113(_draw_list_compositing_images)
+       30    0.000    0.000   15.448    0.515 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2232(<lambda>)
+       30    0.001    0.000   15.448    0.515 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backends/backend_pdf.py:2799(print_pdf)
+      358    0.007    0.000   15.389    0.043 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py:2999(draw)
+      200    0.004    0.000   14.238    0.071 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/_oldcore.py:1321(_add_axis_labels)
+
+
+DOne
