@@ -616,16 +616,13 @@ def mkQC_heatmap(heatmap_data):
                                 'pad' : .025})
     # change y-axis tick label font size
 
-
-        
-    width_padding = (1 - fig_width / page_width) / 2 
-    height_padding = (1 - fig_height / page_height) / 2 
+    width_padding = (1 - fig_width / page_width) / 2
+    height_padding = (1 - fig_height / page_height) / 2
     print(width_padding, height_padding)
     fig2.subplots_adjust(left=  width_padding,
                         right= 1 -  width_padding,
                         top= 1 - height_padding,
                         bottom= height_padding)
-
 
     ax.set_yticklabels(ax.get_yticklabels(), fontsize = 5)
     # change x-axis tick label font size
@@ -642,7 +639,7 @@ def mkQC_heatmap(heatmap_data):
     cbar.set_ticklabels(['Passed', 'Warned', 'Failed'])
 
 #    plt.subplots_adjust(left=0.3, bottom=0.3, right=0.7, top=0.8)
-    
+
     return fig2
 
 
@@ -766,17 +763,19 @@ class ExonMappingPlotter(AbstractHistPlotter):
 
 #### Plot 5: rRNA Scatter ####
 def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
+
     _ax = plt.subplot(_figinfo["_subplot_rows"], 2, _pos)
 
-    _plotter_df = pd.concat([_background_df, _userDf],sort = True)
+    _plotter_df = pd.concat([_background_df, _userDf],
+                            sort = True)
 
     # Assign color for current project's library (all samples in the current project)
-    _plotter_df["scatter_color"] = np.where(_plotter_df["Sample"].isin(_userDf["Sample"]), "indigo", "lightgray")
+    _plotter_df["scatter_color"] = np.where(_plotter_df["Sample"].isin(_userDf["Sample"]),
+                                            "indigo",
+                                            "lightgray")
 
     # Assign separate color for current sample on each page
     _plotter_df.loc[_plotter_df["Sample"] == _in_tup[1], "scatter_color"] = _figinfo["_curr_sample_color"]
-
-
 
     ## Regression line (gradient slope)
     X = _plotter_df.loc[:, "Num_Uniquely_Aligned"].values.reshape(-1, 1)
@@ -786,35 +785,38 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     Y_pred = linear_regressor.predict(X)
 
     _ax.plot(X,
-             Y_pred,    
+             Y_pred,
              c='black',
              linewidth=0.7,
              linestyle='-',
              alpha=1)
+
     _ax.scatter(x=_plotter_df['Num_Uniquely_Aligned'],
-                y=_plotter_df['Num_Uniquely_Aligned_rRNA'],     
+                y=_plotter_df['Num_Uniquely_Aligned_rRNA'],
                 s=0.8,
                 c=_plotter_df["scatter_color"])
 
     #separate scatter call for the sample so it can have a nique size and shape
     _intupdf = _plotter_df.loc[_plotter_df["Sample"] == _in_tup[1]]
-    _ax.scatter(x      =_intupdf['Num_Uniquely_Aligned'], 
+    _ax.scatter(x      =_intupdf['Num_Uniquely_Aligned'],
                 y      =_intupdf['Num_Uniquely_Aligned_rRNA'],
-                marker = "*", 
-                s      =20, 
+                marker = "*",
+                s      =20,
                 c      =_intupdf["scatter_color"])
 
-    _ax.set_title("Ribosomal RNA", 
+    _ax.set_title("Ribosomal RNA",
                   fontsize = _figinfo["_title_size"])
     _ax = set_ticks(_ax,
                     _figinfo["_tick_size"])
 
-    _ax.set_xlabel("Total Uniquely Aligned Reads", 
+    _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
+    _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
+    _ax.set_xlabel("Total Uniquely Aligned Reads",
                    fontsize= _figinfo["_label_size"],
                    labelpad =2)
 
     _ax.set_ylabel("Aligned rRNA Reads",
-                   fontsize= _figinfo["_label_size"], 
+                   fontsize= _figinfo["_label_size"],
                    labelpad= 2)
 
     # Plotting the ratio line 
@@ -827,14 +829,14 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     line_y1_warn = _figinfo["_warn_cutoffs"]["_riboScatter_cutoff"] * (xmax - line_x0) + line_y0
     line_y1_fail = _figinfo["_fail_cutoffs"]["_riboScatter_cutoff"] * (xmax - line_x0) + line_y0
 
-    _ax.plot([line_x0, 
+    _ax.plot([line_x0,
               xmax],
-             [line_y0, 
+             [line_y0,
               line_y1_warn],
-             c         =_figinfo["_warn_color"], 
-             linewidth = 1, 
-             linestyle = '--', 
-             alpha     = 0.3, 
+             c         =_figinfo["_warn_color"],
+             linewidth = 1,
+             linestyle = '--',
+             alpha     = 0.3,
              label     = "Warn")
     _ax.plot([line_x0,
               xmax],
@@ -845,7 +847,6 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
              linestyle = '--',
              alpha     = 0.3,
              label     = "Fail")
-
     # Set axes margins for padding on both axes
     _ax.margins(0.01)
 
@@ -882,17 +883,18 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
                                          markersize      = 6)
 
     _mean_label = mpatches.Patch(color = 'black',
-                                 label = 'Mean Slope')   
+                                 label = 'Mean Slope')
     _fail_label = mpatches.Patch(color = _figinfo["_fail_color"],
-                                 label = 'Fail Cutoff')   
+                                 label = 'Fail Cutoff')
     _warn_label = mpatches.Patch(color = _figinfo["_warn_color"],
-                                 label = 'Warn Cutoff')    
+                                 label = 'Warn Cutoff')
+
     _ax.legend([_curr_samp,
                     _curr_lib,
                     _fail_label,
                     _warn_label,
                     _mean_label],
-                ["Current Sample", 
+                ["Current Sample",
                     "Batch Samples",
                     "Fail (" + "{:.0%}".format(_figinfo["_fail_cutoffs"]["_riboScatter_cutoff"])  + ")",
                     "Warn (" + "{:.0%}".format(_figinfo["_warn_cutoffs"]["_riboScatter_cutoff"]) + ")",
@@ -901,13 +903,13 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
                 frameon  = False,
                 fontsize = _figinfo["_legend_size"])
 
-    _ax = mk_axes(_ax) 
+    _ax = mk_axes(_ax)
     _ax = needs_fail_or_warn(_ax,
                              _slope_current,
                              _figinfo,
                              "_riboScatter_cutoff",
                              "upper")
- 
+
     return _f
 
 #### Plot 6: Sequence Contamination - Violin Plot ####

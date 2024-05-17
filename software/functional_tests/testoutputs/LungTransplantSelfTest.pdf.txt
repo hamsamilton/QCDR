@@ -1,8 +1,8 @@
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1025: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1051: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1025: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1051: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1025: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1051: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
 Input File : /projects/b1063/Gaurav/QCDR/data/LungTransplant/LungTransplantStats.csv
 Output File : /projects/b1063/Gaurav/QCDR/software/functional_tests/testoutputs/LungTransplantSelfTest.pdf
@@ -10,41 +10,34 @@ Background File : ../../data/LungTransplant/LungTransplantStats.csv
 cutoffs_provided : False
 failalpha : 0.05
 warnalpha : 0.1
-rRNA test value is 0.03171814564556816
-rRNA test value is 0.028964743228183574
-rRNA test value is 0.022376461297931947
-rRNA test value is 0.028996221745540555
-rRNA test value is 0.030641613770397345
-rRNA test value is 0.023312693771591956
-rRNA test value is 0.01932340566884518
-rRNA test value is 0.036842956835065284
-rRNA test value is 0.02165367804062783
-rRNA test value is 0.025091201910918796
-rRNA test value is 0.026705590916002483
-rRNA test value is 0.04116961918015989
-rRNA test value is 0.02386216402275965
-rRNA test value is 0.031105291128016466
-rRNA test value is 0.026507635428241298
-rRNA test value is 0.033797833844742345
-rRNA test value is 0.03343788033531377
-rRNA test value is 0.03548334860732847
-rRNA test value is 0.031141123316118575
-rRNA test value is 0.02932782137166219
-rRNA test value is 0.029068347075017688
-rRNA test value is 0.02294351832471601
-rRNA test value is 0.024857435502695563
-rRNA test value is 0.02073498591317286
-rRNA test value is 0.02444849820159343
-rRNA test value is 0.02885902531355228
-rRNA test value is 0.03201610777707513
-rRNA test value is 0.0767465488277671
-rRNA test value is 0.020590759205293397
-rRNA test value is 0.026431525635166448
-rRNA test value is 0.023729884886884347
-rRNA test value is 0.02189948280434931
-rRNA test value is 0.021515251661994878
-rRNA test value is 0.018043046539304095
-rRNA test value is 0.017018803081330594
-rRNA test value is 0.02375768576374288
-rRNA test value is 0.018971337887581517
-rRNA test value is 0.02635969687690281
+0.30158730158730157 0.3
+0.30158730158730157 0.32
+         79364395 function calls (77284203 primitive calls) in 117.781 seconds
+
+   Ordered by: cumulative time
+   List reduced from 3620 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.009    0.009  117.904  117.904 /projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py:35(retroPlotter_main)
+      152    0.016    0.000   60.535    0.398 /projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:668(AddHist)
+     4274    0.194    0.000   39.284    0.009 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1257(_update_ticks)
+8862/6962    0.111    0.000   39.006    0.006 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py:73(wrapper)
+     1376    0.002    0.000   36.487    0.027 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1427(get_ticklabels)
+     1376    0.008    0.000   36.484    0.027 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1411(get_majorticklabels)
+      152    0.008    0.000   33.022    0.217 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:1597(kdeplot)
+     5934    0.115    0.000   32.446    0.005 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1595(get_major_ticks)
+      152    0.011    0.000   32.315    0.213 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:901(plot_univariate_density)
+      304    0.007    0.000   30.293    0.100 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/_oldcore.py:1321(_add_axis_labels)
+       41    0.001    0.000   26.835    0.655 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backends/backend_pdf.py:2749(savefig)
+       41    0.001    0.000   26.834    0.654 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3220(savefig)
+       41    0.002    0.000   26.833    0.654 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2241(print_figure)
+       43    0.000    0.000   26.795    0.623 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:93(draw_wrapper)
+ 42773/43    0.295    0.000   26.794    0.623 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:54(draw_wrapper)
+       43    0.001    0.000   26.794    0.623 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3120(draw)
+   583/43    0.021    0.000   26.729    0.622 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/image.py:113(_draw_list_compositing_images)
+       43    0.000    0.000   26.686    0.621 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2232(<lambda>)
+       43    0.001    0.000   26.686    0.621 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backends/backend_pdf.py:2799(print_pdf)
+      540    0.012    0.000   26.441    0.049 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py:2999(draw)
+
+
+DOne

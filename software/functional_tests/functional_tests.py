@@ -36,9 +36,17 @@ class PyTestSuite:
 
     def ConstructCommands(self):
         "Construct the commands for QCDR and run them"
-        SCRIPTB11_BaseCase =  {"ip"  :self.SCRIPT_B11,
+
+
+        SCRIPTB11_BaseCase  =  {"ip"  :self.SCRIPT_B11,
                      "out" : "testoutputs/SCRIPTB11_BAseCase.pdf",
                      "bgd" : self.SCRIPT_AllBatches,
+                     "gc"  : self.SCRIPT_B11_GCInfo,
+                     "hist": self.SCRIPT_B11HistData}
+
+        SCRIPTB11_B11BG=  {"ip"  :self.SCRIPT_B11,
+                     "out" : "testoutputs/SCRIPTB11_BAseCase.pdf",
+                     "bgd" : self.SCRIPT_B11,
                      "gc"  : self.SCRIPT_B11_GCInfo,
                      "hist": self.SCRIPT_B11HistData}
 

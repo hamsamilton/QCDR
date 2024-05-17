@@ -34,12 +34,10 @@ from statsmodels.stats.weightstats import ztest
 
 def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file):
 
-
-
      # Read input file and load USER data
     _user_df = pd.read_csv(_input_file, sep=",")
- 
-    input_adaptr=input_adapter(_user_df)   
+
+    input_adaptr=input_adapter(_user_df)
     input_adaptr.adapt_input()
     _user_df = input_adaptr.input_df
     # Add last row in the USER df with current batch's mean values for the final summary page
@@ -76,7 +74,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _subplot_rows = 3
     else:
         _subplot_rows = 4
-    
+
     # create dictionarys to store values in 2 pass 2 helper functions
     _figinfo = {}
     _figinfo["_fail_color"]        = "red"
@@ -99,13 +97,13 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
     if _cutoff_filename != False:
         _manual_cutoffs = pd.read_excel(_cutoff_filename)
-        
+
         manual_cutoff_adaptr = manual_cutoff_adapter(_manual_cutoffs)
         manual_cutoff_adaptr.adapt_input()
-        
+
         _man_warn_cutoff_dict = manual_cutoff_adaptr.man_cutoff_df['Warn'].to_dict()
         _man_fail_cutoff_dict = manual_cutoff_adaptr.man_cutoff_df['Fail'].to_dict()
- 
+
         # for cutoffs with unspecified values, replace with the automatically generated cutoffs
 
         repl_missing_values_indict(_man_warn_cutoff_dict,_warn_cutoffs)
@@ -116,18 +114,18 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _warn_cutoffs["_alpha"] = _figinfo["_warn_alpha"]
         _fail_cutoffs["_alpha"] = _figinfo["_fail_alpha"]
     # add cutoff info
-    
+
     _figinfo["_fail_cutoffs"] = _fail_cutoffs
     _figinfo["_warn_cutoffs"] = _warn_cutoffs
-    
+
     # Read Gene Coverage Data
     if _gc_file is not None:
         _gc_df = pd.read_csv(_gc_file).iloc[:,1:]
-        
+
         # Adding the Library Mean column at the end of the GC dataframe
         _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
         gc_KSvals = GC_KSstats(_gc_df)
-        
+
         # Convert GC into KS vals and calculate the distribution to get a pvalue
         _figinfo["_gbc_pvals"] = stats.norm.sf(stats.zscore(GC_KSstats(_gc_df)))
         _user_df["_gbc_pvals"]  = stats.norm.sf(stats.zscore(GC_KSstats(_gc_df)))
@@ -164,9 +162,9 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
     # Open the given PDF output file
     _pdfObj = PdfPages(_output_file)
-   
+
     # Create title page
-    _title_fig = mkTitlePage(_figinfo) 
+    _title_fig = mkTitlePage(_figinfo)
     _pdfObj.savefig(_title_fig)
     plt.close()
 
@@ -206,15 +204,15 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         ExonMapping = ExonMappingPlotter(_tuple, _user_df, _bgd_df,4,_figinfo,fig)
         fig = ExonMapping.Figure
 
-        # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
+ #       # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
         fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_figinfo,fig)
- 
+
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
         fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_figinfo,fig)
 
         # Plotting figure 7: Expression Distribution Plot
         if _hist_file is not None:
-            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,7,_figinfo,fig)           
+            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,7,_figinfo,fig) 
 
         # Plotting figure 8: Gene Body Coverage Plot
         if _gc_file is not None:
@@ -225,7 +223,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                      horizontalalignment='left', verticalalignment='top', fontweight='book',style = 'italic')
         fig.text(s ="Batch : " + _tuple[13], x=0.99, y=0.99, fontsize=6,
                      horizontalalignment='right', verticalalignment='top', fontweight='book',style = 'italic')
-            
+
         plt.subplots_adjust(left = .07,right = .93, bottom = .05, top = .9,hspace=.72, wspace=0.25)
 
         _pdfObj.savefig(fig)
