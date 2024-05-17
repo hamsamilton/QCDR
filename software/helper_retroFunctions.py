@@ -45,7 +45,10 @@ def fmt_million(_x,_pos = None):
 
 def fmt_percent(x,pos = None):
     return f'{x:.0f}%'
- 
+
+def fmt_percent1(x,pos = None):
+    return f'{x:.1f}%'
+
 def fmt(_x, _pos):
     return '{0:.1f}'.format(_x)
 
@@ -54,7 +57,7 @@ class UI_adapter:
     The parent class designed to handle the inputs provided by the user, shape it into the correct format, and return 
     meaningful warnings and errors to avoid downstream confusion
     """
-    
+
     def __init__(self,input_df):
         self.input_df = input_df
 
@@ -63,13 +66,13 @@ class UI_adapter:
 
     def make_mapping_names(self):       
             self.mapping_names = dict(zip(self.human_readable_names,self.input_program_names))
-    
+
     def _validate_column_names(self):
         """Check if the column names of the input DataFrame are included in the input_human_readable_names list"""
         input_columns = set(self.input_df.columns)
         valid_columns = set(self.human_readable_names)
         unrecognized_columns = input_columns.difference(valid_columns)
- 
+
         if unrecognized_columns:
             raise ValueError(f"Unrecognized columns: {', '.join(unrecognized_columns)}")    
 
@@ -101,7 +104,7 @@ class input_adapter(UI_adapter):
     """
     This object is designed to handle the input provided by the user, shape it into the correct format, and return 
     meaningful warnings and errors to avoid downstream confusion
-    
+
     Input: The loaded pd of the input file
     Output:The standardized file expected by the rest of the program, or an error
     """
@@ -200,16 +203,16 @@ def add_warn_fail_markers(_figinfo,ax,cutoff_key):
 
         ax.plot(cutoff,ax.get_ylim()[1] - (18 * plot_scalar), marker='v', ms=0.8, c=clr)
         ax.text(cutoff,ax.get_ylim()[1] - (13 * plot_scalar), txt, fontsize=4, color=clr,
-                 horizontalalignment='center')                                                                  
+                 horizontalalignment='center')
         return ax 
-                                                                                            
+
     plot_scalar = get_axis_range(ax.get_ylim()) / 100
 
     ax = add_vert_marker(ax,_figinfo["_fail_cutoffs"][cutoff_key],plot_scalar,_figinfo["_fail_color"],"Fail")
     ax = add_vert_marker(ax,_figinfo["_warn_cutoffs"][cutoff_key],plot_scalar,_figinfo["_warn_color"],"Warn")
-    
+
     return ax
-   
+
 # This function calculates whether the current sample label orientation needs 
 # to be adjusted and returns the required vars
 def adjust_flag(_ax,_current_sample,_lib_mean,Formatter= fmt_scatter_million):
@@ -244,11 +247,11 @@ def legend_setup_1_6(_ax,_line1,_line2,_figinfo,cutoff_key,_loc,formatter = fmt_
                 loc= _loc,
                 frameon=False,
                 fontsize=_figinfo["_legend_size"])
-    return _ax 
+    return _ax
 
 # the goal of this function is to set which axes of the regular axis and the Kernel density axis 
 def mk_axes(_plt_ax,_kd_ax = None):
-    
+
     for label in (_plt_ax.get_xticklabels() + _plt_ax.get_yticklabels()):
         label.set_fontsize(4)
     # set the plot axis
@@ -262,7 +265,7 @@ def mk_axes(_plt_ax,_kd_ax = None):
     _plt_ax.spines['left'].set_linewidth(0.55)
     _plt_ax.spines['bottom'].set_linewidth(0.55)
     _plt_ax.set_facecolor('white')
-    
+
     if _kd_ax != None: 
         # set the kernel density axis to be invisible 
         _kd_ax.yaxis.set_visible(False)
@@ -313,7 +316,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
 
             self.ax.add_artist(anch_text)
             return None
- 
+
     def insert_flag(ax, cutoff, flag_func):
         if higher_lower == "lower" and current_sample <= cutoff  or higher_lower == "upper" and current_sample >= cutoff:
             flag_func(ax)
@@ -321,7 +324,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
     flag_inserter = FlagInserter()
     insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
     insert_flag(ax, flag_inserter.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
-    
+
     return ax
 
 # The goal of this function is to return the upper or/and lower bound of a ci given a vec
@@ -358,7 +361,7 @@ class CutoffCalculator:
         self.calculate_cutoff("Percent_Adapter_Content_Untrimmed", "upper", "_violin_cutoff_adapter_untrimmed")
         self.calculate_cutoff("Percent_Overrepresented_Seq_Trimmed", "upper", "_violin_cutoff_overrep_trimmed")
         self.calculate_cutoff("Percent_Adapter_Content_Trimmed", "upper", "_violin_cutoff_adapter_trimmed")
-        
+
         return self.cutoffs_dict
 
     def calculate_cutoff_ratio(self, column1, column2, upper_lower, cutoff_name):
@@ -389,13 +392,13 @@ def gen_cutoffs(bgd_df, alph):
 def values_to_percentiles(values):
     """
     Convert a vector of values to their associated percentile ranks on a standard normal distribution.
-    
+
     Parameters
     ----------
     values : list or numpy array of float
         A vector of values you want to convert to their associated percentile ranks.
     """
-    
+
     # Convert the input values to a numpy array if not already
     values = np.asarray(values)
 
@@ -415,7 +418,7 @@ def set_ticks(_ax,_tick_size):
     _ax.tick_params(axis='x', which='both', length=1, width=0.5, labelbottom=True, bottom=True, labelsize= _tick_size,
                       direction='out', pad=2)
     _ax.tick_params(axis='y', which='both', length=1, width=0.5, labelsize= _tick_size, labelleft=True, left=True,
-                      direction='out', pad=2)   
+                      direction='out', pad=2)
 
     return _ax
 
@@ -476,20 +479,20 @@ def make_bins(vec1,vec2,num_bins):
 
     plt_min,plt_max = pd.concat([vec1,vec2]).agg(['min','max'])
     bins = np.linspace(plt_min,plt_max, num_bins + 1)
-    
+
     return bins
 
 def mkTitlePage(_figinfo):
 
-    """ 
+    """
     Make QC heatmap data
     The Goal of this function is to calculate a matrix that can be used with matplotlibs heatmap
     function which contains whether a sample passed, failed, or was warned for each test
     """
-    
-    
+
+
     def mk_cutoff_descript(descriptor,cutoff_set):
-        
+
         cutoff_descriptor = (descriptor +': Default alpha =' + str(cutoff_set["_alpha"])  +
                                 '| Sequencing Depth = ' + '{:.3f}'.format(cutoff_set["_ipReads_cutoff"],3) +
                                 '| Trimming = ' + '{:.3f}'.format(cutoff_set["_trimmedReads_cutoff"],3) +  
@@ -500,7 +503,7 @@ def mkTitlePage(_figinfo):
                                 '| Overrep. Seq  Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_overrep_trimmed"],3) + 
                                 '| Gene Body Coverage = ' + str(cutoff_set["_alpha"]) + 
                                 '| Detected Genes = ' + str(cutoff_set["_numGene_cutoff"]))
-        return(cutoff_descriptor)  
+        return(cutoff_descriptor)
 
     fig = plt.figure()
 
@@ -576,7 +579,7 @@ def mkQC_heatmap_data(_userDf, _figinfo):
 
             warn_value = _figinfo["_warn_cutoffs"][key]
             fail_value = _figinfo["_fail_cutoffs"][key]
-            
+
             _htmat[_tuple.Index, i] = strategy.compute_status(test_value, warn_value, fail_value)
 
     return _htmat
@@ -668,7 +671,7 @@ class AbstractHistPlotter(ABC):
     def AddHist(self):
 
         _bins = make_bins(self.BgdVals,self.UserVals,self.FigInfo["_bin_num"])
- 
+
         _lib_mean = self.UserVals.mean()
         _current_sample = self.UserVals[self.IpTuple.Index]
 
@@ -678,7 +681,7 @@ class AbstractHistPlotter(ABC):
                  edgecolor="lightgray")
 
         axis1 = axis.twinx()
-        sns.kdeplot(self.BgdVals,ax=axis1, color='black', lw=0.5,bw_adjust = .5) 
+        sns.kdeplot(self.BgdVals,ax=axis1, color='black', lw=0.5,bw_adjust = .5)
         # set limits
         _xmin,_xmax = self.BgdVals.agg(["min","max"])
         axis.set_xlim(_xmin,_xmax)
@@ -719,7 +722,7 @@ class ReadDepthHistPlotter(AbstractHistPlotter):
         self.VarName    =  "Input_Size"
         self.CutoffKey  = "_ipReads_cutoff"
         self.Formatter  = fmt_scatter_million
-        self.PlotTitle  = "SequencingDepth"
+        self.PlotTitle  = "Sequencing Depth"
         self.XAxisTitle = "Total Reads"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
@@ -917,7 +920,7 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     # Load the sequence contamination levels for the background data
     _contaminant_df_untrim = _background_df[["Percent_Overrepresented_Seq_Untrimmed", "Percent_Adapter_Content_Untrimmed"]]
     _contaminant_df_trim = _background_df[["Percent_Overrepresented_Seq_Trimmed", "Percent_Adapter_Content_Trimmed"]]
-    
+
     _contaminant_df_untrim.columns = ["Overrepresented", "Adapter"]
     _contaminant_df_trim.columns = ["Overrepresented", "Adapter"]
 
@@ -928,16 +931,16 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     _current_adapter_untrim = _input_tup[9]
     _current_overrep_trim = _input_tup[10]
     _current_adapter_trim = _input_tup[11]
-    
+
     # find the maximum value across each plot for each plot
     _max_array_untrim = _contaminant_df_untrim.max().values
     _max_array_untrim = np.append(_max_array_untrim,np.max(_current_overrep_untrim))
     _max_array_untrim = np.append(_max_array_untrim,np.max(_current_adapter_untrim))
-    
+
     _max_array_trim = _contaminant_df_untrim.max().values
     _max_array_trim = np.append(_max_array_trim,np.max(_current_overrep_trim))
     _max_array_trim = np.append(_max_array_trim,np.max(_current_adapter_trim))
-    
+
     # Remove the current batch mean from the USER dataframe
     _user_minusBatchMean_df = _userDf.drop(_userDf.tail(1).index)
 
@@ -947,13 +950,11 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     _mean_overrep_trim = _user_minusBatchMean_df.loc[:, 'Percent_Overrepresented_Seq_Trimmed'].mean()
     _mean_adapter_trim = _user_minusBatchMean_df.loc[:, 'Percent_Adapter_Content_Trimmed'].mean()
 
-
-
     # Define color palette
     _contaminant_pal = {"Overrepresented": "lightgray", "Adapter": "gray"}
 
     _gridsp = matplotlib.gridspec.GridSpec(_figinfo["_subplot_rows"]*2, 2, figure=_f)
-    
+
     _axis = _f.add_subplot(_gridsp[4, 1:])
     _axis2 = _f.add_subplot(_gridsp[5, 1:])
 
@@ -967,22 +968,28 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     _axis  = set_ticks(_axis, _figinfo["_tick_size"])
     _axis2 = set_ticks(_axis2,_figinfo["_tick_size"])
 
-    _axis.set_xlabel("\n\n\n\n\n\n\n  ", fontsize=_figinfo["_label_size"], labelpad=0.5)
+    _axis.set_xlabel("")
     _axis.set_ylabel("")
 
-    _axis2.set_xlabel("(%)", fontsize=_figinfo["_label_size"], labelpad=0.5)
+    _axis2.set_xlabel("% of Reads",
+                      fontsize=_figinfo["_label_size"],
+                      labelpad=0.5)
     _axis2.set_ylabel("")
 
-    _axis.xaxis.set_major_locator(matplotlib.ticker.AutoLocator())
-    _axis2.xaxis.set_major_locator(matplotlib.ticker.AutoLocator())
+    _axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
+    _axis2.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
 
+    _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent1))
+    _axis2.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent1))
     _axis.set_yticklabels(['Untrimmed \nOverrepresented', 'Untrimmed \nAdapter'])
     _axis2.set_yticklabels(['Trimmed \nOverrepresented', 'Trimmed \nAdapter'])
 
-    
+
     _axis  = mk_axes(_axis)
     _axis2 = mk_axes(_axis2)
 
+    _axis.set_xlim(0,None)
+    _axis2.set_xlim(0,None)
     _x_bottom, _x_top = _axis.get_xlim()
     _y_bottom, _y_top = _axis.get_ylim()
 
@@ -1043,13 +1050,13 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
 
 # function designed to return pvalues for GCinformation if supplied
 def GC_KSstats(_coverage_df):
-    
+
     # initialize list to store values
     _kslst = []
     # calculate mean GBC for the whole library
     _mean_df = pd.DataFrame()
     _mean_df["gc_mean"] = _coverage_df.median(axis=1)
-    
+
     for column_name, _column_data in _coverage_df.iteritems():
         _ks_stat, _ks_pval = stats.ks_2samp(_column_data, _mean_df['gc_mean'])
         _kslst.append(_ks_stat)
@@ -1058,7 +1065,7 @@ def GC_KSstats(_coverage_df):
 
 #  GeneBody Coverage Plot
 def plotGC(_ipTuple, _coverage_df, _position,_figinfo,_fig=None):
-    
+
     _axis = _fig.add_subplot(_figinfo["_subplot_rows"], 2, _position)
 
     # Calculate mean GeneBody Coverage for the entire library
@@ -1072,8 +1079,8 @@ def plotGC(_ipTuple, _coverage_df, _position,_figinfo,_fig=None):
     _x = np.arange(1, 101, 1)
 
 
-    _axis.plot(_x, 
-               _coverage_df, 
+    _axis.plot(_x,
+               _coverage_df,
                color     = "lightgray",
                alpha     = .4,
                linewidth = 0.5,
@@ -1083,13 +1090,13 @@ def plotGC(_ipTuple, _coverage_df, _position,_figinfo,_fig=None):
                color     = _figinfo["_curr_sample_color"],
                linewidth = 0.5,
                linestyle = '-')
-    _axis.plot(_x, 
+    _axis.plot(_x,
                _mean_df['gc_mean'],
                color     = 'indigo',
                linewidth = 0.5,
                linestyle = '--',
                alpha     = 0.8)
-                    
+
 
     # Calculate 95% interval for each position
     _err = _coverage_df.std(axis=1)*2
@@ -1103,6 +1110,7 @@ def plotGC(_ipTuple, _coverage_df, _position,_figinfo,_fig=None):
                       _figinfo["_tick_size"])
 
     _axis.set_xlim(0, 105)
+    _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent))
 
     _axis.set_title("GeneBody Coverage", 
                     fontsize = _figinfo["_title_size"])
@@ -1110,7 +1118,7 @@ def plotGC(_ipTuple, _coverage_df, _position,_figinfo,_fig=None):
                      fontsize = _figinfo["_label_size"])
     _axis.set_ylabel("Read Density",
                      fontsize = _figinfo["_label_size"])
-    
+
     # make the symbols for the legend
     _current_sample_line = matplotlib.lines.Line2D([0],
                                                    [0],
@@ -1168,7 +1176,7 @@ def calcHistPval(_hist_df):
     _sum_df = _data_df.sum().round()
     _zscore = stats.zscore(_sum_df)
     _pvals  = stats.norm.sf(abs(_zscore))
-    
+
     return(_pvals)
 
 class AbstractLinePlotter(ABC):
@@ -1183,7 +1191,7 @@ class AbstractLinePlotter(ABC):
 
     def AddLinePlot(self):
         _ax = self.Figure.add_subplot(self.FigInfo["_subplot_rows"],2,self.Position)
-        
+
         _index_array = self.HistDf.iloc[:, 0]
 
         _low_vals =  []
@@ -1192,9 +1200,6 @@ class AbstractLinePlotter(ABC):
         for _i in _index_array:
             _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
             _high_vals.append(float(_i.strip('(').strip(']').split(',')[1]))
-
-            
-        
 
 
 # Plot 8 : Gene Expression Distribution Plot 
@@ -1232,6 +1237,7 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_position,_figinfo,_f=None):
     _ax.set_title("Gene Expression", fontsize=_figinfo["_title_size"])
     _ax.set_xlabel("Expression Level (log2(CPM)+1)", fontsize=_figinfo["_label_size"])
     _ax.set_ylabel("Frequency", fontsize=_figinfo["_label_size"] )
+
 
     _current_samp_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
     _lib_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
