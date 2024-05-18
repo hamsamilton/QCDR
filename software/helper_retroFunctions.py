@@ -916,91 +916,142 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     return _f
 
 #### Plot 6: Sequence Contamination - Violin Plot ####
+
 def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,_f=None):
-    # Load the sequence contamination levels for the background data
-    _contaminant_df_untrim = _background_df[["Percent_Overrepresented_Seq_Untrimmed", "Percent_Adapter_Content_Untrimmed"]]
-    _contaminant_df_trim = _background_df[["Percent_Overrepresented_Seq_Trimmed", "Percent_Adapter_Content_Trimmed"]]
 
-    _contaminant_df_untrim.columns = ["Overrepresented", "Adapter"]
-    _contaminant_df_trim.columns = ["Overrepresented", "Adapter"]
+    # for plotting the individual composite functions
+    def SingleViolin(_axis,OverrepName,AdaptName,OverrepTupleLoc,AdapterTupleLoc):
 
-    _contaminant_melt_untrim = pd.melt(_contaminant_df_untrim, var_name="Contamination_Metric", value_name="Percent")
-    _contaminant_melt_trim = pd.melt(_contaminant_df_trim, var_name="Contamination_Metric", value_name="Percent")
+        _contaminant_df = _background_df[[OverrepName,
+                                          AdaptName]]
 
-    _current_overrep_untrim = _input_tup[8] # if these are hard referencing column indices this has the potational to be a huge issue
-    _current_adapter_untrim = _input_tup[9]
-    _current_overrep_trim = _input_tup[10]
-    _current_adapter_trim = _input_tup[11]
+        _contaminant_df.columns = ["Overrepresented",
+                                          "Adapter"]
 
-    # find the maximum value across each plot for each plot
-    _max_array_untrim = _contaminant_df_untrim.max().values
-    _max_array_untrim = np.append(_max_array_untrim,np.max(_current_overrep_untrim))
-    _max_array_untrim = np.append(_max_array_untrim,np.max(_current_adapter_untrim))
+        _contaminant_melt  = pd.melt(_contaminant_df,
+                                     var_name   = "Contamination_Metric",
+                                     value_name = "Percent")
 
-    _max_array_trim = _contaminant_df_untrim.max().values
-    _max_array_trim = np.append(_max_array_trim,np.max(_current_overrep_trim))
-    _max_array_trim = np.append(_max_array_trim,np.max(_current_adapter_trim))
+        _current_overrep_untrim = _input_tup[OverrepTupleLoc] # if these are hard referencing column indices this has the potational to be a huge issue
+        _current_adapter_untrim = _input_tup[AdapterTupleLoc]
 
-    # Remove the current batch mean from the USER dataframe
-    _user_minusBatchMean_df = _userDf.drop(_userDf.tail(1).index)
+        # Format Axes
+        _axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
+        _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent1))
+        _axis  = mk_axes(_axis)
+        _axis = set_ticks(_axis,
+                          _figinfo['_tick_size'])
 
-    _mean_overrep_untrim = _user_minusBatchMean_df.loc[:, 'Percent_Overrepresented_Seq_Untrimmed'].mean()
-    _mean_adapter_untrim = _user_minusBatchMean_df.loc[:, 'Percent_Adapter_Content_Untrimmed'].mean()
+        # Add violin plot
+        sns.violinplot(x="Percent",
+                       y="Contamination_Metric",
+                       data      = _contaminant_melt,
+                       palette   = _contaminant_pal,
+                       inner     = None,
+                       ax        = _axis,
+                       linewidth = 0.3,
+                       orient    = "h",
+                       scale     = "count")
 
-    _mean_overrep_trim = _user_minusBatchMean_df.loc[:, 'Percent_Overrepresented_Seq_Trimmed'].mean()
-    _mean_adapter_trim = _user_minusBatchMean_df.loc[:, 'Percent_Adapter_Content_Trimmed'].mean()
+        _axis.set_xlabel('')
+        _axis.set_ylabel('')
+
+        # Add lines there are meant to be 4 lines one for the actual value and then the mean for all metrics
+        _linekwargs_overrep = {'linestyle' : '-',
+                               'linewidth' : .35,
+                               'ymin'      : .5,
+                               'ymax'      : .95}
+
+        _mean_overrep_untrim = _user_minusBatchMean_df.loc[:, OverrepName].mean()
+        _mean_adapter_untrim = _user_minusBatchMean_df.loc[:, AdaptName].mean()
+
+        _line_overrep = _axis.axvline(x        = _current_overrep_untrim,
+                                             color    = _figinfo["_curr_sample_color"],
+                                             label    = '{:.2f}%'.format(_current_overrep_untrim),
+                                             **_linekwargs_overrep)
+
+        _line_mean_overrep = _axis.axvline(x        = _mean_overrep_untrim,
+                                                  color    = 'indigo',
+                                                  label    = '{:.2f}%'.format(_mean_overrep_untrim),
+                                                  **_linekwargs_overrep)
+
+        _linekwargs_adapter = {'linestyle' : '-',
+                               'linewidth' : .35,
+                               'ymin'      : .05,
+                               'ymax'      : .45}
+
+        _line_adapter = _axis.axvline(x        = _current_adapter_untrim,
+                                             color    = _figinfo["_curr_sample_color"],
+                                             label    = '{:.2f}%'.format(_current_adapter_untrim),
+                                             **_linekwargs_adapter)
+
+        _line_mean_adapter = _axis.axvline(x        = _mean_adapter_untrim,
+                                                  color    = "indigo",
+                                                  label    = '{:.2f}%'.format(_mean_adapter_untrim),
+                                                  **_linekwargs_adapter)
+
+        _axis.legend([_line_overrep, _line_mean_overrep],
+                     ["Current Sample", "Batch Mean"],
+                     loc='upper right',
+                     frameon=False,
+                     ncol=1,
+                     fontsize=_figinfo["_legend_size"])
+
+        _axis.set_xlim(0,None)
+        # No need to return anything because the _axis is modified inline
+        return None
+
 
     # Define color palette
-    _contaminant_pal = {"Overrepresented": "lightgray", "Adapter": "gray"}
+    _contaminant_pal = {"Overrepresented": "lightgray",
+                        "Adapter": "gray"}
 
-    _gridsp = matplotlib.gridspec.GridSpec(_figinfo["_subplot_rows"]*2, 2, figure=_f)
-
-    _axis = _f.add_subplot(_gridsp[4, 1:])
+    # Specify the locations of the individual stuff
+    _gridsp = matplotlib.gridspec.GridSpec(_figinfo["_subplot_rows"]*2,
+                                           2,
+                                           figure=_f)
+    _axis  = _f.add_subplot(_gridsp[4, 1:])
     _axis2 = _f.add_subplot(_gridsp[5, 1:])
 
-    sns.violinplot(x="Percent", y="Contamination_Metric", data=_contaminant_melt_untrim, palette=_contaminant_pal,
-                   inner=None,ax=_axis, linewidth=0.3, orient="h", scale="count")
+     # Remove the current batch mean from the USER dataframe
+    _user_minusBatchMean_df = _userDf.drop(_userDf.tail(1).index)
 
-    sns.violinplot(x="Percent", y="Contamination_Metric", data=_contaminant_melt_trim, palette=_contaminant_pal,
-                   inner=None,ax=_axis2, linewidth=0.3, orient="h", scale="count")
+    # Create the composing violin plots
+    SingleViolin(_axis           = _axis,
+                 OverrepName     = 'Percent_Overrepresented_Seq_Untrimmed',
+                 AdaptName       = 'Percent_Adapter_Content_Untrimmed',
+                 OverrepTupleLoc = 8,
+                 AdapterTupleLoc = 9)
 
-    _axis.set_title("Sequence Contamination", fontsize=_figinfo["_title_size"], pad=0)
-    _axis  = set_ticks(_axis, _figinfo["_tick_size"])
-    _axis2 = set_ticks(_axis2,_figinfo["_tick_size"])
+    SingleViolin(_axis = _axis2,
+                 OverrepName = 'Percent_Overrepresented_Seq_Trimmed',
+                 AdaptName   = 'Percent_Adapter_Content_Trimmed',
+                 OverrepTupleLoc = 10,
+                 AdapterTupleLoc = 11)
 
-    _axis.set_xlabel("")
-    _axis.set_ylabel("")
-
+    # Format axes and titles
     _axis2.set_xlabel("% of Reads",
                       fontsize=_figinfo["_label_size"],
                       labelpad=0.5)
-    _axis2.set_ylabel("")
 
-    _axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
-    _axis2.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
+    # stuff at the end`
+    _axis.set_title("Sequence Contamination",
+                    fontsize=_figinfo["_title_size"],
+                    pad=0)
 
-    _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent1))
-    _axis2.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent1))
-    _axis.set_yticklabels(['Untrimmed \nOverrepresented', 'Untrimmed \nAdapter'])
-    _axis2.set_yticklabels(['Trimmed \nOverrepresented', 'Trimmed \nAdapter'])
+    _axis.set_yticklabels(['Untrimmed \nOverrepresented',
+                           'Untrimmed \nAdapter'])
+    _axis2.set_yticklabels(['Trimmed \nOverrepresented',
+                            'Trimmed \nAdapter'])
 
+    _axis2.legend().remove()
 
-    _axis  = mk_axes(_axis)
-    _axis2 = mk_axes(_axis2)
-
-    _axis.set_xlim(0,None)
-    _axis2.set_xlim(0,None)
-    _x_bottom, _x_top = _axis.get_xlim()
-    _y_bottom, _y_top = _axis.get_ylim()
-
-    ### Adding cutoff markers
+### Adding cutoff markers
     _axis3 = _axis2.twinx()
 
     _axis2,_axis3 = mk_axes(_axis2,_axis3)
     _axis3.yaxis.set_ticks([])
-
     _axis3.xaxis.label.set_visible(False)
-
     _axis3.set_ylim(_axis2.get_ylim()[0], _axis2.get_ylim()[1])
 
     _markers = [ # overrepresented
@@ -1014,36 +1065,11 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
         _axs.plot(_cutoff, yloc, marker='v', ms=1, c=color, clip_on=False)
         _axs.text(_cutoff, yloc - .1 , label, fontsize=_figinfo["_tick_size"], color=color, horizontalalignment='center')
 
-    _line_overrep_untrim = _axis.axvline(x=_current_overrep_untrim, ymin=0.5, ymax=0.95, alpha=0.8, color=_figinfo["_curr_sample_color"],
-                                         linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_overrep_untrim))
-    _line_mean_overrep_untrim = _axis.axvline(x=_mean_overrep_untrim, ymin=0.5, ymax=0.95, alpha=0.8, color='indigo',
-                                              linestyle='--', linewidth=0.35,
-                                              label='{:.2f}%'.format(_mean_overrep_untrim))
-
-    _line_adapter_untrim = _axis.axvline(x=_current_adapter_untrim, ymin=0.05, ymax=0.45, alpha=0.8, color=_figinfo["_curr_sample_color"],
-                                         linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_adapter_untrim))
-
-    _line_mean_adapter_untrim = _axis.axvline(x=_mean_adapter_untrim,ymin=.05,ymax=.45,alpha=.8, color ="indigo",
-                                              linestyle='--', linewidth=0.35,
-                                              label='{:.2f}%'.format(_mean_adapter_untrim))
-
-    _line_overrep_trim = _axis2.axvline(x=_current_overrep_trim, ymin=0.55, ymax=0.95, alpha=0.8, color=_figinfo["_curr_sample_color"],
-                                        linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_overrep_trim))
-    _line_mean_overrep_trim = _axis2.axvline(x=_mean_overrep_trim, ymin=0.55, ymax=0.95, alpha=0.8, color='indigo',
-                                             linestyle='--', linewidth=0.35, label='{:.2f}%'.format(_mean_overrep_trim))
-
-    _line_adapter_trim = _axis2.axvline(x=_current_adapter_trim, ymin=0.05, ymax=0.45, alpha=0.8, color=_figinfo["_curr_sample_color"],
-                                        linestyle='-', linewidth=0.35, label='{:.2f}%'.format(_current_adapter_trim))
-    _line_mean_adapter_trim = _axis2.axvline(x=_mean_adapter_trim, ymin=0.05, ymax=0.45, alpha=0.8, color='indigo',
-                                             linestyle='--', linewidth=0.35, label='{:.2f}%'.format(_mean_adapter_trim))
-
-    _axis.legend([_line_overrep_trim, _line_mean_overrep_trim], ["Current Sample", "Batch Mean"], loc='upper right',
-                 frameon=False, ncol=1, fontsize=_figinfo["_legend_size"])
-
     plt.subplots_adjust(hspace=0)
 
-    needs_fail_or_warn(_axis,_current_overrep_trim, _figinfo,"_violin_cutoff_overrep_trimmed","higher")
-    needs_fail_or_warn(_axis,_current_overrep_trim, _figinfo,"_violin_cutoff_adapter_trimmed","higher") 
+    # Add warn and fail flags
+    needs_fail_or_warn(_axis,_input_tup[10], _figinfo,"_violin_cutoff_overrep_trimmed","higher")
+    needs_fail_or_warn(_axis,_input_tup[11], _figinfo,"_violin_cutoff_adapter_trimmed","higher")
 
     return _f
 

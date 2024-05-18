@@ -1,8 +1,8 @@
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1060: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1083: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1060: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1083: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1060: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1083: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
 Input File : /projects/b1063/Gaurav/QCDR/data/SCRIPT/SCRIPT_B11stats.csv
 Output File : /projects/b1063/Gaurav/QCDR/software/functional_tests/testoutputs/SCRIPTB11_BAseCase.pdf
@@ -12,32 +12,32 @@ failalpha : 0.05
 warnalpha : 0.1
 0.30158730158730157 0.3
 0.30158730158730157 0.45
-         53017697 function calls (51635685 primitive calls) in 75.459 seconds
+         53346742 function calls (51945405 primitive calls) in 79.212 seconds
 
    Ordered by: cumulative time
-   List reduced from 3619 to 20 due to restriction <20>
+   List reduced from 3626 to 20 due to restriction <20>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-        1    0.006    0.006   75.502   75.502 /projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py:35(retroPlotter_main)
-      100    0.010    0.000   36.341    0.363 /projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:671(AddHist)
-     2906    0.121    0.000   21.720    0.007 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1257(_update_ticks)
-5821/4571    0.011    0.000   21.644    0.005 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py:73(wrapper)
-      100    0.004    0.000   20.223    0.202 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:1597(kdeplot)
-      908    0.001    0.000   20.171    0.022 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1427(get_ticklabels)
-      908    0.004    0.000   20.170    0.022 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1411(get_majorticklabels)
-      100    0.026    0.000   19.694    0.197 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:901(plot_univariate_density)
-      200    0.004    0.000   16.737    0.084 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/_oldcore.py:1321(_add_axis_labels)
-     4007    0.110    0.000   16.275    0.004 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1595(get_major_ticks)
-       28    0.000    0.000   15.243    0.544 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backends/backend_pdf.py:2749(savefig)
-       28    0.000    0.000   15.242    0.544 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3220(savefig)
-       28    0.001    0.000   15.241    0.544 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2241(print_figure)
-       30    0.000    0.000   15.229    0.508 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:93(draw_wrapper)
- 27971/30    0.161    0.000   15.229    0.508 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:54(draw_wrapper)
-       30    0.001    0.000   15.229    0.508 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3120(draw)
-   388/30    0.011    0.000   15.192    0.506 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/image.py:113(_draw_list_compositing_images)
-44855/35307    0.115    0.000   15.154    0.000 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/_api/deprecation.py:443(wrapper)
-       25    0.008    0.000   15.153    0.606 /projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:919(plotViolin_dualAxis)
-       30    0.000    0.000   15.152    0.505 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2232(<lambda>)
+        1    0.005    0.005   79.351   79.351 /projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py:35(retroPlotter_main)
+      100    0.010    0.000   37.524    0.375 /projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:671(AddHist)
+      100    0.005    0.000   21.099    0.211 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:1597(kdeplot)
+      100    0.007    0.000   20.666    0.207 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:901(plot_univariate_density)
+     2906    0.114    0.000   20.391    0.007 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1257(_update_ticks)
+5821/4571    0.011    0.000   20.159    0.004 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py:73(wrapper)
+      908    0.002    0.000   18.996    0.021 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1427(get_ticklabels)
+      908    0.005    0.000   18.995    0.021 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1411(get_majorticklabels)
+       25    0.004    0.000   16.912    0.676 /projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:920(plotViolin_dualAxis)
+45505/35357    0.118    0.000   15.899    0.000 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/_api/deprecation.py:443(wrapper)
+      200    0.004    0.000   15.734    0.079 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/_oldcore.py:1321(_add_axis_labels)
+       28    0.000    0.000   15.347    0.548 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backends/backend_pdf.py:2749(savefig)
+       28    0.000    0.000   15.346    0.548 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3220(savefig)
+       28    0.001    0.000   15.345    0.548 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2241(print_figure)
+       30    0.000    0.000   15.329    0.511 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:93(draw_wrapper)
+ 27971/30    0.163    0.000   15.329    0.511 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:54(draw_wrapper)
+       30    0.001    0.000   15.329    0.511 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3120(draw)
+   388/30    0.011    0.000   15.288    0.510 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/image.py:113(_draw_list_compositing_images)
+       30    0.000    0.000   15.253    0.508 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2232(<lambda>)
+       30    0.001    0.000   15.252    0.508 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backends/backend_pdf.py:2799(print_pdf)
 
 
 DOne
