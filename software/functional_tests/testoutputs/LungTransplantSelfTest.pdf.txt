@@ -1,8 +1,8 @@
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1051: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1092: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1051: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1092: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
-/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1051: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
+/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:1092: FutureWarning: iteritems is deprecated and will be removed in a future version. Use .items instead.
   for column_name, _column_data in _coverage_df.iteritems():
 Input File : /projects/b1063/Gaurav/QCDR/data/LungTransplant/LungTransplantStats.csv
 Output File : /projects/b1063/Gaurav/QCDR/software/functional_tests/testoutputs/LungTransplantSelfTest.pdf
@@ -12,32 +12,43 @@ failalpha : 0.05
 warnalpha : 0.1
 0.30158730158730157 0.3
 0.30158730158730157 0.32
-         79364395 function calls (77284203 primitive calls) in 117.781 seconds
-
-   Ordered by: cumulative time
-   List reduced from 3620 to 20 due to restriction <20>
-
-   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-        1    0.009    0.009  117.904  117.904 /projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py:35(retroPlotter_main)
-      152    0.016    0.000   60.535    0.398 /projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py:668(AddHist)
-     4274    0.194    0.000   39.284    0.009 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1257(_update_ticks)
-8862/6962    0.111    0.000   39.006    0.006 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py:73(wrapper)
-     1376    0.002    0.000   36.487    0.027 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1427(get_ticklabels)
-     1376    0.008    0.000   36.484    0.027 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1411(get_majorticklabels)
-      152    0.008    0.000   33.022    0.217 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:1597(kdeplot)
-     5934    0.115    0.000   32.446    0.005 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py:1595(get_major_ticks)
-      152    0.011    0.000   32.315    0.213 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/distributions.py:901(plot_univariate_density)
-      304    0.007    0.000   30.293    0.100 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/seaborn/_oldcore.py:1321(_add_axis_labels)
-       41    0.001    0.000   26.835    0.655 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backends/backend_pdf.py:2749(savefig)
-       41    0.001    0.000   26.834    0.654 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3220(savefig)
-       41    0.002    0.000   26.833    0.654 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2241(print_figure)
-       43    0.000    0.000   26.795    0.623 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:93(draw_wrapper)
- 42773/43    0.295    0.000   26.794    0.623 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py:54(draw_wrapper)
-       43    0.001    0.000   26.794    0.623 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py:3120(draw)
-   583/43    0.021    0.000   26.729    0.622 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/image.py:113(_draw_list_compositing_images)
-       43    0.000    0.000   26.686    0.621 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backend_bases.py:2232(<lambda>)
-       43    0.001    0.000   26.686    0.621 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/backends/backend_pdf.py:2799(print_pdf)
-      540    0.012    0.000   26.441    0.049 /home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py:2999(draw)
-
-
-DOne
+Traceback (most recent call last):
+  File "/projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py", line 281, in <module>
+    retroPlotter_main(_ip_filename, _op_filename, _bgd_filename,_gc_file,_hist_file)
+  File "/projects/b1063/Gaurav/QCDR/software/functional_tests/../QCDR_main.py", line 211, in retroPlotter_main
+    fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_figinfo,fig)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/projects/b1063/Gaurav/QCDR/software/helper_retroFunctions.py", line 1019, in plotViolin_dualAxis
+    _axis  = _f.add_subplot(_gridsp[4, 1:])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/figure.py", line 757, in add_subplot
+    ax = projection_class(self, *args, **pkw)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py", line 683, in __init__
+    self.clear()
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py", line 1395, in clear
+    self.__clear()
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axes/_base.py", line 1364, in __clear
+    self.yaxis.set_clip_path(self.patch)
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py", line 1085, in set_clip_path
+    child.set_clip_path(clippath, transform)
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/axis.py", line 240, in set_clip_path
+    self.gridline.set_clip_path(clippath, transform)
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/artist.py", line 809, in set_clip_path
+    path.get_transform())
+    ^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/patches.py", line 264, in get_transform
+    return self.get_patch_transform() + artist.Artist.get_transform(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/patches.py", line 757, in get_patch_transform
+    .translate(-rotation_point[0], -rotation_point[1]) \
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/transforms.py", line 2043, in translate
+    self.invalidate()
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/transforms.py", line 165, in invalidate
+    return self._invalidate_internal(value, invalidating_node=self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sdh463/.conda/envs/newQCDRenv/lib/python3.11/site-packages/matplotlib/transforms.py", line 187, in _invalidate_internal
+    for parent in list(self._parents.values()):
+                       ^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

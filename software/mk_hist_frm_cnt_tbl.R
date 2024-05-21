@@ -2,6 +2,8 @@
 
 # install / load packages 
 packages <- c("optparse", "tidyverse","rio")
+       
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
 
 lapply(packages,function(package){
     if(!require(package,character.only = T)){

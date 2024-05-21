@@ -767,7 +767,9 @@ class ExonMappingPlotter(AbstractHistPlotter):
 #### Plot 5: rRNA Scatter ####
 def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
 
-    _ax = plt.subplot(_figinfo["_subplot_rows"], 2, _pos)
+    _ax = plt.subplot(_figinfo["_subplot_rows"],
+                      2,
+                      _pos)
 
     _plotter_df = pd.concat([_background_df, _userDf],
                             sort = True)
@@ -787,6 +789,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     linear_regressor.fit(X, Y)
     Y_pred = linear_regressor.predict(X)
 
+    # Plot the regression line
     _ax.plot(X,
              Y_pred,
              c='black',
@@ -794,18 +797,20 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
              linestyle='-',
              alpha=1)
 
+    # plot the regression for all points.
     _ax.scatter(x=_plotter_df['Num_Uniquely_Aligned'],
                 y=_plotter_df['Num_Uniquely_Aligned_rRNA'],
                 s=0.8,
                 c=_plotter_df["scatter_color"])
 
-    #separate scatter call for the sample so it can have a nique size and shape
+    #separate scatter call for the sample so it can have a unique size and shape
     _intupdf = _plotter_df.loc[_plotter_df["Sample"] == _in_tup[1]]
     _ax.scatter(x      =_intupdf['Num_Uniquely_Aligned'],
                 y      =_intupdf['Num_Uniquely_Aligned_rRNA'],
                 marker = "*",
                 s      =20,
                 c      =_intupdf["scatter_color"])
+
 
     _ax.set_title("Ribosomal RNA",
                   fontsize = _figinfo["_title_size"])
@@ -841,6 +846,7 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
              linestyle = '--',
              alpha     = 0.3,
              label     = "Warn")
+
     _ax.plot([line_x0,
               xmax],
              [line_y0,
@@ -853,8 +859,8 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     # Set axes margins for padding on both axes
     _ax.margins(0.01)
 
-    _ax.set_aspect('auto', 
-                   adjustable = 'box', 
+    _ax.set_aspect('auto',
+                   adjustable = 'box',
                    anchor     = 'SW')
 
     _historic_data = matplotlib.lines.Line2D([0],

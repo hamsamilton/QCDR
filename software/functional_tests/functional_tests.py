@@ -19,6 +19,7 @@ class PyTestSuite:
         self.SCRIPT_man_cutoff_table = "SCRIPT/manual_cutoff_table.xlsx"
         self.SCRIPT_CountTable = "SCRIPT/SCRIPT_CountTable.xlsx"
         self.SCRIPT_B11HistData= "SCRIPT/SCRIPT_B11histdata.5.csv"
+        self.SCRIPT_AllHistData= 'SCRIPT/SCRIPTHIST_25.csv'
         self.SCRIPT_AllGCInfo = "SCRIPT/SCRIPT_GC_info.csv"
         self.LungTransplantStats= "LungTransplant/LungTransplantStats.csv"
         self.LungTransplantGBC  = "LungTransplant/LungTransplant_GBC.csv"
@@ -27,7 +28,7 @@ class PyTestSuite:
         self.commands = self.ConstructCommands()
         print('about to run tests')
         self.RunQCDRTests()
-        print('testsrun') 
+        print('testsrun')
     def prepend_path_to_data(self):
             attributes = [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
             for attr in attributes:
@@ -57,6 +58,7 @@ class PyTestSuite:
         SCRIPTAll          = {"ip"  :self.SCRIPT_AllBatches,
                      "out" :"testoutputs/SCRIPTAll.pdf",
                      "bgd" : self.SCRIPT_AllBatches,
+                     'hist': self.SCRIPT_AllHistData,
                      "gc"  : self.SCRIPT_AllGCInfo}
 
         LungTransplant = {"ip" : self.LungTransplantStats,
@@ -75,7 +77,7 @@ class PyTestSuite:
                           "out": self.OutputDir + "LungTransplantSCRIPTbgd.pdf",
                           "bgd": self.LungTransplantStats}
 
-        commands = [SCRIPTB11_BaseCase]
+        commands = [SCRIPTAll]
 
         return commands
 
