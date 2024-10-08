@@ -26,8 +26,6 @@ class PyTestSuite:
                     setattr(self, attr, self.path_to_data + getattr(self, attr))
 
     def construct_command(self, ip = "",out = "",gc = "",hist = "",bgd = "",ctf = ""):
-        
-        
         command = "python3 ../QCDR_main.py -ip {} -out {} -gc {} -hist {} -bgd {} -ctf {}".format(ip, out, gc, hist, bgd, ctf)
         return command
 

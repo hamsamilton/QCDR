@@ -35,7 +35,7 @@ from statsmodels.stats.weightstats import ztest
 def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file):
 
      # Read input file and load USER data
-    _user_df = pd.read_csv(_input_file, sep=",")
+    _user_df = pd.read_csv(_input_file)
 
     input_adaptr=input_adapter(_user_df)
     input_adaptr.adapt_input()
@@ -59,15 +59,17 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _user_df.loc[len(_user_df)] = _batch_summary_df
 
     ## Read Background file and load HISTORICAL background data
-    _bgd_df = pd.read_csv(_bgd_file, sep=",")
+    _bgd_df = pd.read_csv(_bgd_file)
 
-    input_adaptr=input_adapter(_bgd_df)   
+    input_adaptr=input_adapter(_bgd_df)
     input_adaptr.adapt_input()
     _bgd_df = input_adaptr.input_df
 
     # Make standard cutoffs for warn/fail
-    _fail_cutoffs = gen_cutoffs(bgd_df = _bgd_df,alph = _fail_alpha)
-    _warn_cutoffs = gen_cutoffs(bgd_df = _bgd_df,alph = _warn_alpha)
+    _fail_cutoffs = gen_cutoffs(bgd_df = _bgd_df,
+                                alph   = _fail_alpha)
+    _warn_cutoffs = gen_cutoffs(bgd_df = _bgd_df,
+                                alph   = _warn_alpha)
 
     # add an additional row if the gc or hist data was addeda
     if _gc_file is None and _hist_file is None:
@@ -105,7 +107,6 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _man_fail_cutoff_dict = manual_cutoff_adaptr.man_cutoff_df['Fail'].to_dict()
 
         # for cutoffs with unspecified values, replace with the automatically generated cutoffs
-
         repl_missing_values_indict(_man_warn_cutoff_dict,_warn_cutoffs)
         repl_missing_values_indict(_man_fail_cutoff_dict,_fail_cutoffs)
 
@@ -113,8 +114,8 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _fail_cutoffs = _man_fail_cutoff_dict
         _warn_cutoffs["_alpha"] = _figinfo["_warn_alpha"]
         _fail_cutoffs["_alpha"] = _figinfo["_fail_alpha"]
-    # add cutoff info
 
+    # add cutoff info
     _figinfo["_fail_cutoffs"] = _fail_cutoffs
     _figinfo["_warn_cutoffs"] = _warn_cutoffs
 
@@ -128,7 +129,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Convert GC into KS vals and calculate the distribution to get a pvalue
         _figinfo["_gbc_pvals"] = stats.norm.sf(stats.zscore(GC_KSstats(_gc_df)))
-        _user_df["_gbc_pvals"]  = stats.norm.sf(stats.zscore(GC_KSstats(_gc_df)))
+        _user_df["_gbc_pvals"] = stats.norm.sf(stats.zscore(GC_KSstats(_gc_df)))
 
         _figinfo["_gbc_exists"] = True
     else:
@@ -141,22 +142,25 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         _data_df = _negBin_df.drop(['Unnamed: 0'], axis=1)
         _sum_df = _data_df.sum().round()
-        _fail_numGene_cutoff = get_ci_bound(vec = _sum_df,
-                                                alpha = 2*_fail_alpha,
+        _fail_numGene_cutoff = get_ci_bound(vec         = _sum_df,
+                                            alpha       = 2*_fail_alpha,
                                             upper_lower = "lower")
-        _warn_numGene_cutoff = get_ci_bound(vec = _sum_df,
-                                                alpha = 2*_warn_alpha,
+        _warn_numGene_cutoff = get_ci_bound(vec         = _sum_df,
+                                            alpha       = 2*_warn_alpha,
                                             upper_lower = "lower")
-        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff) 
+        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff)
         _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
-        _user_df["_hist_pvals"]  = calcHistPval(_negBin_df) 
+        _user_df["_hist_pvals"]  = calcHistPval(_negBin_df)
         _figinfo["_hist_pvals"]  = calcHistPval(_negBin_df)
         _figinfo["_hist_exists"] = True
     else:
         _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = "None"
         _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = "None"
-        _figinfo["_hist_pvals"]  = None 
+        _figinfo["_hist_pvals"]  = None
         _figinfo["_hist_exists"] = False
+
+    # Save the user_df
+    _user_df.to_csv(_output_file + '.csv',index = False)
 
     ###### Begin Plotting process ######
 
@@ -171,7 +175,9 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     # how many tables do we need? 
     _summary_heatmap_data = mkQC_heatmap_data(_user_df,_figinfo)
     _summary_heatmap_data = pd.DataFrame(_summary_heatmap_data)
+    # Save heatmap data
     _summary_heatmap_data["Sample"] = _user_df.Sample
+    _summary_heatmap_data.to_csv(_output_file + 'Heatmapinfo.csv',index = False)
     my_range = list(range(0,len(_user_df),20))
     my_range.append(len(_user_df))
 
@@ -179,12 +185,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         new_rng = list(range(my_range[i],my_range[i+1]))
         _sub_df = _summary_heatmap_data.iloc[new_rng]
         _summary_heatmap_fig = mkQC_heatmap(_sub_df)
-    
-        _pdfObj.savefig(_summary_heatmap_fig)
-        plt.close(_summary_heatmap_fig)   
- 
-    for _tuple in _user_df.itertuples():
 
+        _pdfObj.savefig(_summary_heatmap_fig)
+        plt.close(_summary_heatmap_fig)
+
+    for _tuple in _user_df.itertuples():
+        print(_tuple)
         # Create empty figure
         fig = plt.figure(frameon=False)
 
@@ -212,22 +218,39 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Plotting figure 7: Expression Distribution Plot
         if _hist_file is not None:
-            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,7,_figinfo,fig) 
+            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,7,_figinfo,fig)
 
         # Plotting figure 8: Gene Body Coverage Plot
         if _gc_file is not None:
             fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 8,_figinfo,fig)
 
         # Add sample info at the top-left corner of the page
-        fig.text(s='Sample : ' + _tuple[1], x=0.01, y=0.99, fontsize=6,
-                     horizontalalignment='left', verticalalignment='top', fontweight='book',style = 'italic')
-        fig.text(s ="Batch : " + _tuple[13], x=0.99, y=0.99, fontsize=6,
-                     horizontalalignment='right', verticalalignment='top', fontweight='book',style = 'italic')
+        fig.text(s                   = 'Sample : ' + _tuple[1],
+                 x                   = 0.01,
+                 y                   = 0.99,
+                 fontsize            = 6,
+                 horizontalalignment = 'left',
+                 verticalalignment   = 'top',
+                 fontweight          = 'book',
+                 style               = 'italic')
+        fig.text(s                   = "Batch : " + _tuple[13],
+                 x                   = 0.99,
+                 y                   = 0.99,
+                 fontsize            = 6,
+                 horizontalalignment = 'right',
+                 verticalalignment   = 'top',
+                 fontweight          = 'book',
+                 style               = 'italic')
 
-        plt.subplots_adjust(left = .07,right = .93, bottom = .05, top = .9,hspace=.72, wspace=0.25)
+        plt.subplots_adjust(left   = .07,
+                            right  = .93,
+                            bottom = .05,
+                            top    = .9,
+                            hspace = .72,
+                            wspace = 0.25)
 
         _pdfObj.savefig(fig)
-        plt.close(fig) 
+        plt.close(fig)
     _pdfObj.close()
 
     return None
@@ -269,7 +292,7 @@ if __name__ == "__main__":
     _bgd_filename    = args.background_data
     _cutoff_filename = args.cutoffs
     _fail_alpha      = float(args.failalpha)
-    _warn_alpha      = float(args.warnalpha)    
+    _warn_alpha      = float(args.warnalpha)
 
     print(f"Input File : {_ip_filename}")
     print(f"Output File : {_op_filename}")
@@ -284,4 +307,4 @@ if __name__ == "__main__":
 
     ps = pstats.Stats(profiler,stream=sys.stdout).sort_stats('cumulative')
     ps.print_stats(20)
-    print('DOne')
+    print('Done')

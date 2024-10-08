@@ -289,6 +289,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
             self.ax = ax or plt.gca()
             self.cutoff_warn = _figinfo["_warn_cutoffs"][cutoff_key]
             self.cutoff_fail = _figinfo["_fail_cutoffs"][cutoff_key]
+
         def make_flag(self, flag_type):
             if flag_type == "fail":
                 text = "FAILURE"
@@ -305,14 +306,22 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
             else:
                 raise ValueError("Invalid flag type")
 
-            anch_text = matplotlib.offsetbox.AnchoredText(text, pad=0.0001, borderpad=1,
-                                                          loc=3,
-                                                          prop=dict(size=font_size, snap=True, backgroundcolor=background_color,
-                                                                    color=text_color, alpha=0.9, zorder=5, fontweight='roman',
-                                                                    fontfamily='serif', fontstretch=font_stretch),
-                                                          frameon=True,
-                                                          bbox_to_anchor=(0., 1.03),
-                                                          bbox_transform=self.ax.transAxes)
+            anch_text = matplotlib.offsetbox.AnchoredText(text,
+                                                          pad            = 0.0001,
+                                                          borderpad      = 1,
+                                                          loc            = 3,
+                                                          prop           = dict(size            = font_size,
+                                                                                snap            = True,
+                                                                                backgroundcolor = background_color,
+                                                                                color           = text_color,
+                                                                                alpha           = 0.9,
+                                                                                zorder          = 5,
+                                                                                fontweight      = 'roman',
+                                                                                fontfamily      = 'serif',
+                                                                                fontstretch     = font_stretch),
+                                                          frameon        = True,
+                                                          bbox_to_anchor = (0, 1),
+                                                          bbox_transform = self.ax.transAxes)
 
             self.ax.add_artist(anch_text)
             return None
@@ -322,8 +331,17 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
             flag_func(ax)
 
     flag_inserter = FlagInserter()
-    insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
-    insert_flag(ax, flag_inserter.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
+
+    if higher_lower == "lower":
+        if current_sample <= flag_inserter.cutoff_fail:
+            insert_flag(ax, flag_inserter.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
+        elif current_sample <= flag_inserter.cutoff_warn:
+            insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
+    elif higher_lower == "upper":
+        if current_sample >= flag_inserter.cutoff_fail:
+            insert_flag(ax, flag_inserter.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
+        elif current_sample >= flag_inserter.cutoff_warn:
+            insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
 
     return ax
 
@@ -523,14 +541,24 @@ def mkTitlePage(_figinfo):
     fail_descript = mk_cutoff_descript("Fail cutoffs",_figinfo["_fail_cutoffs"]) 
 
 
-    fig.text(s= warn_descript , 
-                    x = .5, y = .1, fontsize = 5,
-                     ha='center', va='top',fontweight='book', style = 'italic')
+    fig.text(s          = warn_descript ,
+             x          = .5,
+             y          = .1,
+             fontsize   = 5,
+             ha         = 'center',
+             va         = 'top',
+             fontweight = 'book',
+             style      = 'italic')
 
 
-    fig.text(s= fail_descript , 
-                    x = .5, y = .05, fontsize = 5,
-                     ha='center', va='top',fontweight='book', style = 'italic')
+    fig.text(s          = fail_descript ,
+             x          = .5,
+             y          = .05,
+             fontsize   = 5,
+             ha         = 'center',
+             va         = 'top',
+             fontweight = 'book',
+             style      = 'italic')
 
     return fig
 
@@ -558,20 +586,20 @@ def mkQC_heatmap_data(_userDf, _figinfo):
         ("Input_Size", "_ipReads_cutoff", lower_status_strategy),
         ("Percent_PostTrim", "_trimmedReads_cutoff", lower_status_strategy),
         ("Percent_Uniquely_Aligned","_uniqAligned_cutoff",lower_status_strategy),
-        ("Percent_Exonic","_riboScatter_cutoff",lower_status_strategy),
-        ("Num_Uniquely_Aligned_rRNA","_riboScatter_cutoff",upper_status_strategy), 
+        ("Percent_Exonic","_exonMapping_cutoff",lower_status_strategy),
+        ("Num_Uniquely_Aligned_rRNA","_riboScatter_cutoff",upper_status_strategy),
         ("Percent_Overrepresented_Seq_Trimmed","_violin_cutoff_overrep_trimmed",upper_status_strategy),
         ("Percent_Adapter_Content_Trimmed","_violin_cutoff_adapter_trimmed",upper_status_strategy)]
     if _figinfo["_hist_exists"]:
         strategies.append(("_hist_pvals","_alpha",lower_status_strategy))
     if _figinfo["_gbc_exists"]:
-        strategies.append(("_gbc_pvals","_alpha",lower_status_strategy))    
+        strategies.append(("_gbc_pvals","_alpha",lower_status_strategy))
 
     _htmat = np.zeros((len(_userDf), 9))
 
     for _tuple in _userDf.itertuples():
         for i, (column, key, strategy) in enumerate(strategies):
-        
+
             if column == "Num_Uniquely_Aligned_rRNA":
                 test_value = _userDf.iloc[_tuple.Index][column] / _userDf.iloc[_tuple.Index]["Num_Uniquely_Aligned"]
             else:
@@ -607,7 +635,7 @@ def mkQC_heatmap(heatmap_data):
     sample_names = heatmap_data.Sample
     heatmap_data = heatmap_data.drop("Sample",axis = 1)
     fig2,ax = plt.subplots(figsize=(page_width, page_height))
-    fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')  
+    fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')
     seaborn.heatmap(heatmap_data.values,ax=ax,
                     xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
                                   "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
@@ -621,11 +649,11 @@ def mkQC_heatmap(heatmap_data):
 
     width_padding = (1 - fig_width / page_width) / 2
     height_padding = (1 - fig_height / page_height) / 2
-    print(width_padding, height_padding)
-    fig2.subplots_adjust(left=  width_padding,
-                        right= 1 -  width_padding,
-                        top= 1 - height_padding,
-                        bottom= height_padding)
+
+    fig2.subplots_adjust(left   =  width_padding,
+                         right  = 1 -  width_padding,
+                         top    = 1 - height_padding,
+                         bottom = height_padding)
 
     ax.set_yticklabels(ax.get_yticklabels(), fontsize = 5)
     # change x-axis tick label font size
@@ -648,7 +676,7 @@ def mkQC_heatmap(heatmap_data):
 
 class AbstractHistPlotter(ABC):
 
-    
+
     # Default values for subclass-specific attributes. Overwritten by concrete subclasses
     VarName   = None
     CutoffKey = None
@@ -661,7 +689,7 @@ class AbstractHistPlotter(ABC):
         self.Position= _position#"Where to put the plot"
         self.BgdDf   = _background_df
         self.UserDf  = _user_df
-        self.FigInfo = _figinfo 
+        self.FigInfo = _figinfo
         self.Figure  = _figure  #"The Sample Sheet being added to"
 
     def InitDependentFields(self):
@@ -670,51 +698,92 @@ class AbstractHistPlotter(ABC):
 
     def AddHist(self):
 
-        _bins = make_bins(self.BgdVals,self.UserVals,self.FigInfo["_bin_num"])
+        _bins = make_bins(self.BgdVals,
+                          self.UserVals,
+                          self.FigInfo["_bin_num"])
 
         _lib_mean = self.UserVals.mean()
         _current_sample = self.UserVals[self.IpTuple.Index]
 
-        axis = self.Figure.add_subplot(self.FigInfo["_subplot_rows"], 2, self.Position)
+        axis = self.Figure.add_subplot(self.FigInfo["_subplot_rows"],
+                                       2,
+                                       self.Position)
 
-        sns.histplot(self.BgdVals, bins = _bins,ax=axis, color='lightgray',
-                 edgecolor="lightgray")
+        sns.histplot(self.BgdVals,
+                     bins      = _bins,
+                     ax        = axis,
+                     color     = 'lightgray',
+                     edgecolor = "lightgray")
 
         axis1 = axis.twinx()
-        sns.kdeplot(self.BgdVals,ax=axis1, color='black', lw=0.5,bw_adjust = .5)
+        sns.kdeplot(self.BgdVals,
+                    ax        = axis1,
+                    color     = 'black',
+                    lw        = 0.5,
+                    bw_adjust = .5)
         # set limits
         _xmin,_xmax = self.BgdVals.agg(["min","max"])
         axis.set_xlim(_xmin,_xmax)
-        axis = set_ticks(axis,self.FigInfo["_tick_size"])
+        axis = set_ticks(axis, self.FigInfo["_tick_size"])
 
         axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
         axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
         axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(self.Formatter))
 
-        axis.set_title(self.PlotTitle,fontsize = self.FigInfo["_title_size"])
-        axis.set_xlabel(self.XAxisTitle, labelpad=1, fontsize= self.FigInfo["_label_size"])
+        axis.set_title(self.PlotTitle,
+                       fontsize = self.FigInfo["_title_size"])
 
-        axis.set_ylabel('Frequency', labelpad=2, fontsize= self.FigInfo["_label_size"])
+        axis.set_xlabel(self.XAxisTitle,
+                        labelpad = 1,
+                        fontsize = self.FigInfo["_label_size"])
 
-        axis = adjust_flag(axis,_current_sample,_lib_mean,self.Formatter)
+        axis.set_ylabel('Frequency',
+                        labelpad = 2,
+                        fontsize = self.FigInfo["_label_size"])
+
+        axis = adjust_flag(axis,
+                           _current_sample,
+                           _lib_mean,
+                           self.Formatter)
 
         ### Adding cutoff markers
-        axis = add_warn_fail_markers(self.FigInfo,axis,self.CutoffKey)
+        axis = add_warn_fail_markers(self.FigInfo,
+                                     axis,
+                                     self.CutoffKey)
 
         # Current Sample Line and Label
-        SampleLine = axis.axvline(x=_current_sample, alpha=0.8, color=self.FigInfo["_curr_sample_color"], linestyle='-', linewidth=0.5,
-                             label = self.Formatter(_current_sample))
+        SampleLine = axis.axvline(x         = _current_sample,
+                                  alpha     = 0.8,
+                                  color     = self.FigInfo["_curr_sample_color"],
+                                  linestyle = '-',
+                                  linewidth = 0.5,
+                                  label     = self.Formatter(_current_sample))
 
         # Current Library Mean Line and Label
-        BgdLine = axis.axvline(x=_lib_mean, alpha=0.8, color='indigo', linestyle='--', linewidth=0.5,
-                             label = self.Formatter(_lib_mean))
+        BgdLine = axis.axvline(x         = _lib_mean,
+                               alpha     = 0.8,
+                               color     = 'indigo',
+                               linestyle = '--',
+                               linewidth = 0.5,
+                               label     = self.Formatter(_lib_mean))
 
         # set up axes
-        axis = legend_setup_1_6(axis,SampleLine,BgdLine,self.FigInfo,self.CutoffKey,"upper left",self.Formatter)
+        axis = legend_setup_1_6(axis,
+                                SampleLine,
+                                BgdLine,
+                                self.FigInfo,
+                                self.CutoffKey,
+                                "upper left",
+                                self.Formatter)
 
         #set axes to be visible or not
         axis,axis1 =  mk_axes(axis,axis1)
-        axis = needs_fail_or_warn(axis,_current_sample,self.FigInfo,self.CutoffKey,"lower")
+
+        axis = needs_fail_or_warn(axis,
+                                  _current_sample,
+                                  self.FigInfo,
+                                  self.CutoffKey,
+                                  "lower")
 
 class ReadDepthHistPlotter(AbstractHistPlotter):
 
@@ -898,16 +967,16 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     _warn_label = mpatches.Patch(color = _figinfo["_warn_color"],
                                  label = 'Warn Cutoff')
 
-    _ax.legend([_curr_samp,
-                    _curr_lib,
-                    _fail_label,
-                    _warn_label,
-                    _mean_label],
-                ["Current Sample",
-                    "Batch Samples",
-                    "Fail (" + "{:.0%}".format(_figinfo["_fail_cutoffs"]["_riboScatter_cutoff"])  + ")",
-                    "Warn (" + "{:.0%}".format(_figinfo["_warn_cutoffs"]["_riboScatter_cutoff"]) + ")",
-                    "Mean rRNA/Aligned Reads (" + "{:.0%}".format(_slope_current) + ")"],
+    _ax.legend(handles   = [_curr_samp,
+                            _curr_lib,
+                            _fail_label,
+                            _warn_label,
+                            _mean_label],
+               labels    =  ["Current Sample",
+                             "Batch Samples",
+                             "Fail (" + "{:.0%}".format(_figinfo["_fail_cutoffs"]["_riboScatter_cutoff"])  + ")",
+                             "Warn (" + "{:.0%}".format(_figinfo["_warn_cutoffs"]["_riboScatter_cutoff"]) + ")",
+                             "Mean rRNA/Aligned Reads (" + "{:.0%}".format(_slope_current) + ")"],
                 loc      = 'upper left',
                 frameon  = False,
                 fontsize = _figinfo["_legend_size"])
@@ -932,7 +1001,7 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
                                           AdaptName]]
 
         _contaminant_df.columns = ["Overrepresented",
-                                          "Adapter"]
+                                   "Adapter"]
 
         _contaminant_melt  = pd.melt(_contaminant_df,
                                      var_name   = "Contamination_Metric",
@@ -944,13 +1013,13 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
         # Format Axes
         _axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
         _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent1))
-        _axis  = mk_axes(_axis)
+        _axis = mk_axes(_axis)
         _axis = set_ticks(_axis,
                           _figinfo['_tick_size'])
 
         # Add violin plot
-        sns.violinplot(x="Percent",
-                       y="Contamination_Metric",
+        sns.violinplot(x         = "Percent",
+                       y         = "Contamination_Metric",
                        data      = _contaminant_melt,
                        palette   = _contaminant_pal,
                        inner     = None,
@@ -972,14 +1041,14 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
         _mean_adapter_untrim = _user_minusBatchMean_df.loc[:, AdaptName].mean()
 
         _line_overrep = _axis.axvline(x        = _current_overrep_untrim,
-                                             color    = _figinfo["_curr_sample_color"],
-                                             label    = '{:.2f}%'.format(_current_overrep_untrim),
-                                             **_linekwargs_overrep)
+                                      color    = _figinfo["_curr_sample_color"],
+                                      label    = '{:.2f}%'.format(_current_overrep_untrim),
+                                      **_linekwargs_overrep)
 
         _line_mean_overrep = _axis.axvline(x        = _mean_overrep_untrim,
-                                                  color    = 'indigo',
-                                                  label    = '{:.2f}%'.format(_mean_overrep_untrim),
-                                                  **_linekwargs_overrep)
+                                           color    = 'indigo',
+                                           label    = '{:.2f}%'.format(_mean_overrep_untrim),
+                                           **_linekwargs_overrep)
 
         _linekwargs_adapter = {'linestyle' : '-',
                                'linewidth' : .35,
@@ -987,21 +1056,21 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
                                'ymax'      : .45}
 
         _line_adapter = _axis.axvline(x        = _current_adapter_untrim,
-                                             color    = _figinfo["_curr_sample_color"],
-                                             label    = '{:.2f}%'.format(_current_adapter_untrim),
-                                             **_linekwargs_adapter)
+                                      color    = _figinfo["_curr_sample_color"],
+                                      label    = '{:.2f}%'.format(_current_adapter_untrim),
+                                      **_linekwargs_adapter)
 
         _line_mean_adapter = _axis.axvline(x        = _mean_adapter_untrim,
-                                                  color    = "indigo",
-                                                  label    = '{:.2f}%'.format(_mean_adapter_untrim),
-                                                  **_linekwargs_adapter)
+                                           color    = "indigo",
+                                           label    = '{:.2f}%'.format(_mean_adapter_untrim),
+                                           **_linekwargs_adapter)
 
-        _axis.legend([_line_overrep, _line_mean_overrep],
-                     ["Current Sample", "Batch Mean"],
-                     loc='upper right',
-                     frameon=False,
-                     ncol=1,
-                     fontsize=_figinfo["_legend_size"])
+        _axis.legend(handles  = [_line_overrep, _line_mean_overrep],
+                     labels   = ["Current Sample", "Batch Mean"],
+                     loc      = 'upper right',
+                     frameon  = False,
+                     ncol     = 1,
+                     fontsize = _figinfo["_legend_size"])
 
         _axis.set_xlim(0,None)
         # No need to return anything because the _axis is modified inline
@@ -1016,11 +1085,11 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     _gridsp = matplotlib.gridspec.GridSpec(_figinfo["_subplot_rows"]*2,
                                            2,
                                            figure=_f)
-    _axis  = _f.add_subplot(_gridsp[4, 1:])
-    _axis2 = _f.add_subplot(_gridsp[5, 1:])
 
      # Remove the current batch mean from the USER dataframe
     _user_minusBatchMean_df = _userDf.drop(_userDf.tail(1).index)
+
+    _axis  = _f.add_subplot(_gridsp[4, 1:])
 
     # Create the composing violin plots
     SingleViolin(_axis           = _axis,
@@ -1029,21 +1098,35 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
                  OverrepTupleLoc = 8,
                  AdapterTupleLoc = 9)
 
-    SingleViolin(_axis = _axis2,
-                 OverrepName = 'Percent_Overrepresented_Seq_Trimmed',
-                 AdaptName   = 'Percent_Adapter_Content_Trimmed',
+    # Add warn and fail flags
+    needs_fail_or_warn(ax             = _axis,
+                       current_sample = _input_tup[10],
+                       _figinfo       = _figinfo,
+                       cutoff_key     = "_violin_cutoff_overrep_trimmed",
+                       higher_lower   = "upper")
+
+    needs_fail_or_warn(ax             = _axis,
+                       current_sample = _input_tup[11],
+                       _figinfo       = _figinfo,
+                       cutoff_key     = "_violin_cutoff_adapter_trimmed",
+                       higher_lower   = "upper")
+
+    _axis2 = _f.add_subplot(_gridsp[5, 1:])
+    SingleViolin(_axis           = _axis2,
+                 OverrepName     = 'Percent_Overrepresented_Seq_Trimmed',
+                 AdaptName       = 'Percent_Adapter_Content_Trimmed',
                  OverrepTupleLoc = 10,
                  AdapterTupleLoc = 11)
 
     # Format axes and titles
-    _axis2.set_xlabel("% of Reads",
-                      fontsize=_figinfo["_label_size"],
-                      labelpad=0.5)
+    _axis2.set_xlabel(xlabel   = "% of Reads",
+                      fontsize = _figinfo["_label_size"],
+                      labelpad = 0.5)
 
     # stuff at the end`
-    _axis.set_title("Sequence Contamination",
-                    fontsize=_figinfo["_title_size"],
-                    pad=0)
+    _axis.set_title(label    = "Sequence Contamination",
+                    fontsize = _figinfo["_title_size"],
+                    pad      = 0)
 
     _axis.set_yticklabels(['Untrimmed \nOverrepresented',
                            'Untrimmed \nAdapter'])
@@ -1052,7 +1135,7 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
 
     _axis2.legend().remove()
 
-### Adding cutoff markers
+    ### Adding cutoff markers
     _axis3 = _axis2.twinx()
 
     _axis2,_axis3 = mk_axes(_axis2,_axis3)
@@ -1068,17 +1151,22 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
     (_axis3, _figinfo["_warn_cutoffs"]["_violin_cutoff_adapter_trimmed"], .85, 'Warn', _figinfo["_warn_color"])]
 
     for _axs, _cutoff, yloc,label, color in _markers:
-        _axs.plot(_cutoff, yloc, marker='v', ms=1, c=color, clip_on=False)
-        _axs.text(_cutoff, yloc - .1 , label, fontsize=_figinfo["_tick_size"], color=color, horizontalalignment='center')
+        _axs.plot(_cutoff,
+                  yloc,
+                  marker  = 'v',
+                  ms      = 1,
+                  c       = color,
+                  clip_on = False)
+        _axs.text(x        = _cutoff,
+                  y        = yloc - .1 ,
+                  s        = label,
+                  fontsize = _figinfo["_tick_size"],
+                  color    = color,
+                  ha       = 'center')
 
-    plt.subplots_adjust(hspace=0)
-
-    # Add warn and fail flags
-    needs_fail_or_warn(_axis,_input_tup[10], _figinfo,"_violin_cutoff_overrep_trimmed","higher")
-    needs_fail_or_warn(_axis,_input_tup[11], _figinfo,"_violin_cutoff_adapter_trimmed","higher")
+    plt.subplots_adjust(hspace = 0)
 
     return _f
-
 
 # function designed to return pvalues for GCinformation if supplied
 def GC_KSstats(_coverage_df):
