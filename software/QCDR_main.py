@@ -34,7 +34,11 @@ from statsmodels.stats.weightstats import ztest
 
 def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file):
 
-     # Read input file and load USER data
+    #Make directory to store files in
+    os.makedirs(_output_file,
+                exist_ok = True)
+
+    # Read input file and load USER data
     _user_df = pd.read_csv(_input_file)
 
     input_adaptr=input_adapter(_user_df)
@@ -71,7 +75,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _warn_cutoffs = gen_cutoffs(bgd_df = _bgd_df,
                                 alph   = _warn_alpha)
 
-    # add an additional row if the gc or hist data was addeda
+    # add an additional row if the gc or hist data was added
     if _gc_file is None and _hist_file is None:
         _subplot_rows = 3
     else:
@@ -125,11 +129,14 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Adding the Library Mean column at the end of the GC dataframe
         _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
-        gc_KSvals = GC_KSstats(_gc_df)
+
+        GCKSvals = GC_KSstats(_coverage_df = _gc_df)
+        GC_KS_pvals = stats.norm.sf(stats.zscore(GCKSvals))
 
         # Convert GC into KS vals and calculate the distribution to get a pvalue
-        _figinfo["_gbc_pvals"] = stats.norm.sf(stats.zscore(GC_KSstats(_gc_df)))
-        _user_df["_gbc_pvals"] = stats.norm.sf(stats.zscore(GC_KSstats(_gc_df)))
+        _figinfo["_gbc_pvals"]  = GC_KS_pvals
+        _user_df["_gbc_pvals"]  = GC_KS_pvals
+        _user_df['GBC_KSstats'] = GCKSvals
 
         _figinfo["_gbc_exists"] = True
     else:
@@ -137,10 +144,12 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
     # Read Histogram data
     if _hist_file is not None:
-        _negBin_df = pd.read_csv(_hist_file, index_col=False)
+        _negBin_df = pd.read_csv(_hist_file,
+                                 index_col = False)
         _negBin_df["Batch_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
 
-        _data_df = _negBin_df.drop(['Unnamed: 0'], axis=1)
+        _data_df = _negBin_df.drop(['Unnamed: 0'],
+                                   axis = 1)
         _sum_df = _data_df.sum().round()
         _fail_numGene_cutoff = get_ci_bound(vec         = _sum_df,
                                             alpha       = 2*_fail_alpha,
@@ -150,8 +159,9 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                                             upper_lower = "lower")
         _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff)
         _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
-        _user_df["_hist_pvals"]  = calcHistPval(_negBin_df)
-        _figinfo["_hist_pvals"]  = calcHistPval(_negBin_df)
+        _user_df["_hist_pvals"]  = calcHistPval(_data_df)
+        _user_df["NumGenes"]  =  _data_df.sum().round().values 
+        _figinfo["_hist_pvals"]  = calcHistPval(_data_df)
         _figinfo["_hist_exists"] = True
     else:
         _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = "None"
@@ -159,13 +169,16 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         _figinfo["_hist_pvals"]  = None
         _figinfo["_hist_exists"] = False
 
+
     # Save the user_df
-    _user_df.to_csv(_output_file + '.csv',index = False)
+    _user_df.to_csv(_output_file + '/QCDR_ReportInfo.csv',
+                    index = False)
 
     ###### Begin Plotting process ######
 
+    pdf_output = _output_file + '/QCDR_Output.pdf'
     # Open the given PDF output file
-    _pdfObj = PdfPages(_output_file)
+    _pdfObj = PdfPages(pdf_output)
 
     # Create title page
     _title_fig = mkTitlePage(_figinfo)
@@ -177,7 +190,8 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     _summary_heatmap_data = pd.DataFrame(_summary_heatmap_data)
     # Save heatmap data
     _summary_heatmap_data["Sample"] = _user_df.Sample
-    _summary_heatmap_data.to_csv(_output_file + 'Heatmapinfo.csv',index = False)
+    _summary_heatmap_data.to_csv(_output_file + '/Heatmapinfo.csv',
+                                 index = False)
     my_range = list(range(0,len(_user_df),20))
     my_range.append(len(_user_df))
 
@@ -195,7 +209,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         fig = plt.figure(frameon=False)
 
         # Plotting figure 1: Input Size
-        InputSize = ReadDepthHistPlotter(_tuple,_user_df,_bgd_df,1,_figinfo,fig) 
+        InputSize = ReadDepthHistPlotter(_tuple,_user_df,_bgd_df,1,_figinfo,fig)
         fig = InputSize.Figure
 
         # Plotting figure 2: Percentage of Reads after Trimming
@@ -210,7 +224,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
         ExonMapping = ExonMappingPlotter(_tuple, _user_df, _bgd_df,4,_figinfo,fig)
         fig = ExonMapping.Figure
 
- #       # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
+        # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
         fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_figinfo,fig)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
@@ -218,7 +232,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
         # Plotting figure 7: Expression Distribution Plot
         if _hist_file is not None:
-            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,_user_df,7,_figinfo,fig)
+            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,7,_figinfo,fig)
 
         # Plotting figure 8: Gene Body Coverage Plot
         if _gc_file is not None:

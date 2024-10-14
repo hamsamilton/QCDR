@@ -1168,6 +1168,87 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
 
     return _f
 
+def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
+
+    mean_sample = data_df.mean(axis = 1) # compute mean across columns for each row
+    print('The mean sample looks like this',
+          mean_sample)
+
+    deviances = data_df.sub(mean_sample,
+                            axis = 0).abs()
+
+    def bootstrap_deviances(deviances, n_bootstraps = 1000):
+
+        bootstrap_distributions = []
+
+        for _ in range(n_bootstraps):
+
+            bootstrap_sample = deviances.sample(frac    = 1,
+                                                replace = True)
+            bootstrap_sum = bootstrap_sample.sum(axis = 0)
+            bootstrap_distributions.append(bootstrap_sum)
+
+        return np.array(bootstrap_distributions)
+
+    # perform bootstrapping
+    bootstrap_distribution = bootstrap_deviances(deviances    = deviances,
+                                                 n_bootstraps = n_bootstraps)
+    total_deviances_per_sample = deviances.sum(axis = 0)
+
+    def calculate_pvalues(total_deviance, bootstrap_dist):
+        total_deviance = np.array(total_deviance).reshape(1,-1) # reshape to match dimenssions (1, n_samples)
+        pvalues = np.mean(bootstrap_dist >= total_deviance,
+                          axis = 0)
+        return pvalues
+
+    # compute pvalues for each sample
+    pvalues = calculate_pvalues(total_deviance = total_deviances_per_sample,
+                                bootstrap_dist = bootstrap_distribution)
+
+    # create a summary DF to show each samples,total deviance and pvalue
+
+    summary_df = pd.DataFrame({
+        'Sample'        : data_df.columns,
+        'Total_Deviance': total_deviances_per_sample,
+        'Pvalue'        : pvalues})
+
+    return summary_df
+
+# For preprocessing count matrices to a genehist file
+def CountsMatrixToGeneHist(df, binsize = .25, maxdepth = 18.5):
+
+    # Remove rownames
+    df = df.iloc[:, 1:]
+
+    # CPM transformation
+    read_depth = df.sum(axis = 0) / 1e6
+    df = df.div(read_depth,
+                axis = 1)
+
+    df = np.log2(df + 1)
+
+    # Make bins 
+    bins = np.arange(0,
+                     maxdepth,
+                     binsize)
+
+    # Count how many genes are within the top and bottom of each bin
+    bin_counts = []
+    for bin in bins:
+        top_bin = bin + binsize
+        count_df = (df > bin) & (df <= top_bin)
+        count_df_sum = count_df.sum(axis = 0)
+
+    # Transpose the matrix and add X-axis names
+    bin_counts_df = pd.DataFrame(bin_counts).T
+    topbins = bins + binsaize
+    xaxis_names = [f"({bin},{topbin}]" for bin, topbin in zip(bins, topbins)]
+    bin_counts_df.insert(0,
+                         'Xaxis',
+                         xaxis_names)
+
+    return bin_counts_df
+
 # function designed to return pvalues for GCinformation if supplied
 def GC_KSstats(_coverage_df):
 
@@ -1175,10 +1256,11 @@ def GC_KSstats(_coverage_df):
     _kslst = []
     # calculate mean GBC for the whole library
     _mean_df = pd.DataFrame()
-    _mean_df["gc_mean"] = _coverage_df.median(axis=1)
+    _mean_df["gc_mean"] = _coverage_df.median(axis = 1)
 
     for column_name, _column_data in _coverage_df.iteritems():
-        _ks_stat, _ks_pval = stats.ks_2samp(_column_data, _mean_df['gc_mean'])
+        _ks_stat, _ks_pval = stats.ks_2samp(data1 = _column_data,
+                                            data2 = _mean_df['gc_mean'])
         _kslst.append(_ks_stat)
 
     return _kslst
@@ -1291,9 +1373,8 @@ def plotGC(_ipTuple, _coverage_df, _position,_figinfo,_fig=None):
 
 def calcHistPval(_hist_df):
 
-    _data_df = _hist_df.drop(['Unnamed: 0'], axis=1)
     # code for calculating Z value of number of expressed genes. In need of some improvement.
-    _sum_df = _data_df.sum().round()
+    _sum_df = _hist_df.sum().round()
     _zscore = stats.zscore(_sum_df)
     _pvals  = stats.norm.sf(abs(_zscore))
 
@@ -1323,15 +1404,18 @@ class AbstractLinePlotter(ABC):
 
 
 # Plot 8 : Gene Expression Distribution Plot 
-def plotNegBin(_ipTuple, _hist_df, _user_df,_position,_figinfo,_f=None):
-    _ax = _f.add_subplot(_figinfo["_subplot_rows"], 2, _position)
+def plotNegBin(_ipTuple, _hist_df, _position,_figinfo,_f=None):
+    _ax = _f.add_subplot(_figinfo["_subplot_rows"],
+                         2,
+                         _position)
 
     _low_vals = []
     for _i in _hist_df.iloc[:, 0]:
         _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
 
     ## Preparing the data_df and libMean_df for all bins
-    _hist_df = _hist_df.drop(['Unnamed: 0'], axis=1)
+    _hist_df = _hist_df.drop(['Unnamed: 0'],
+                             axis=1)
     _libMean_df = pd.DataFrame()
     _libMean_df['Mean'] = _hist_df.iloc[:, :-1].mean(numeric_only=True, axis=1)
 
@@ -1346,7 +1430,12 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_position,_figinfo,_f=None):
     _curr_pval = _pvals[_curr_ndx]
 
 
-    _ax.plot(_low_vals, _hist_df, color='silver', linewidth=0.5, linestyle='-',alpha = .4)
+    _ax.plot(_low_vals,
+             _hist_df,
+              color     = 'silver',
+             linewidth = 0.5,
+             linestyle = '-',
+             alpha     = .4)
     _ax.plot(_low_vals, _hist_df[_ipTuple[1]], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', zorder=24)
     _ax.plot(_low_vals, _libMean_df['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
 
@@ -1359,8 +1448,18 @@ def plotNegBin(_ipTuple, _hist_df, _user_df,_position,_figinfo,_f=None):
     _ax.set_ylabel("Frequency", fontsize=_figinfo["_label_size"] )
 
 
-    _current_samp_line = matplotlib.lines.Line2D([0], [0], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', alpha=0.8)
-    _lib_line = matplotlib.lines.Line2D([0], [0], color="indigo", linewidth=0.5, linestyle='--', alpha=0.8)
+    _current_samp_line = matplotlib.lines.Line2D([0],
+                                                 [0],
+                                                 color     = _figinfo["_curr_sample_color"],
+                                                 linewidth = 0.5,
+                                                 linestyle = '-',
+                                                 alpha     = 0.8)
+    _lib_line = matplotlib.lines.Line2D([0],
+                                        [0],
+                                        color     = "indigo",
+                                        linewidth = 0.5,
+                                        linestyle = '--',
+                                        alpha     = 0.8)
     _extra_Ztest_Pval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
                                                      linewidth=0)
 
