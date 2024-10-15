@@ -56,7 +56,6 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                          _user_df.Percent_Adapter_Content_Untrimmed.mean(),
                          _user_df.Percent_Overrepresented_Seq_Trimmed.mean(),
                          _user_df.Percent_Adapter_Content_Trimmed.mean(),
-                         _user_df.Project[0],
                          _user_df.Batch[0]]
 
     ## Add Batch mean as the last row of the USER dataframe
@@ -146,13 +145,9 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
     if _hist_file is not None:
         _negBin_df = pd.read_excel(_hist_file)
 
-        print('preprocesses negbin',
-              _negBin_df)
         _negBin_df = CountsMatrixToGeneHist(df       = _negBin_df,
                                             binsize  = .25,
                                             maxdepth = 18.5)
-        print('postprocessed negbin',
-              _negBin_df)
         # Preprocess raw counts table
         _negBin_df["Batch_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
 
@@ -256,7 +251,7 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
                  verticalalignment   = 'top',
                  fontweight          = 'book',
                  style               = 'italic')
-        fig.text(s                   = "Batch : " + _tuple[13],
+        fig.text(s                   = "Batch : " + _tuple[12],
                  x                   = 0.99,
                  y                   = 0.99,
                  fontsize            = 6,

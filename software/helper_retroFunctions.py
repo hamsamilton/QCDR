@@ -121,7 +121,6 @@ class input_adapter(UI_adapter):
         "% Adapter Content (Pre-trim)",
         "% Overrepresented Sequences (Post-trim)",
         "% Adapter Content (Post-trim)",
-        "Project",
         "Batch"]
     input_program_names = [
         "Sample",
@@ -135,7 +134,6 @@ class input_adapter(UI_adapter):
         "Percent_Adapter_Content_Untrimmed",
         "Percent_Overrepresented_Seq_Trimmed",
         "Percent_Adapter_Content_Trimmed",
-        "Project",
         "Batch"]
 
     def adapt_input(self):
@@ -144,7 +142,7 @@ class input_adapter(UI_adapter):
         self._fill_missing_values()
         self._transform_values()
         self._change_column_names()
-        self._reorder_columns()       
+        self._reorder_columns()
 
 class manual_cutoff_adapter(UI_adapter):
 
@@ -861,16 +859,16 @@ def plotScatter_rRNA(_in_tup, _userDf, _background_df, _pos,_figinfo,_f=None):
     # Plot the regression line
     _ax.plot(X,
              Y_pred,
-             c='black',
-             linewidth=0.7,
-             linestyle='-',
-             alpha=1)
+             c         = 'black',
+             linewidth = 0.7,
+             linestyle = '-',
+             alpha     = 1)
 
     # plot the regression for all points.
-    _ax.scatter(x=_plotter_df['Num_Uniquely_Aligned'],
-                y=_plotter_df['Num_Uniquely_Aligned_rRNA'],
-                s=0.8,
-                c=_plotter_df["scatter_color"])
+    _ax.scatter(x = _plotter_df['Num_Uniquely_Aligned'],
+                y = _plotter_df['Num_Uniquely_Aligned_rRNA'],
+                s = 0.8,
+                c = _plotter_df["scatter_color"])
 
     #separate scatter call for the sample so it can have a unique size and shape
     _intupdf = _plotter_df.loc[_plotter_df["Sample"] == _in_tup[1]]
@@ -1440,16 +1438,30 @@ def plotNegBin(_ipTuple, _hist_df, _position,_figinfo,_f=None):
              linewidth = 0.5,
              linestyle = '-',
              alpha     = .4)
-    _ax.plot(_low_vals, _hist_df[_ipTuple[1]], color=_figinfo["_curr_sample_color"], linewidth=0.5, linestyle='-', zorder=24)
-    _ax.plot(_low_vals, _libMean_df['Mean'], color='indigo', linewidth=0.5, linestyle='--', alpha=0.8, zorder=23)
+    _ax.plot(_low_vals,
+             _hist_df[_ipTuple[1]],
+             color     = _figinfo["_curr_sample_color"],
+             linewidth = 0.5,
+             linestyle = '-',
+             zorder    = 24)
+    _ax.plot(_low_vals,
+             _libMean_df['Mean'],
+             color     = 'indigo',
+             linewidth = 0.5,
+             linestyle = '--',
+             alpha     = 0.8,
+             zorder    = 23)
 
     _ax = set_ticks(_ax,_figinfo["_tick_size"])
 
     _ax.set_xlim(0, 10)
 
-    _ax.set_title("Gene Expression", fontsize=_figinfo["_title_size"])
-    _ax.set_xlabel("Expression Level (log2(CPM)+1)", fontsize=_figinfo["_label_size"])
-    _ax.set_ylabel("Frequency", fontsize=_figinfo["_label_size"] )
+    _ax.set_title("Gene Expression",
+                  fontsize=_figinfo["_title_size"])
+    _ax.set_xlabel("Expression Level (log2(CPM)+1)",
+                   fontsize=_figinfo["_label_size"])
+    _ax.set_ylabel("Frequency",
+                   fontsize=_figinfo["_label_size"] )
 
 
     _current_samp_line = matplotlib.lines.Line2D([0],
@@ -1468,7 +1480,9 @@ def plotNegBin(_ipTuple, _hist_df, _position,_figinfo,_f=None):
                                                      linewidth=0)
 
     _ax.legend([_current_samp_line, _lib_line, _extra_Ztest_Pval],
-               ["Current Sample", "Batch  Mean", "Pvalue (# Detected Genes): " + str(round(_curr_pval.item(), 3))], loc='upper right',
+               ["Current Sample", "Batch  Mean", "Pvalue (# Detected Genes): " + str(round(_curr_pval.item(),
+                                                                                           3))],
+               loc='upper right',
                frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
     _ax = mk_axes(_ax)
     _ax = needs_fail_or_warn(_ax,_curr_pval,_figinfo,"_alpha","lower")
