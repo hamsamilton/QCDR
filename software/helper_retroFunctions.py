@@ -1218,8 +1218,10 @@ def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
 def CountsMatrixToGeneHist(df, binsize = .25, maxdepth = 18.5):
 
     # Remove rownames
-    df = df.iloc[:, 1:]
+    df = df.iloc[:, 2:]
 
+    df = df.apply(pd.to_numeric,
+                  errors = 'coerce')
     # CPM transformation
     read_depth = df.sum(axis = 0) / 1e6
     df = df.div(read_depth,
@@ -1238,14 +1240,15 @@ def CountsMatrixToGeneHist(df, binsize = .25, maxdepth = 18.5):
         top_bin = bin + binsize
         count_df = (df > bin) & (df <= top_bin)
         count_df_sum = count_df.sum(axis = 0)
+        bin_counts.append(count_df_sum)
 
     # Transpose the matrix and add X-axis names
-    bin_counts_df = pd.DataFrame(bin_counts).T
-    topbins = bins + binsaize
+    bin_counts_df = pd.DataFrame(bin_counts)
+    topbins = bins + binsize
     xaxis_names = [f"({bin},{topbin}]" for bin, topbin in zip(bins, topbins)]
-    bin_counts_df.insert(0,
-                         'Xaxis',
-                         xaxis_names)
+    bin_counts_df.insert(loc    = 0,
+                         column = 'Bins',
+                         value  = xaxis_names)
 
     return bin_counts_df
 
@@ -1414,10 +1417,11 @@ def plotNegBin(_ipTuple, _hist_df, _position,_figinfo,_f=None):
         _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
 
     ## Preparing the data_df and libMean_df for all bins
-    _hist_df = _hist_df.drop(['Unnamed: 0'],
-                             axis=1)
+    _hist_df = _hist_df.drop(['Bins'],
+                             axis = 1)
     _libMean_df = pd.DataFrame()
-    _libMean_df['Mean'] = _hist_df.iloc[:, :-1].mean(numeric_only=True, axis=1)
+    _libMean_df['Mean'] = _hist_df.iloc[:, :-1].mean(numeric_only = True,
+                                                     axis         = 1)
 
     _current_samp_array = _hist_df[_ipTuple[1]].values
 

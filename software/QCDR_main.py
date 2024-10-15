@@ -144,12 +144,21 @@ def retroPlotter_main(_input_file, _output_file, _bgd_file, _gc_file,_hist_file)
 
     # Read Histogram data
     if _hist_file is not None:
-        _negBin_df = pd.read_csv(_hist_file,
-                                 index_col = False)
+        _negBin_df = pd.read_excel(_hist_file)
+
+        print('preprocesses negbin',
+              _negBin_df)
+        _negBin_df = CountsMatrixToGeneHist(df       = _negBin_df,
+                                            binsize  = .25,
+                                            maxdepth = 18.5)
+        print('postprocessed negbin',
+              _negBin_df)
+        # Preprocess raw counts table
         _negBin_df["Batch_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
 
-        _data_df = _negBin_df.drop(['Unnamed: 0'],
+        _data_df = _negBin_df.drop(['Bins'],
                                    axis = 1)
+
         _sum_df = _data_df.sum().round()
         _fail_numGene_cutoff = get_ci_bound(vec         = _sum_df,
                                             alpha       = 2*_fail_alpha,
