@@ -1,8 +1,7 @@
 data/SCRIPT
 data/LungTransplant
+data/SCRIPT
 *.pdf
 software/developertests
-
-
-
-
+*.sw*
+software/QCDRTestOutputs

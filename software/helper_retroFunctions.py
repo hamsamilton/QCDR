@@ -1169,8 +1169,6 @@ def plotViolin_dualAxis(_input_tup, _userDf, _background_df, _position,_figinfo,
 def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
 
     mean_sample = data_df.mean(axis = 1) # compute mean across columns for each row
-    print('The mean sample looks like this',
-          mean_sample)
 
     deviances = data_df.sub(mean_sample,
                             axis = 0).abs()
