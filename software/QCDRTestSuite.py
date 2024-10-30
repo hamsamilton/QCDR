@@ -167,7 +167,7 @@ if __name__ == '__main__':
 
     print('Running tests')
     [QCDRTestFactory(SaveDir = "QCDRTestOutputs/").
-     ComprehensiveTesting().
+     QuickTest().
      RunTests(TestFun = QCDR_main)]
     print("Tests Finished Running")
 

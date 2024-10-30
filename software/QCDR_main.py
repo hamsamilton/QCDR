@@ -97,8 +97,8 @@ def QCDR_main(qry_filename    = '',
     _figinfo["_legend_size"]       = 3
     _figinfo["_tick_size"]         = 4
     _figinfo["_subplot_rows"]      = _subplot_rows
-    _figinfo["warn_alpha"]        = warn_alpha
-    _figinfo["fail_alpha"]        = fail_alpha
+    _figinfo["warn_alpha"]         = warn_alpha
+    _figinfo["fail_alpha"]         = fail_alpha
     _figinfo["_bin_num"]           = 40
     _figinfo["_ip_filename"]       = qry_filename
     _figinfo["_op_filename"]       = op_folder
@@ -108,7 +108,7 @@ def QCDR_main(qry_filename    = '',
     _figinfo["_cutoff_filename"]   = cutoff_filename
 
     if cutoff_filename is not None:
-        _manual_cutoffs = pd.read_excel(_cutoff_filename)
+        _manual_cutoffs = pd.read_excel(cutoff_filename)
 
         manual_cutoff_adaptr = manual_cutoff_adapter(_manual_cutoffs)
         manual_cutoff_adaptr.adapt_input()
@@ -171,7 +171,7 @@ def QCDR_main(qry_filename    = '',
         _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff)
         _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
         _user_df["_hist_pvals"]  = calcHistPval(_data_df)
-        _user_df["NumGenes"]  =  _data_df.sum().round().values 
+        _user_df["NumGenes"]  =  _data_df.sum().round().values
         _figinfo["_hist_pvals"]  = calcHistPval(_data_df)
         _figinfo["_hist_exists"] = True
     else:
@@ -214,43 +214,43 @@ def QCDR_main(qry_filename    = '',
         _pdfObj.savefig(_summary_heatmap_fig)
         plt.close(_summary_heatmap_fig)
 
-    for _tuple in _user_df.itertuples():
-        print(_tuple)
+    for SampleName in _user_df["Sample"]:
+
         # Create empty figure
         fig = plt.figure(frameon=False)
 
         # Plotting figure 1: Input Size
-        InputSize = ReadDepthHistPlotter(_tuple,_user_df,_bgd_df,1,_figinfo,fig)
+        InputSize = ReadDepthHistPlotter(SampleName,_user_df,_bgd_df,1,_figinfo,fig)
         fig = InputSize.Figure
 
         # Plotting figure 2: Percentage of Reads after Trimming
-        TrimmingPercent = TrimmingPlotter(_tuple, _user_df, _bgd_df,2,_figinfo,fig)
+        TrimmingPercent = TrimmingPlotter(SampleName, _user_df, _bgd_df,2,_figinfo,fig)
         fig = TrimmingPercent.Figure
 
         # Plotting figure 3: Percentage of Uniquely Aligned Reads
-        Alignment = AlignmentPlotter(_tuple, _user_df, _bgd_df,3,_figinfo,fig)
+        Alignment = AlignmentPlotter(SampleName, _user_df, _bgd_df,3,_figinfo,fig)
         fig = Alignment.Figure
 
         # Plotting figure 4: Percentage of Reads Mapped to Exons
-        ExonMapping = ExonMappingPlotter(_tuple, _user_df, _bgd_df,4,_figinfo,fig)
+        ExonMapping = ExonMappingPlotter(SampleName, _user_df, _bgd_df,4,_figinfo,fig)
         fig = ExonMapping.Figure
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotScatter_rRNA(_tuple, _user_df, _bgd_df, 5,_figinfo,fig)
+        fig = helper_retroFunctions.plotScatter_rRNA(SampleName, _user_df, _bgd_df, 5,_figinfo,fig)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
-        fig = helper_retroFunctions.plotViolin_dualAxis(_tuple, _user_df, _bgd_df, 6,_figinfo,fig)
+        fig = helper_retroFunctions.plotViolin_dualAxis(SampleName, _user_df, _bgd_df, 6,_figinfo,fig)
 
         # Plotting figure 7: Expression Distribution Plot
         if _hist_file is not None:
-            fig = helper_retroFunctions.plotNegBin(_tuple,_negBin_df,7,_figinfo,fig)
+            fig = helper_retroFunctions.plotNegBin(SampleName,_user_df,_negBin_df,7,_figinfo,fig)
 
         # Plotting figure 8: Gene Body Coverage Plot
         if _gc_file is not None:
-            fig = helper_retroFunctions.plotGC(_tuple, _gc_df, 8,_figinfo,fig)
+            fig = helper_retroFunctions.plotGC(SampleName,_user_df, _gc_df, 8,_figinfo,fig)
 
         # Add sample info at the top-left corner of the page
-        fig.text(s                   = 'Sample : ' + _tuple[1],
+        fig.text(s                   = 'Sample : ' + SampleName,
                  x                   = 0.01,
                  y                   = 0.99,
                  fontsize            = 6,
@@ -258,7 +258,7 @@ def QCDR_main(qry_filename    = '',
                  verticalalignment   = 'top',
                  fontweight          = 'book',
                  style               = 'italic')
-        fig.text(s                   = "Batch : " + _tuple[12],
+        fig.text(s                   = "Batch : " + _user_df.loc[_user_df['Sample'] == SampleName,'Batch'].iloc[0],
                  x                   = 0.99,
                  y                   = 0.99,
                  fontsize            = 6,
@@ -311,7 +311,7 @@ if __name__ == "__main__":
                         "--genecoverage-data",
                         type     = str,
                         required = False,
-                        help     = """[OPTIONAL] Provide the name of the Gene Coverage Data file 
+                        help     = """[OPTIONAL] Provide the name of the Gene Coverage Data file
                                       -gc [GC-DATA],\t--genecoverage-data [GC-DATA]""")
 
     parser.add_argument("-hist",
@@ -324,7 +324,7 @@ if __name__ == "__main__":
     parser.add_argument("-ctf",
                         "--cutoff-data",
                         required = False,
-                        default  = False,
+                        default  = None,
                         help     = """[OPTIONAL] Location of table with cutoffs for warn fail cutoffs.
                                       -ctf [CUTOFF_PATH],\t --cutoff [CUTOFF_PATH]""")
 
@@ -345,7 +345,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    qry_filename     = args.query_filename
+    qry_filename    = args.query_filename
     op_folder       = args.output_folder
     gc_file         = args.genecoverage_data
     hist_file       = args.histogram_data
