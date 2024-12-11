@@ -45,35 +45,13 @@ def QCDR_main(qry_filename    = '',
     os.makedirs(op_folder,
                 exist_ok = True)
 
-    # Read input file and load USER data
+    # Read query file and load USER data
     _user_df = pd.read_csv(qry_filename)
+    _user_df = input_adapter(_user_df).adapt_input().input_df
 
-    input_adaptr=input_adapter(_user_df)
-    input_adaptr.adapt_input()
-    _user_df = input_adaptr.input_df
-    # Add last row in the USER df with current batch's mean values for the final summary page
-    _batch_summary_df = ["Batch_Mean",
-                         _user_df.Input_Size.mean(),
-                         _user_df.Percent_PostTrim.mean(),
-                         _user_df.Num_Uniquely_Aligned.mean(),
-                         _user_df.Percent_Uniquely_Aligned.mean(),
-                         _user_df.Percent_Exonic.mean(),
-                         _user_df.Num_Uniquely_Aligned_rRNA.mean(),
-                         _user_df.Percent_Overrepresented_Seq_Untrimmed.mean(),
-                         _user_df.Percent_Adapter_Content_Untrimmed.mean(),
-                         _user_df.Percent_Overrepresented_Seq_Trimmed.mean(),
-                         _user_df.Percent_Adapter_Content_Trimmed.mean(),
-                         _user_df.Batch[0]]
-
-    ## Add Batch mean as the last row of the USER dataframe
-    _user_df.loc[len(_user_df)] = _batch_summary_df
-
-    ## Read Background file and load HISTORICAL background data
+    ## Read Background file 
     _bgd_df = pd.read_csv(_bgd_file)
-
-    input_adaptr=input_adapter(_bgd_df)
-    input_adaptr.adapt_input()
-    _bgd_df = input_adaptr.input_df
+    _bgd_df  = input_adapter(_bgd_df).adapt_input().input_df
 
     # Make standard cutoffs for warn/fail
     _fail_cutoffs = gen_cutoffs(bgd_df = _bgd_df,
@@ -95,11 +73,11 @@ def QCDR_main(qry_filename    = '',
     _figinfo["_title_size"]        = 6
     _figinfo["_label_size"]        = 5
     _figinfo["_legend_size"]       = 3
+    _figinfo["_bin_num"]           = 40
     _figinfo["_tick_size"]         = 4
     _figinfo["_subplot_rows"]      = _subplot_rows
     _figinfo["warn_alpha"]         = warn_alpha
     _figinfo["fail_alpha"]         = fail_alpha
-    _figinfo["_bin_num"]           = 40
     _figinfo["_ip_filename"]       = qry_filename
     _figinfo["_op_filename"]       = op_folder
     _figinfo["_gc_file"]           = _gc_file
@@ -133,16 +111,27 @@ def QCDR_main(qry_filename    = '',
     if _gc_file is not None:
         _gc_df = pd.read_csv(_gc_file).iloc[:,1:]
 
-        # Adding the Library Mean column at the end of the GC dataframe
-        _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
+        GCDeviances = EstimateDeviances(data_df = _gc_df).sum(axis = 0)
 
-        GCKSvals = GC_KSstats(_coverage_df = _gc_df)
-        GC_KS_pvals = stats.norm.sf(stats.zscore(GCKSvals))
+        _fail_GC_cutoff = CalcBootstrapBound(vec         = GCDeviances,
+                                             alpha       = 2*fail_alpha,
+                                             upper_lower = 'upper')
+        _warn_GC_cutoff = CalcBootstrapBound(vec         = GCDeviances,
+                                             alpha       = 2*warn_alpha,
+                                             upper_lower = 'upper')
+        _figinfo['_fail_cutoffs']['GC_cutoff'] = _fail_GC_cutoff
+        _figinfo['_warn_cutoffs']['GC_cutoff'] = _warn_GC_cutoff
+        GC_KS_pvals = stats.norm.sf(stats.zscore(GCDeviances))
+        print('the GC deviances are')
 
         # Convert GC into KS vals and calculate the distribution to get a pvalue
         _figinfo["_gbc_pvals"]  = GC_KS_pvals
         _user_df["_gbc_pvals"]  = GC_KS_pvals
-        _user_df['GBC_KSstats'] = GCKSvals
+        _user_df = _user_df.set_index('Sample')
+        print('the userdf was',_user_df,_user_df.index)
+        _user_df['GBC_KSstats'] = GCDeviances
+        _user_df = _user_df.reset_index()
+        print('the _user_df is',_user_df)
 
         _figinfo["_gbc_exists"] = True
     else:
@@ -150,26 +139,21 @@ def QCDR_main(qry_filename    = '',
 
     # Read Histogram data
     if _hist_file is not None:
-        _negBin_df = pd.read_excel(_hist_file)
-
-        _negBin_df = CountsMatrixToGeneHist(df       = _negBin_df,
+        _negBin_df = CountsMatrixToGeneHist(df       = pd.read_excel(_hist_file),
                                             binsize  = .25,
                                             maxdepth = 18.5)
         # Preprocess raw counts table
-        _negBin_df["Batch_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
-
         _data_df = _negBin_df.drop(['Bins'],
                                    axis = 1)
-
         _sum_df = _data_df.sum().round()
-        _fail_numGene_cutoff = get_ci_bound(vec         = _sum_df,
-                                            alpha       = 2*fail_alpha,
-                                            upper_lower = "lower")
-        _warn_numGene_cutoff = get_ci_bound(vec         = _sum_df,
-                                            alpha       = 2*warn_alpha,
-                                            upper_lower = "lower")
-        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff)
-        _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
+        _fail_numGene_cutoff = CalcBootstrapBound(vec         = _sum_df,
+                                                  alpha       = 2*fail_alpha,
+                                                  upper_lower = "lower")
+        _warn_numGene_cutoff = CalcBootstrapBound(vec         = _sum_df,
+                                                  alpha       = 2*warn_alpha,
+                                                  upper_lower = "lower")
+        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = _fail_numGene_cutoff
+        _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = _warn_numGene_cutoff
         _user_df["_hist_pvals"]  = calcHistPval(_data_df)
         _user_df["NumGenes"]  =  _data_df.sum().round().values
         _figinfo["_hist_pvals"]  = calcHistPval(_data_df)
@@ -186,7 +170,6 @@ def QCDR_main(qry_filename    = '',
                     index = False)
 
     ###### Begin Plotting process ######
-
     pdf_output = op_folder + '/QCDR_Output.pdf'
     # Open the given PDF output file
     _pdfObj = PdfPages(pdf_output)

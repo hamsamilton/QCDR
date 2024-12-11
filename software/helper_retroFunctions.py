@@ -144,12 +144,14 @@ class input_adapter(UI_adapter):
         self._change_column_names()
         self._reorder_columns()
 
+        return self
+
 class manual_cutoff_adapter(UI_adapter):
 
     """
     This object is designed to handle the manual cutoff file provided by the user, shape it into the correct format, and return 
     meaningful warnings and errors to avoid downstream confusion
-    
+
     Input: The loaded pd of the manual cutoff adapter
     Output:The standardized file expected by the rest of the program, or an error
     """
@@ -317,16 +319,12 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
         def make_flag(self, flag_type):
             if flag_type == "fail":
                 text = "FAILURE"
-                font_size = 4
                 background_color = 'tomato'
                 text_color = 'yellow'
-                font_stretch = 'extra-expanded'
             elif flag_type == "warn":
                 text = "WARNING"
-                font_size = 3.7
                 background_color = 'yellow'
                 text_color = 'red'
-                font_stretch = 'expanded'
             else:
                 raise ValueError("Invalid flag type")
 
@@ -334,7 +332,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
                                                           pad            = 0.0001,
                                                           borderpad      = 1,
                                                           loc            = 3,
-                                                          prop           = dict(size            = font_size,
+                                                          prop           = dict(size            = 4,
                                                                                 snap            = True,
                                                                                 backgroundcolor = background_color,
                                                                                 color           = text_color,
@@ -342,7 +340,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
                                                                                 zorder          = 5,
                                                                                 fontweight      = 'roman',
                                                                                 fontfamily      = 'serif',
-                                                                                fontstretch     = font_stretch),
+                                                                                fontstretch     = 'expanded'),
                                                           frameon        = True,
                                                           bbox_to_anchor = (0, 1),
                                                           bbox_transform = self.ax.transAxes)
@@ -363,6 +361,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
             insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
     elif higher_lower == "upper":
         if current_sample >= flag_inserter.cutoff_fail:
+            print('inserted?',current_sample,flag_inserter.cutoff_fail, current_sample >= flag_inserter.cutoff_fail)
             insert_flag(ax, flag_inserter.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
         elif current_sample >= flag_inserter.cutoff_warn:
             insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
@@ -386,6 +385,22 @@ def get_ci_bound(vec, alpha, upper_lower="both"):
 
 # The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
 
+# Simple bootstrap calculation
+def CalcBootstrapBound(vec,upper_lower,alpha):
+    vec = np.asarray(vec)
+    bootstrap_mean = bs.bootstrap(vec,
+                                  stat_func = bs_stats.mean).value
+    bootstrap_std  = bs.bootstrap(vec,
+                                  stat_func = bs_stats.std).value
+    conf_size = norm.ppf(alpha) * bootstrap_std
+    if upper_lower == "upper":
+        cutoff = bootstrap_mean - conf_size
+    if upper_lower == "lower":
+        cutoff = bootstrap_mean + conf_size
+
+    return np.float64(cutoff)
+
+
 class CutoffCalculator:
     def __init__(self, bgd_df, alph):
         self.bgd_df = bgd_df
@@ -408,8 +423,10 @@ class CutoffCalculator:
 
     def calculate_cutoff_ratio(self, column1, column2, upper_lower, cutoff_name):
         vec = np.array(self.bgd_df.loc[:, column1] / self.bgd_df.loc[:, column2])
-        bootstrap_mean = bs.bootstrap(vec, stat_func=bs_stats.mean).value
-        bootstrap_std  = bs.bootstrap(vec, stat_func=bs_stats.std).value
+        bootstrap_mean = bs.bootstrap(vec,
+                                      stat_func = bs_stats.mean).value
+        bootstrap_std  = bs.bootstrap(vec,
+                                      stat_func = bs_stats.std).value
         conf_size = norm.ppf(self.onesided_alph) * bootstrap_std
         if upper_lower == "upper":
             self.cutoffs_dict[cutoff_name] = bootstrap_mean - conf_size
@@ -418,8 +435,10 @@ class CutoffCalculator:
 
     def calculate_cutoff(self,column,upper_lower,cutoff_name):
         vec = np.array(self.bgd_df.loc[:, column])
-        bootstrap_mean = bs.bootstrap(vec, stat_func=bs_stats.mean).value
-        bootstrap_std  = bs.bootstrap(vec, stat_func=bs_stats.std).value
+        bootstrap_mean = bs.bootstrap(vec,
+                                      stat_func = bs_stats.mean).value
+        bootstrap_std  = bs.bootstrap(vec,
+                                      stat_func = bs_stats.std).value
         conf_size = norm.ppf(self.onesided_alph) * bootstrap_std
         if upper_lower == "upper":
             self.cutoffs_dict[cutoff_name] = bootstrap_mean - conf_size
@@ -551,13 +570,13 @@ def mkTitlePage(_figinfo):
 
         cutoff_descriptor = (descriptor +': Default alpha =' + str(cutoff_set["_alpha"])  +
                                 '| Sequencing Depth = ' + '{:.3f}'.format(cutoff_set["_ipReads_cutoff"],3) +
-                                '| Trimming = ' + '{:.3f}'.format(cutoff_set["_trimmedReads_cutoff"],3) +  
-                                '| Alignment = ' + '{:.3f}'.format(cutoff_set["_uniqAligned_cutoff"],3) +  
-                                '| Gene Exon Mapping = ' + '{:.3f}'.format(cutoff_set["_exonMapping_cutoff"],3) + 
-                                '\n| Ribosomal RNA = ' + '{:.3f}'.format(cutoff_set["_riboScatter_cutoff"],3) + 
-                                '| Adapter Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_adapter_trimmed"],3) + 
-                                '| Overrep. Seq  Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_overrep_trimmed"],3) + 
-                                '| Gene Body Coverage = ' + str(cutoff_set["_alpha"]) + 
+                                '| Trimming = ' + '{:.3f}'.format(cutoff_set["_trimmedReads_cutoff"],3) +
+                                '| Alignment = ' + '{:.3f}'.format(cutoff_set["_uniqAligned_cutoff"],3) +
+                                '| Gene Exon Mapping = ' + '{:.3f}'.format(cutoff_set["_exonMapping_cutoff"],3) +
+                                '\n| Ribosomal RNA = ' + '{:.3f}'.format(cutoff_set["_riboScatter_cutoff"],3) +
+                                '| Adapter Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_adapter_trimmed"],3) +
+                                '| Overrep. Seq  Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_overrep_trimmed"],3) +
+                                '| Gene Body Coverage = ' + '{:.3f}'.format(cutoff_set['GC_cutoff'],3) +
                                 '| Detected Genes = ' + str(cutoff_set["_numGene_cutoff"]))
         return(cutoff_descriptor)
 
@@ -629,9 +648,9 @@ def mkQC_heatmap_data(_userDf, _figinfo):
         ("Percent_Overrepresented_Seq_Trimmed","_violin_cutoff_overrep_trimmed",upper_status_strategy),
         ("Percent_Adapter_Content_Trimmed","_violin_cutoff_adapter_trimmed",upper_status_strategy)]
     if _figinfo["_hist_exists"]:
-        strategies.append(("_hist_pvals","_alpha",lower_status_strategy))
+        strategies.append(("NumGenes","_numGene_cutoff",lower_status_strategy))
     if _figinfo["_gbc_exists"]:
-        strategies.append(("_gbc_pvals","_alpha",lower_status_strategy))
+        strategies.append(("GBC_KSstats","GC_cutoff",upper_status_strategy))
 
     _htmat = np.zeros((len(_userDf), 9))
 
@@ -654,12 +673,11 @@ def mkQC_heatmap(heatmap_data):
 
     """
     mkQC_heatmap: This function generates the summary heatmap
-
     take input from mkQC_heatmap_data as input
     """
 
     # get how many rows there are
-    numrows, numcols= heatmap_data.shape
+    numrows, numcols = heatmap_data.shape
     cellwidth = .25
     cellheight = .1
 
@@ -673,8 +691,13 @@ def mkQC_heatmap(heatmap_data):
     sample_names = heatmap_data.Sample
     heatmap_data = heatmap_data.drop("Sample",axis = 1)
     fig2,ax = plt.subplots(figsize=(page_width, page_height))
-    fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')
-    seaborn.heatmap(heatmap_data.values,ax=ax,
+    fig2.text(s        = "Summary of QC Metrics",
+              x        = .5,
+              y        = .9,
+              fontsize = 10,
+              ha       = 'center')
+    seaborn.heatmap(heatmap_data.values,
+                    ax=ax,
                     xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
                                   "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
                                  "# Detected Genes","Gene Body Coverage"],
@@ -1213,9 +1236,16 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
 
     return _f
 
+def EstimateDeviances(data_df):
+    mean_sample = data_df.mean(axis = 1) # compute mean across columns for each row
+
+    deviances = data_df.sub(mean_sample,
+                            axis = 0).abs()
+    return deviances
+
 def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
 
-    mean_sample = data_df.mean(axis = 1) # compute mean across columns for each row
+    deviances = EstimateDeviances(data_df)
 
     deviances = data_df.sub(mean_sample,
                             axis = 0).abs()
@@ -1228,15 +1258,16 @@ def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
 
             bootstrap_sample = deviances.sample(frac    = 1,
                                                 replace = True)
-            bootstrap_sum = bootstrap_sample.sum(axis = 0)
             bootstrap_distributions.append(bootstrap_sum)
 
         return np.array(bootstrap_distributions)
 
-    # perform bootstrapping
-    bootstrap_distribution = bootstrap_deviances(deviances    = deviances,
-                                                 n_bootstraps = n_bootstraps)
     total_deviances_per_sample = deviances.sum(axis = 0)
+
+    # perform bootstrapping
+    #bootstrap_distribution = bootstrap_deviances(deviances    = total_deviances_per_sample,
+    #                                             n_bootstraps = n_bootstraps)
+
 
     def calculate_pvalues(total_deviance, bootstrap_dist):
         total_deviance = np.array(total_deviance).reshape(1,-1) # reshape to match dimenssions (1, n_samples)
@@ -1256,6 +1287,8 @@ def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
         'Pvalue'        : pvalues})
 
     return summary_df
+
+
 
 # For preprocessing count matrices to a genehist file
 def CountsMatrixToGeneHist(df, binsize = .25, maxdepth = 18.5):
@@ -1320,8 +1353,9 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
     _mean_df = pd.DataFrame()
     _mean_df['gc_mean'] = _coverage_df.median(axis=1)
     # acquire the pvalue information from the _figinfo object
-    _ks_pval = user_df.loc[user_df['Sample'] == SampleName,'_gbc_pvals'].iloc[0]
-
+    _ks_pval = user_df.loc[user_df['Sample'] == SampleName,'GBC_KSstats'].iloc[0]
+    print('the kspval is',type(_ks_pval),_ks_pval)
+    print( _figinfo["_warn_cutoffs"]['GC_cutoff'])
     # Plot current sample with library mean
     _x = np.arange(1, 101, 1)
 
@@ -1344,7 +1378,6 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
                linestyle = '--',
                alpha     = 0.8)
 
-
     # Calculate 95% interval for each position
     _err = _coverage_df.std(axis=1)*2
     _axis.fill_between(_x,
@@ -1352,14 +1385,12 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
                        _mean_df['gc_mean'] + _err,
                        facecolor = 'yellow',
                        alpha     =  0.5)
-
     _axis = set_ticks(_axis,
                       _figinfo["_tick_size"])
-
     _axis.set_xlim(0, 105)
     _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent))
 
-    _axis.set_title("GeneBody Coverage", 
+    _axis.set_title("GeneBody Coverage",
                     fontsize = _figinfo["_title_size"])
     _axis.set_xlabel("Gene Percentile (5' " + u"\u2192" + " 3')",
                      fontsize = _figinfo["_label_size"])
@@ -1373,11 +1404,11 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
                                                    linewidth = 0.5,
                                                    linestyle = '-',
                                                    alpha     = 0.8)
-    _background_lines = matplotlib.lines.Line2D([0], 
+    _background_lines = matplotlib.lines.Line2D([0],
                                                 [0],
                                                 color     = "lightgray",
                                                 linewidth = 0.5,
-                                                linestyle = '-', 
+                                                linestyle = '-',
                                                 alpha     = 0.6)
     _library_line = matplotlib.lines.Line2D([0],
                                             [0],
@@ -1389,30 +1420,30 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
                                         1,
                                         1,
                                         facecolor = 'w',
-                                        fill      = False, 
+                                        fill      = False,
                                         edgecolor = 'None',
                                         linewidth = 0)
 
-    _axis.legend([_current_sample_line, 
+    _axis.legend([_current_sample_line,
                   _library_line,
                   _background_lines,
                   Pval],
                  ["Current Sample",
                   "Batch Mean",
                   "Batch Samples",
-                  "KS Pvalue: " + str(round(_ks_pval,
+                  "KS Stat: " + str(round(_ks_pval,
                                             3))],
-                 loc      = 'lower center', 
+                 loc      = 'lower center',
                  frameon  = False,
                  fontsize = _figinfo["_legend_size"],
                  ncol     = 1)
 
     _axis = mk_axes(_axis)
-    _axis = needs_fail_or_warn(_axis,
-                               _ks_pval,
-                               _figinfo,
-                               "_alpha",
-                               "lower")
+    _axis = needs_fail_or_warn(ax             = _axis,
+                               current_sample = _ks_pval,
+                               _figinfo       = _figinfo,
+                               cutoff_key     = "GC_cutoff",
+                               higher_lower   = "upper")
 
     return _fig
 
