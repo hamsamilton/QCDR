@@ -85,23 +85,6 @@ def QCDR_main(qry_filename    = '',
     _figinfo["_bgd_filename"]      = _bgd_file
     _figinfo["_cutoff_filename"]   = cutoff_filename
 
-    if cutoff_filename is not None:
-        _manual_cutoffs = pd.read_excel(cutoff_filename)
-
-        manual_cutoff_adaptr = manual_cutoff_adapter(_manual_cutoffs)
-        manual_cutoff_adaptr.adapt_input()
-
-        _man_warn_cutoff_dict = manual_cutoff_adaptr.man_cutoff_df['Warn'].to_dict()
-        _man_fail_cutoff_dict = manual_cutoff_adaptr.man_cutoff_df['Fail'].to_dict()
-
-        # for cutoffs with unspecified values, replace with the automatically generated cutoffs
-        repl_missing_values_indict(_man_warn_cutoff_dict,_warn_cutoffs)
-        repl_missing_values_indict(_man_fail_cutoff_dict,_fail_cutoffs)
-
-        _warn_cutoffs = _man_warn_cutoff_dict
-        _fail_cutoffs = _man_fail_cutoff_dict
-        _warn_cutoffs["_alpha"] = _figinfo["warn_alpha"]
-        _fail_cutoffs["_alpha"] = _figinfo["fail_alpha"]
 
     # add cutoff info
     _figinfo["_fail_cutoffs"] = _fail_cutoffs
@@ -112,12 +95,13 @@ def QCDR_main(qry_filename    = '',
         _gc_df = pd.read_csv(_gc_file).iloc[:,1:]
 
         GCDeviances = EstimateDeviances(data_df = _gc_df).sum(axis = 0)
+        #GCDeviances = GC_KSstats(_coverage_df = _gc_df)
 
         _fail_GC_cutoff = CalcBootstrapBound(vec         = GCDeviances,
-                                             alpha       = 2*fail_alpha,
+                                             alpha       = 2 * fail_alpha,
                                              upper_lower = 'upper')
         _warn_GC_cutoff = CalcBootstrapBound(vec         = GCDeviances,
-                                             alpha       = 2*warn_alpha,
+                                             alpha       = 2 * warn_alpha,
                                              upper_lower = 'upper')
         _figinfo['_fail_cutoffs']['GC_cutoff'] = _fail_GC_cutoff
         _figinfo['_warn_cutoffs']['GC_cutoff'] = _warn_GC_cutoff
@@ -164,6 +148,29 @@ def QCDR_main(qry_filename    = '',
         _figinfo["_hist_pvals"]  = None
         _figinfo["_hist_exists"] = False
 
+
+    if cutoff_filename is not None:
+        _manual_cutoffs = pd.read_excel(cutoff_filename)
+
+        manual_cutoff_adaptr = manual_cutoff_adapter(_manual_cutoffs)
+        manual_cutoff_adaptr.adapt_input()
+        print('inputdf',manual_cutoff_adaptr.input_df)
+
+        _man_warn_cutoff_dict = manual_cutoff_adaptr.input_df['Warn'].to_dict()
+        _man_fail_cutoff_dict = manual_cutoff_adaptr.input_df['Fail'].to_dict()
+
+        # for cutoffs with unspecified values, replace with the automatically generated cutoffs
+        repl_missing_values_indict(_man_warn_cutoff_dict,_warn_cutoffs)
+        repl_missing_values_indict(_man_fail_cutoff_dict,_fail_cutoffs)
+
+        _warn_cutoffs = _man_warn_cutoff_dict
+        _fail_cutoffs = _man_fail_cutoff_dict
+        _warn_cutoffs["_alpha"] = _figinfo["warn_alpha"]
+        _fail_cutoffs["_alpha"] = _figinfo["fail_alpha"]
+
+        # add cutoff info
+        _figinfo["_fail_cutoffs"] = _fail_cutoffs
+        _figinfo["_warn_cutoffs"] = _warn_cutoffs
 
     # Save the user_df
     _user_df.to_csv(op_folder + '/QCDR_ReportInfo.csv',
@@ -230,7 +237,7 @@ def QCDR_main(qry_filename    = '',
 
         # Plotting figure 8: Gene Body Coverage Plot
         if _gc_file is not None:
-            fig = helper_retroFunctions.plotGC(SampleName,_user_df, _gc_df, 8,_figinfo,fig)
+            fig = helper_retroFunctions.plotGC(SampleName,_user_df,_bgd_df, _gc_df, 8,_figinfo,fig)
 
         # Add sample info at the top-left corner of the page
         fig.text(s                   = 'Sample : ' + SampleName,

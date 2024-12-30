@@ -1,0 +1,518 @@
+diff --git a/software/QCDR_main.py b/software/QCDR_main.py
+index 40a7e2d..dfbe0ed 100644
+--- a/software/QCDR_main.py
++++ b/software/QCDR_main.py
+@@ -45,35 +45,13 @@ def QCDR_main(qry_filename    = '',
+     os.makedirs(op_folder,
+                 exist_ok = True)
+ 
+-    # Read input file and load USER data
++    # Read query file and load USER data
+     _user_df = pd.read_csv(qry_filename)
++    _user_df = input_adapter(_user_df).adapt_input().input_df
+ 
+-    input_adaptr=input_adapter(_user_df)
+-    input_adaptr.adapt_input()
+-    _user_df = input_adaptr.input_df
+-    # Add last row in the USER df with current batch's mean values for the final summary page
+-    _batch_summary_df = ["Batch_Mean",
+-                         _user_df.Input_Size.mean(),
+-                         _user_df.Percent_PostTrim.mean(),
+-                         _user_df.Num_Uniquely_Aligned.mean(),
+-                         _user_df.Percent_Uniquely_Aligned.mean(),
+-                         _user_df.Percent_Exonic.mean(),
+-                         _user_df.Num_Uniquely_Aligned_rRNA.mean(),
+-                         _user_df.Percent_Overrepresented_Seq_Untrimmed.mean(),
+-                         _user_df.Percent_Adapter_Content_Untrimmed.mean(),
+-                         _user_df.Percent_Overrepresented_Seq_Trimmed.mean(),
+-                         _user_df.Percent_Adapter_Content_Trimmed.mean(),
+-                         _user_df.Batch[0]]
+-
+-    ## Add Batch mean as the last row of the USER dataframe
+-    _user_df.loc[len(_user_df)] = _batch_summary_df
+-
+-    ## Read Background file and load HISTORICAL background data
++    ## Read Background file 
+     _bgd_df = pd.read_csv(_bgd_file)
+-
+-    input_adaptr=input_adapter(_bgd_df)
+-    input_adaptr.adapt_input()
+-    _bgd_df = input_adaptr.input_df
++    _bgd_df  = input_adapter(_bgd_df).adapt_input().input_df
+ 
+     # Make standard cutoffs for warn/fail
+     _fail_cutoffs = gen_cutoffs(bgd_df = _bgd_df,
+@@ -95,11 +73,11 @@ def QCDR_main(qry_filename    = '',
+     _figinfo["_title_size"]        = 6
+     _figinfo["_label_size"]        = 5
+     _figinfo["_legend_size"]       = 3
++    _figinfo["_bin_num"]           = 40
+     _figinfo["_tick_size"]         = 4
+     _figinfo["_subplot_rows"]      = _subplot_rows
+     _figinfo["warn_alpha"]         = warn_alpha
+     _figinfo["fail_alpha"]         = fail_alpha
+-    _figinfo["_bin_num"]           = 40
+     _figinfo["_ip_filename"]       = qry_filename
+     _figinfo["_op_filename"]       = op_folder
+     _figinfo["_gc_file"]           = _gc_file
+@@ -133,16 +111,27 @@ def QCDR_main(qry_filename    = '',
+     if _gc_file is not None:
+         _gc_df = pd.read_csv(_gc_file).iloc[:,1:]
+ 
+-        # Adding the Library Mean column at the end of the GC dataframe
+-        _gc_df["Batch_Mean"] = _gc_df[_gc_df.columns].mean(axis=1)
++        GCDeviances = EstimateDeviances(data_df = _gc_df).sum(axis = 0)
+ 
+-        GCKSvals = GC_KSstats(_coverage_df = _gc_df)
+-        GC_KS_pvals = stats.norm.sf(stats.zscore(GCKSvals))
++        _fail_GC_cutoff = CalcBootstrapBound(vec         = GCDeviances,
++                                             alpha       = 2*fail_alpha,
++                                             upper_lower = 'upper')
++        _warn_GC_cutoff = CalcBootstrapBound(vec         = GCDeviances,
++                                             alpha       = 2*warn_alpha,
++                                             upper_lower = 'upper')
++        _figinfo['_fail_cutoffs']['GC_cutoff'] = _fail_GC_cutoff
++        _figinfo['_warn_cutoffs']['GC_cutoff'] = _warn_GC_cutoff
++        GC_KS_pvals = stats.norm.sf(stats.zscore(GCDeviances))
++        print('the GC deviances are')
+ 
+         # Convert GC into KS vals and calculate the distribution to get a pvalue
+         _figinfo["_gbc_pvals"]  = GC_KS_pvals
+         _user_df["_gbc_pvals"]  = GC_KS_pvals
+-        _user_df['GBC_KSstats'] = GCKSvals
++        _user_df = _user_df.set_index('Sample')
++        print('the userdf was',_user_df,_user_df.index)
++        _user_df['GBC_KSstats'] = GCDeviances
++        _user_df = _user_df.reset_index()
++        print('the _user_df is',_user_df)
+ 
+         _figinfo["_gbc_exists"] = True
+     else:
+@@ -150,26 +139,21 @@ def QCDR_main(qry_filename    = '',
+ 
+     # Read Histogram data
+     if _hist_file is not None:
+-        _negBin_df = pd.read_excel(_hist_file)
+-
+-        _negBin_df = CountsMatrixToGeneHist(df       = _negBin_df,
++        _negBin_df = CountsMatrixToGeneHist(df       = pd.read_excel(_hist_file),
+                                             binsize  = .25,
+                                             maxdepth = 18.5)
+         # Preprocess raw counts table
+-        _negBin_df["Batch_Mean"] = _negBin_df.iloc[:, 1:].mean(axis=1)
+-
+         _data_df = _negBin_df.drop(['Bins'],
+                                    axis = 1)
+-
+         _sum_df = _data_df.sum().round()
+-        _fail_numGene_cutoff = get_ci_bound(vec         = _sum_df,
+-                                            alpha       = 2*fail_alpha,
+-                                            upper_lower = "lower")
+-        _warn_numGene_cutoff = get_ci_bound(vec         = _sum_df,
+-                                            alpha       = 2*warn_alpha,
+-                                            upper_lower = "lower")
+-        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_fail_numGene_cutoff)
+-        _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = '{:.0f}'.format(_warn_numGene_cutoff)
++        _fail_numGene_cutoff = CalcBootstrapBound(vec         = _sum_df,
++                                                  alpha       = 2*fail_alpha,
++                                                  upper_lower = "lower")
++        _warn_numGene_cutoff = CalcBootstrapBound(vec         = _sum_df,
++                                                  alpha       = 2*warn_alpha,
++                                                  upper_lower = "lower")
++        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = _fail_numGene_cutoff
++        _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = _warn_numGene_cutoff
+         _user_df["_hist_pvals"]  = calcHistPval(_data_df)
+         _user_df["NumGenes"]  =  _data_df.sum().round().values
+         _figinfo["_hist_pvals"]  = calcHistPval(_data_df)
+@@ -186,7 +170,6 @@ def QCDR_main(qry_filename    = '',
+                     index = False)
+ 
+     ###### Begin Plotting process ######
+-
+     pdf_output = op_folder + '/QCDR_Output.pdf'
+     # Open the given PDF output file
+     _pdfObj = PdfPages(pdf_output)
+diff --git a/software/__pycache__/QCDR_main.cpython-311.pyc b/software/__pycache__/QCDR_main.cpython-311.pyc
+index ef3fc88..bf9f2a1 100644
+Binary files a/software/__pycache__/QCDR_main.cpython-311.pyc and b/software/__pycache__/QCDR_main.cpython-311.pyc differ
+diff --git a/software/__pycache__/helper_retroFunctions.cpython-311.pyc b/software/__pycache__/helper_retroFunctions.cpython-311.pyc
+index 27b5cc8..ffffd64 100644
+Binary files a/software/__pycache__/helper_retroFunctions.cpython-311.pyc and b/software/__pycache__/helper_retroFunctions.cpython-311.pyc differ
+diff --git a/software/developer_resources/SCRIPTFASTtsts/Heatmapinfo.csv b/software/developer_resources/SCRIPTFASTtsts/Heatmapinfo.csv
+index 2e4beaf..f16642a 100644
+--- a/software/developer_resources/SCRIPTFASTtsts/Heatmapinfo.csv
++++ b/software/developer_resources/SCRIPTFASTtsts/Heatmapinfo.csv
+@@ -23,4 +23,3 @@
+ 0.0,0.0,0.0,0.0,0.0,0.5,0.0,0.0,0.0,RNA_B11_22
+ 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,RNA_B11_23
+ 0.5,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,RNA_B11_24
+-0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,Batch_Mean
+diff --git a/software/developer_resources/SCRIPTFASTtsts/QCDR_ReportInfo.csv b/software/developer_resources/SCRIPTFASTtsts/QCDR_ReportInfo.csv
+index 5d2c92b..72f93e9 100644
+--- a/software/developer_resources/SCRIPTFASTtsts/QCDR_ReportInfo.csv
++++ b/software/developer_resources/SCRIPTFASTtsts/QCDR_ReportInfo.csv
+@@ -1,26 +1,25 @@
+ Sample,Input_Size,Percent_PostTrim,Num_Uniquely_Aligned,Percent_Uniquely_Aligned,Percent_Exonic,Num_Uniquely_Aligned_rRNA,Percent_Overrepresented_Seq_Untrimmed,Percent_Adapter_Content_Untrimmed,Percent_Overrepresented_Seq_Trimmed,Percent_Adapter_Content_Trimmed,Batch,_gbc_pvals,GBC_KSstats,_hist_pvals,NumGenes
+-RNA_B11_01,14483315.0,89.76,3795508.0,29.195713344112015,59.74,844284.0,3.27,10.516,0.0,0.901,batch_11,0.021790996410528368,0.16,0.0051801030612606104,6753.0
+-RNA_B11_02,19240007.0,99.5,7933192.0,41.439991609317815,56.09,1028735.0,0.12,1.641,0.11,0.072,batch_11,0.08033556419192905,0.14,0.4705016338462784,13416.0
+-RNA_B11_03,17618597.0,99.67,12248076.0,69.74805357069057,64.96,1885775.0,1.07,1.059,0.7,0.055,batch_11,0.6711153774964675,0.08,0.3178134497321712,14426.0
+-RNA_B11_04,18898641.0,99.39,10313620.0,54.90828259642425,66.33,1673395.0,0.99,1.458,0.57,0.079,batch_11,0.6711153774964675,0.08,0.3065961439653725,11952.0
+-RNA_B11_05,16252007.0,99.81,11113870.0,68.5147782082905,66.46,1793076.0,1.47,0.747,1.04,0.036,batch_11,0.6711153774964675,0.08,0.28864511328639986,14637.0
+-RNA_B11_06,19581963.0,99.5,9807225.0,50.33462445868396,58.3,1522912.0,0.39,2.186,0.25,0.066,batch_11,0.7735625197185454,0.07,0.29285071987674327,14606.0
+-RNA_B11_07,20102526.0,99.57,13656227.0,68.22626355609154,62.24,2191698.0,1.15,1.272,0.69,0.065,batch_11,0.4316103187931846,0.1,0.40260833017634073,13852.0
+-RNA_B11_08,19549367.0,99.9,12375244.0,63.365896356805976,63.81,1436186.0,0.78,0.6,0.4,0.028,batch_11,0.7735625197185454,0.07,0.13410610727171263,16026.0
+-RNA_B11_09,19410647.0,99.71,11265066.0,58.204292243055214,50.98,1307288.0,0.3,1.039,0.27,0.055,batch_11,0.31564519411567094,0.11,0.27158823983734504,14765.0
+-RNA_B11_10,18355006.0,99.54,4185611.0,22.90902976235552,43.92,396671.0,0.0,1.182,0.0,0.054,batch_11,0.010016625737935696,0.17,0.09498128196734068,9918.0
+-RNA_B11_11,19786204.0,99.85,13238002.0,67.0057219325641,57.87,2202802.0,0.92,0.442,0.68,0.023,batch_11,0.7735625197185454,0.07,0.24312295492725522,14988.0
+-RNA_B11_12,17364191.0,99.91,12268782.0,70.71929726219562,67.83,1660665.0,1.53,0.43,0.91,0.02,batch_11,0.31564519411567094,0.11,0.13599742496587908,16004.0
+-RNA_B11_13,18621014.0,99.76,12518059.0,67.38717139187912,67.58,1460716.0,0.83,0.491,0.4,0.03,batch_11,0.4316103187931846,0.1,0.48341653943472745,13124.0
+-RNA_B11_14,20808156.0,99.87,12734677.0,61.2800751288035,65.76,1586232.0,0.64,0.467,0.37,0.028,batch_11,0.6711153774964675,0.08,0.27448383065783777,14743.0
+-RNA_B11_15,21578269.0,99.88,9538865.0,44.25899681975678,61.73,1459467.0,0.49,0.405,0.25,0.021,batch_11,0.9140150909144535,0.05,0.4957298417103649,13202.0
+-RNA_B11_16,20475137.0,99.89,13988444.0,68.39440553221384,67.47,1600584.0,0.89,0.378,0.53,0.019,batch_11,0.13671835715449,0.13,0.22255658928051042,15158.0
+-RNA_B11_17,16451579.0,99.1,8542164.0,52.39461619505144,60.59,1095721.0,0.36,0.974,0.13,0.089,batch_11,0.08033556419192905,0.14,0.06816260708738753,9466.0
+-RNA_B11_18,17816674.0,99.87,12960819.0,72.84013838383132,62.2,696677.0,0.51,0.226,0.34,0.011,batch_11,0.8550329474717095,0.06,0.3760362940069798,12431.0
+-RNA_B11_19,14858711.0,99.92,7272909.0,48.9862948783947,54.13,275143.0,0.1,0.217,0.0,0.009,batch_11,0.9140150909144535,0.05,0.4957298417103649,13202.0
+-RNA_B11_20,18643287.0,98.93,12004354.0,65.0861075688733,67.01,1369732.0,1.98,1.535,1.42,0.053,batch_11,0.4316103187931846,0.1,0.18411521996172703,10956.0
+-RNA_B11_21,18831137.0,99.9,9619636.0,51.134805430310784,68.29,744400.0,0.48,0.296,0.35,0.013,batch_11,0.6711153774964675,0.08,0.23234102793299544,11382.0
+-RNA_B11_22,17879879.0,99.79,9333764.0,52.31246896537239,72.27,763953.0,1.16,0.437,0.81,0.019,batch_11,0.31564519411567094,0.11,0.1374643863770733,10471.0
+-RNA_B11_23,20690559.0,99.79,12293651.0,59.54175523335064,62.75,1042760.0,0.47,0.39,0.22,0.02,batch_11,0.6711153774964675,0.08,0.3737848754541316,12416.0
+-RNA_B11_24,16328618.0,99.95,12736145.0,78.03793473598968,51.0,471964.0,0.44,0.122,0.3,0.006,batch_11,0.5538362288429303,0.09,0.00581526802489905,19603.0
+-Batch_Mean,18484395.458333332,99.28166666666668,10655996.25,57.75944646518394,61.63791666666666,1271284.8333333333,0.8474999999999998,1.1879166666666667,0.44749999999999995,0.07383333333333335,batch_11,0.9140150909144535,0.05,0.49999368307717323,13229.0
++RNA_B11_01,14483315,89.76,3795508,29.195713344112015,59.74,844284,3.27,10.516,0.0,0.901,batch_11,0.022684980452587843,0.16,0.006006279461486288,6753
++RNA_B11_02,19240007,99.5,7933192,41.439991609317815,56.09,1028735,0.12,1.641,0.11,0.072,batch_11,0.0835658362676755,0.14,0.47109682443238643,13416
++RNA_B11_03,17618597,99.67,12248076,69.74805357069057,64.96,1885775,1.07,1.059,0.7,0.055,batch_11,0.6835708886221243,0.08,0.3212349908286394,14426
++RNA_B11_04,18898641,99.39,10313620,54.90828259642425,66.33,1673395,0.99,1.458,0.57,0.079,batch_11,0.6835708886221243,0.08,0.310191018067795,11952
++RNA_B11_05,16252007,99.81,11113870,68.5147782082905,66.46,1793076,1.47,0.747,1.04,0.036,batch_11,0.7845265233678727,0.07,0.2925034587160052,14637
++RNA_B11_06,19581963,99.5,9807225,50.33462445868396,58.3,1522912,0.39,2.186,0.25,0.066,batch_11,0.7845265233678727,0.07,0.2966492126935163,14606
++RNA_B11_07,20102526,99.57,13656227,68.22626355609154,62.24,2191698,1.15,1.272,0.69,0.065,batch_11,0.4435316202641788,0.1,0.4045379044444139,13852
++RNA_B11_08,19549367,99.9,12375244,63.365896356805976,63.81,1436186,0.78,0.6,0.4,0.028,batch_11,0.7845265233678727,0.07,0.13900100049575992,16026
++RNA_B11_09,19410647,99.71,11265066,58.204292243055214,50.98,1307288,0.3,1.039,0.27,0.055,batch_11,0.3256756576819487,0.11,0.2756773053423237,14765
++RNA_B11_10,18355006,99.54,4185611,22.90902976235552,43.92,396671,0.0,1.182,0.0,0.054,batch_11,0.004384421295431793,0.18,0.09953438363945766,9918
++RNA_B11_11,19786204,99.85,13238002,67.0057219325641,57.87,2202802,0.92,0.442,0.68,0.023,batch_11,0.7845265233678727,0.07,0.24754881495697767,14988
++RNA_B11_12,17364191,99.91,12268782,70.71929726219562,67.83,1660665,1.53,0.43,0.91,0.02,batch_11,0.4435316202641788,0.1,0.14089973609220885,16004
++RNA_B11_13,18621014,99.76,12518059,67.38717139187912,67.58,1460716,0.83,0.491,0.4,0.03,batch_11,0.5666467079692518,0.09,0.4837511484622912,13124
++RNA_B11_14,20808156,99.87,12734677,61.2800751288035,65.76,1586232,0.64,0.467,0.37,0.028,batch_11,0.6835708886221243,0.08,0.2785351472291915,14743
++RNA_B11_15,21578269,99.88,9538865,44.25899681975678,61.73,1459467,0.49,0.405,0.25,0.021,batch_11,0.9203309574823186,0.05,0.4958158553589553,13202
++RNA_B11_16,20475137,99.89,13988444,68.39440553221384,67.47,1600584,0.89,0.378,0.53,0.019,batch_11,0.14194656457236743,0.13,0.2271820912583501,15158
++RNA_B11_17,16451579,99.1,8542164,52.39461619505144,60.59,1095721,0.36,0.974,0.13,0.089,batch_11,0.0835658362676755,0.14,0.0722109705101628,9466
++RNA_B11_18,17816674,99.87,12960819,72.84013838383132,62.2,696677,0.51,0.226,0.34,0.011,batch_11,0.8637747395378008,0.06,0.37846083737249536,12431
++RNA_B11_19,14858711,99.92,7272909,48.9862948783947,54.13,275143,0.1,0.217,0.0,0.009,batch_11,0.8637747395378008,0.06,0.4958158553589553,13202
++RNA_B11_20,18643287,98.93,12004354,65.0861075688733,67.01,1369732,1.98,1.535,1.42,0.053,batch_11,0.5666467079692518,0.09,0.1889927638212019,10956
++RNA_B11_21,18831137,99.9,9619636,51.134805430310784,68.29,744400,0.48,0.296,0.35,0.013,batch_11,0.6835708886221243,0.08,0.23687614529368906,11382
++RNA_B11_22,17879879,99.79,9333764,52.31246896537239,72.27,763953,1.16,0.437,0.81,0.019,batch_11,0.4435316202641788,0.1,0.1423716614660534,10471
++RNA_B11_23,20690559,99.79,12293651,59.54175523335064,62.75,1042760,0.47,0.39,0.22,0.02,batch_11,0.5666467079692518,0.09,0.37625041640859147,12416
++RNA_B11_24,16328618,99.95,12736145,78.03793473598968,51.0,471964,0.44,0.122,0.3,0.006,batch_11,0.5666467079692518,0.09,0.0067145660079128006,19603
+diff --git a/software/helper_retroFunctions.py b/software/helper_retroFunctions.py
+index bb3ae25..242497b 100644
+--- a/software/helper_retroFunctions.py
++++ b/software/helper_retroFunctions.py
+@@ -144,12 +144,14 @@ class input_adapter(UI_adapter):
+         self._change_column_names()
+         self._reorder_columns()
+ 
++        return self
++
+ class manual_cutoff_adapter(UI_adapter):
+ 
+     """
+     This object is designed to handle the manual cutoff file provided by the user, shape it into the correct format, and return 
+     meaningful warnings and errors to avoid downstream confusion
+-    
++
+     Input: The loaded pd of the manual cutoff adapter
+     Output:The standardized file expected by the rest of the program, or an error
+     """
+@@ -317,16 +319,12 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
+         def make_flag(self, flag_type):
+             if flag_type == "fail":
+                 text = "FAILURE"
+-                font_size = 4
+                 background_color = 'tomato'
+                 text_color = 'yellow'
+-                font_stretch = 'extra-expanded'
+             elif flag_type == "warn":
+                 text = "WARNING"
+-                font_size = 3.7
+                 background_color = 'yellow'
+                 text_color = 'red'
+-                font_stretch = 'expanded'
+             else:
+                 raise ValueError("Invalid flag type")
+ 
+@@ -334,7 +332,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
+                                                           pad            = 0.0001,
+                                                           borderpad      = 1,
+                                                           loc            = 3,
+-                                                          prop           = dict(size            = font_size,
++                                                          prop           = dict(size            = 4,
+                                                                                 snap            = True,
+                                                                                 backgroundcolor = background_color,
+                                                                                 color           = text_color,
+@@ -342,7 +340,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
+                                                                                 zorder          = 5,
+                                                                                 fontweight      = 'roman',
+                                                                                 fontfamily      = 'serif',
+-                                                                                fontstretch     = font_stretch),
++                                                                                fontstretch     = 'expanded'),
+                                                           frameon        = True,
+                                                           bbox_to_anchor = (0, 1),
+                                                           bbox_transform = self.ax.transAxes)
+@@ -363,6 +361,7 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
+             insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
+     elif higher_lower == "upper":
+         if current_sample >= flag_inserter.cutoff_fail:
++            print('inserted?',current_sample,flag_inserter.cutoff_fail, current_sample >= flag_inserter.cutoff_fail)
+             insert_flag(ax, flag_inserter.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
+         elif current_sample >= flag_inserter.cutoff_warn:
+             insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
+@@ -386,6 +385,22 @@ def get_ci_bound(vec, alpha, upper_lower="both"):
+ 
+ # The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
+ 
++# Simple bootstrap calculation
++def CalcBootstrapBound(vec,upper_lower,alpha):
++    vec = np.asarray(vec)
++    bootstrap_mean = bs.bootstrap(vec,
++                                  stat_func = bs_stats.mean).value
++    bootstrap_std  = bs.bootstrap(vec,
++                                  stat_func = bs_stats.std).value
++    conf_size = norm.ppf(alpha) * bootstrap_std
++    if upper_lower == "upper":
++        cutoff = bootstrap_mean - conf_size
++    if upper_lower == "lower":
++        cutoff = bootstrap_mean + conf_size
++
++    return np.float64(cutoff)
++
++
+ class CutoffCalculator:
+     def __init__(self, bgd_df, alph):
+         self.bgd_df = bgd_df
+@@ -408,8 +423,10 @@ class CutoffCalculator:
+ 
+     def calculate_cutoff_ratio(self, column1, column2, upper_lower, cutoff_name):
+         vec = np.array(self.bgd_df.loc[:, column1] / self.bgd_df.loc[:, column2])
+-        bootstrap_mean = bs.bootstrap(vec, stat_func=bs_stats.mean).value
+-        bootstrap_std  = bs.bootstrap(vec, stat_func=bs_stats.std).value
++        bootstrap_mean = bs.bootstrap(vec,
++                                      stat_func = bs_stats.mean).value
++        bootstrap_std  = bs.bootstrap(vec,
++                                      stat_func = bs_stats.std).value
+         conf_size = norm.ppf(self.onesided_alph) * bootstrap_std
+         if upper_lower == "upper":
+             self.cutoffs_dict[cutoff_name] = bootstrap_mean - conf_size
+@@ -418,8 +435,10 @@ class CutoffCalculator:
+ 
+     def calculate_cutoff(self,column,upper_lower,cutoff_name):
+         vec = np.array(self.bgd_df.loc[:, column])
+-        bootstrap_mean = bs.bootstrap(vec, stat_func=bs_stats.mean).value
+-        bootstrap_std  = bs.bootstrap(vec, stat_func=bs_stats.std).value
++        bootstrap_mean = bs.bootstrap(vec,
++                                      stat_func = bs_stats.mean).value
++        bootstrap_std  = bs.bootstrap(vec,
++                                      stat_func = bs_stats.std).value
+         conf_size = norm.ppf(self.onesided_alph) * bootstrap_std
+         if upper_lower == "upper":
+             self.cutoffs_dict[cutoff_name] = bootstrap_mean - conf_size
+@@ -551,13 +570,13 @@ def mkTitlePage(_figinfo):
+ 
+         cutoff_descriptor = (descriptor +': Default alpha =' + str(cutoff_set["_alpha"])  +
+                                 '| Sequencing Depth = ' + '{:.3f}'.format(cutoff_set["_ipReads_cutoff"],3) +
+-                                '| Trimming = ' + '{:.3f}'.format(cutoff_set["_trimmedReads_cutoff"],3) +  
+-                                '| Alignment = ' + '{:.3f}'.format(cutoff_set["_uniqAligned_cutoff"],3) +  
+-                                '| Gene Exon Mapping = ' + '{:.3f}'.format(cutoff_set["_exonMapping_cutoff"],3) + 
+-                                '\n| Ribosomal RNA = ' + '{:.3f}'.format(cutoff_set["_riboScatter_cutoff"],3) + 
+-                                '| Adapter Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_adapter_trimmed"],3) + 
+-                                '| Overrep. Seq  Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_overrep_trimmed"],3) + 
+-                                '| Gene Body Coverage = ' + str(cutoff_set["_alpha"]) + 
++                                '| Trimming = ' + '{:.3f}'.format(cutoff_set["_trimmedReads_cutoff"],3) +
++                                '| Alignment = ' + '{:.3f}'.format(cutoff_set["_uniqAligned_cutoff"],3) +
++                                '| Gene Exon Mapping = ' + '{:.3f}'.format(cutoff_set["_exonMapping_cutoff"],3) +
++                                '\n| Ribosomal RNA = ' + '{:.3f}'.format(cutoff_set["_riboScatter_cutoff"],3) +
++                                '| Adapter Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_adapter_trimmed"],3) +
++                                '| Overrep. Seq  Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_overrep_trimmed"],3) +
++                                '| Gene Body Coverage = ' + '{:.3f}'.format(cutoff_set['GC_cutoff'],3) +
+                                 '| Detected Genes = ' + str(cutoff_set["_numGene_cutoff"]))
+         return(cutoff_descriptor)
+ 
+@@ -629,9 +648,9 @@ def mkQC_heatmap_data(_userDf, _figinfo):
+         ("Percent_Overrepresented_Seq_Trimmed","_violin_cutoff_overrep_trimmed",upper_status_strategy),
+         ("Percent_Adapter_Content_Trimmed","_violin_cutoff_adapter_trimmed",upper_status_strategy)]
+     if _figinfo["_hist_exists"]:
+-        strategies.append(("_hist_pvals","_alpha",lower_status_strategy))
++        strategies.append(("NumGenes","_numGene_cutoff",lower_status_strategy))
+     if _figinfo["_gbc_exists"]:
+-        strategies.append(("_gbc_pvals","_alpha",lower_status_strategy))
++        strategies.append(("GBC_KSstats","GC_cutoff",upper_status_strategy))
+ 
+     _htmat = np.zeros((len(_userDf), 9))
+ 
+@@ -654,12 +673,11 @@ def mkQC_heatmap(heatmap_data):
+ 
+     """
+     mkQC_heatmap: This function generates the summary heatmap
+-
+     take input from mkQC_heatmap_data as input
+     """
+ 
+     # get how many rows there are
+-    numrows, numcols= heatmap_data.shape
++    numrows, numcols = heatmap_data.shape
+     cellwidth = .25
+     cellheight = .1
+ 
+@@ -673,8 +691,13 @@ def mkQC_heatmap(heatmap_data):
+     sample_names = heatmap_data.Sample
+     heatmap_data = heatmap_data.drop("Sample",axis = 1)
+     fig2,ax = plt.subplots(figsize=(page_width, page_height))
+-    fig2.text(s= "Summary of QC Metrics",x = .5,y = .9,fontsize = 10,ha = 'center')
+-    seaborn.heatmap(heatmap_data.values,ax=ax,
++    fig2.text(s        = "Summary of QC Metrics",
++              x        = .5,
++              y        = .9,
++              fontsize = 10,
++              ha       = 'center')
++    seaborn.heatmap(heatmap_data.values,
++                    ax=ax,
+                     xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
+                                   "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
+                                  "# Detected Genes","Gene Body Coverage"],
+@@ -1213,9 +1236,16 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
+ 
+     return _f
+ 
++def EstimateDeviances(data_df):
++    mean_sample = data_df.mean(axis = 1) # compute mean across columns for each row
++
++    deviances = data_df.sub(mean_sample,
++                            axis = 0).abs()
++    return deviances
++
+ def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
+ 
+-    mean_sample = data_df.mean(axis = 1) # compute mean across columns for each row
++    deviances = EstimateDeviances(data_df)
+ 
+     deviances = data_df.sub(mean_sample,
+                             axis = 0).abs()
+@@ -1228,16 +1258,17 @@ def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
+ 
+             bootstrap_sample = deviances.sample(frac    = 1,
+                                                 replace = True)
+-            bootstrap_sum = bootstrap_sample.sum(axis = 0)
+             bootstrap_distributions.append(bootstrap_sum)
+ 
+         return np.array(bootstrap_distributions)
+ 
+-    # perform bootstrapping
+-    bootstrap_distribution = bootstrap_deviances(deviances    = deviances,
+-                                                 n_bootstraps = n_bootstraps)
+     total_deviances_per_sample = deviances.sum(axis = 0)
+ 
++    # perform bootstrapping
++    #bootstrap_distribution = bootstrap_deviances(deviances    = total_deviances_per_sample,
++    #                                             n_bootstraps = n_bootstraps)
++
++
+     def calculate_pvalues(total_deviance, bootstrap_dist):
+         total_deviance = np.array(total_deviance).reshape(1,-1) # reshape to match dimenssions (1, n_samples)
+         pvalues = np.mean(bootstrap_dist >= total_deviance,
+@@ -1257,6 +1288,8 @@ def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
+ 
+     return summary_df
+ 
++
++
+ # For preprocessing count matrices to a genehist file
+ def CountsMatrixToGeneHist(df, binsize = .25, maxdepth = 18.5):
+ 
+@@ -1320,8 +1353,9 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
+     _mean_df = pd.DataFrame()
+     _mean_df['gc_mean'] = _coverage_df.median(axis=1)
+     # acquire the pvalue information from the _figinfo object
+-    _ks_pval = user_df.loc[user_df['Sample'] == SampleName,'_gbc_pvals'].iloc[0]
+-
++    _ks_pval = user_df.loc[user_df['Sample'] == SampleName,'GBC_KSstats'].iloc[0]
++    print('the kspval is',type(_ks_pval),_ks_pval)
++    print( _figinfo["_warn_cutoffs"]['GC_cutoff'])
+     # Plot current sample with library mean
+     _x = np.arange(1, 101, 1)
+ 
+@@ -1344,7 +1378,6 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
+                linestyle = '--',
+                alpha     = 0.8)
+ 
+-
+     # Calculate 95% interval for each position
+     _err = _coverage_df.std(axis=1)*2
+     _axis.fill_between(_x,
+@@ -1352,14 +1385,12 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
+                        _mean_df['gc_mean'] + _err,
+                        facecolor = 'yellow',
+                        alpha     =  0.5)
+-
+     _axis = set_ticks(_axis,
+                       _figinfo["_tick_size"])
+-
+     _axis.set_xlim(0, 105)
+     _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent))
+ 
+-    _axis.set_title("GeneBody Coverage", 
++    _axis.set_title("GeneBody Coverage",
+                     fontsize = _figinfo["_title_size"])
+     _axis.set_xlabel("Gene Percentile (5' " + u"\u2192" + " 3')",
+                      fontsize = _figinfo["_label_size"])
+@@ -1373,11 +1404,11 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
+                                                    linewidth = 0.5,
+                                                    linestyle = '-',
+                                                    alpha     = 0.8)
+-    _background_lines = matplotlib.lines.Line2D([0], 
++    _background_lines = matplotlib.lines.Line2D([0],
+                                                 [0],
+                                                 color     = "lightgray",
+                                                 linewidth = 0.5,
+-                                                linestyle = '-', 
++                                                linestyle = '-',
+                                                 alpha     = 0.6)
+     _library_line = matplotlib.lines.Line2D([0],
+                                             [0],
+@@ -1389,30 +1420,30 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
+                                         1,
+                                         1,
+                                         facecolor = 'w',
+-                                        fill      = False, 
++                                        fill      = False,
+                                         edgecolor = 'None',
+                                         linewidth = 0)
+ 
+-    _axis.legend([_current_sample_line, 
++    _axis.legend([_current_sample_line,
+                   _library_line,
+                   _background_lines,
+                   Pval],
+                  ["Current Sample",
+                   "Batch Mean",
+                   "Batch Samples",
+-                  "KS Pvalue: " + str(round(_ks_pval,
++                  "KS Stat: " + str(round(_ks_pval,
+                                             3))],
+-                 loc      = 'lower center', 
++                 loc      = 'lower center',
+                  frameon  = False,
+                  fontsize = _figinfo["_legend_size"],
+                  ncol     = 1)
+ 
+     _axis = mk_axes(_axis)
+-    _axis = needs_fail_or_warn(_axis,
+-                               _ks_pval,
+-                               _figinfo,
+-                               "_alpha",
+-                               "lower")
++    _axis = needs_fail_or_warn(ax             = _axis,
++                               current_sample = _ks_pval,
++                               _figinfo       = _figinfo,
++                               cutoff_key     = "GC_cutoff",
++                               higher_lower   = "upper")
+ 
+     return _fig
+ 

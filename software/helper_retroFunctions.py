@@ -181,8 +181,8 @@ class manual_cutoff_adapter(UI_adapter):
         "_violin_cutoff_adapter_untrimmed",
         "_violin_cutoff_overrep_trimmed",
         "_violin_cutoff_adapter_trimmed",
-        "Dist_of_gene_expression",
-        "GeneBody_Coverage"]
+        "_numGene_cutoff",
+        "GC_cutoff"]
 
     def _transpose_df(self):
         """transposes the df with additional operations to get the right columns names"""
@@ -337,7 +337,6 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
                                                                                 backgroundcolor = background_color,
                                                                                 color           = text_color,
                                                                                 alpha           = 0.9,
-                                                                                zorder          = 5,
                                                                                 fontweight      = 'roman',
                                                                                 fontfamily      = 'serif',
                                                                                 fontstretch     = 'expanded'),
@@ -386,10 +385,34 @@ def get_ci_bound(vec, alpha, upper_lower="both"):
 # The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
 
 # Simple bootstrap calculation
-def CalcBootstrapBound(vec,upper_lower,alpha):
+def CalcBootstrapBound(vec,upper_lower,alpha,num_resamples = 1000):
+
+    """
+    n = len(vec)
+    bootstrap_medians = []
+    for _ in range(num_resamples):
+        resampled_data = np.random.choice(vec,
+                                          size = n,
+                                          replace = True)
+        median = np.mean(resampled_data)
+        bootstrap_medians.append(median)
+
+    bootstrapped_values = bootstrap_medians
+
+    lower_percentile = (alpha / 2) * 100
+    upper_percentile = (1 - alpha / 2) * 100
+
+    lower_bound = np.percentile(bootstrapped_values, lower_percentile)
+    upper_bound = np.percentile(bootstrapped_values, upper_percentile)
+
+    if upper_lower == "upper":
+        return upper_bound
+    if upper_lower == "lower":
+        return lower_bound
+    """
     vec = np.asarray(vec)
     bootstrap_mean = bs.bootstrap(vec,
-                                  stat_func = bs_stats.mean).value
+                                  stat_func = bs_stats.median).value
     bootstrap_std  = bs.bootstrap(vec,
                                   stat_func = bs_stats.std).value
     conf_size = norm.ppf(alpha) * bootstrap_std
@@ -399,7 +422,6 @@ def CalcBootstrapBound(vec,upper_lower,alpha):
         cutoff = bootstrap_mean + conf_size
 
     return np.float64(cutoff)
-
 
 class CutoffCalculator:
     def __init__(self, bgd_df, alph):
@@ -553,7 +575,9 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
 def make_bins(vec1,vec2,num_bins):
 
     plt_min,plt_max = pd.concat([vec1,vec2]).agg(['min','max'])
-    bins = np.linspace(plt_min,plt_max, num_bins + 1)
+    bins = np.linspace(plt_min,
+                       plt_max,
+                       num_bins + 1)
 
     return bins
 
@@ -1237,7 +1261,7 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
     return _f
 
 def EstimateDeviances(data_df):
-    mean_sample = data_df.mean(axis = 1) # compute mean across columns for each row
+    mean_sample = data_df.median(axis = 1) # compute mean across columns for each row
 
     deviances = data_df.sub(mean_sample,
                             axis = 0).abs()
@@ -1302,7 +1326,6 @@ def CountsMatrixToGeneHist(df, binsize = .25, maxdepth = 18.5):
     read_depth = df.sum(axis = 0) / 1e6
     df = df.div(read_depth,
                 axis = 1)
-
     df = np.log2(df + 1)
 
     # Make bins 
@@ -1345,20 +1368,24 @@ def GC_KSstats(_coverage_df):
     return _kslst
 
 #  GeneBody Coverage Plot
-def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
+def plotGC(SampleName,user_df,bgd_df, _coverage_df, _position,_figinfo,_fig=None):
 
-    _axis = _fig.add_subplot(_figinfo["_subplot_rows"], 2, _position)
+    # Make a list of all samples in the user_df and the bgd_df and where they come from
+    # determine which samples in _coverage_df are in the user_df and which are in the bgd_df and split accordingly
+    # Split the _coverage_df into the _usercoveragedf and then the _Bgdcoveragedf
 
     # Calculate mean GeneBody Coverage for the entire library
     _mean_df = pd.DataFrame()
     _mean_df['gc_mean'] = _coverage_df.median(axis=1)
     # acquire the pvalue information from the _figinfo object
+
     _ks_pval = user_df.loc[user_df['Sample'] == SampleName,'GBC_KSstats'].iloc[0]
-    print('the kspval is',type(_ks_pval),_ks_pval)
-    print( _figinfo["_warn_cutoffs"]['GC_cutoff'])
     # Plot current sample with library mean
     _x = np.arange(1, 101, 1)
-
+    _err = _coverage_df.std(axis=1)*2 # This should be calculated from the BGD DF
+    _axis = _fig.add_subplot(_figinfo["_subplot_rows"],
+                             2,
+                             _position)
 
     _axis.plot(_x,
                _coverage_df,
@@ -1379,7 +1406,6 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
                alpha     = 0.8)
 
     # Calculate 95% interval for each position
-    _err = _coverage_df.std(axis=1)*2
     _axis.fill_between(_x,
                        _mean_df['gc_mean'] - _err,
                        _mean_df['gc_mean'] + _err,
@@ -1504,7 +1530,8 @@ def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
     _curr_ndx = np.where(_sum_df == _curr_sum)[0][0]
     _zscore = stats.zscore(_sum_df)
     _pvals  = stats.norm.sf(abs(_zscore))
-    _curr_pval = _pvals[_curr_ndx]
+    #_curr_pval = _pvals[_curr_ndx]
+    _curr_pval = _curr_sum
 
 
     _ax.plot(_low_vals,

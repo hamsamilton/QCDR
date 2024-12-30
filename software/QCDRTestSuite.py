@@ -25,6 +25,7 @@ class QCDRTestFactory(TestFactory):
         self.LungTransplant = self.LungDataLoc + "LungTransplantStats.csv"
         self.LungTransplantGBC = self.LungDataLoc + "LungTransplant_GBC.csv"
         self.LungTransplantCountTable = self.LungDataLoc + "LungTransplantRawCounts.xlsx"
+        self.CutoffTable= self.LungDataLoc + "LTcutoffs.xlsx"
 
         self.BaseTest = {"qry_filename"    : self.SCRIPTB11,
                          "op_folder"       : self.SaveDir + "SCRIPTB11Test",
@@ -123,6 +124,24 @@ class QCDRTestFactory(TestFactory):
 
         return self
 
+
+    def LungTransplantTestwCutoff(self):
+        # Perform a test on the lung transplant dataset
+
+        TestName = "LungTransplantwCutoffTest"
+        LungTransplantTest = self.BaseTest.copy()
+        LungTransplantTest["qry_filename"] = self.LungTransplant
+        LungTransplantTest["op_folder"] = self.SaveDir + TestName
+        LungTransplantTest["_bgd_file"] = self.LungTransplant
+        LungTransplantTest["_gc_file"] = self.LungTransplantGBC
+        LungTransplantTest["_hist_file"] = self.LungTransplantCountTable
+        LungTransplantTest["cutoff_filename"] = self.CutoffTable
+
+
+        self.RunInfoDict[TestName] = LungTransplantTest
+
+        return self
+
     def LungTransplantTestSCRIPTbgd(self):
         # Perform a test on the LungTransplant dataset but with the SCRIPT background
 
@@ -148,14 +167,17 @@ class QCDRTestFactory(TestFactory):
         self.NoHistTest()
         self.NoHistGBCTest()
         self.ChangeFailandWarn()
+        self.LungTransplantTestwCutoff()
 
         return self
 
     def QuickTest(self):
         # Run a limited number of fast tests to iterate quickly and bugfix
 
-        self.MakeB11SCRIPTTest()
-        self.LungTransplantTest()
+        #self.MakeB11SCRIPTTest()
+        #self.LungTransplantTest()
+        #self.LungTransplantTestSCRIPTbgd()
+        self.LungTransplantTestwCutoff()
 
         return self
 
@@ -167,7 +189,7 @@ if __name__ == '__main__':
 
     print('Running tests')
     [QCDRTestFactory(SaveDir = "QCDRTestOutputs/").
-     QuickTest().
+     ComprehensiveTesting().
      RunTests(TestFun = QCDR_main)]
     print("Tests Finished Running")
 
