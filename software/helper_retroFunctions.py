@@ -814,7 +814,9 @@ class AbstractHistPlotter(ABC):
         _xmax = max(self.BgdVals.max(),
                     _lib_mean,
                     _current_value)
-        axis.set_xlim(_xmin,_xmax)
+        padding = 0.05 * (data_max - data_min)
+        axis.set_xlim(_xmin - padding,
+                      _xmax + padding)
         axis = set_ticks(axis, self.FigInfo["_tick_size"])
 
         axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
@@ -1424,24 +1426,24 @@ def plotGC(SampleName,user_df,bgd_df, _coverage_df, _position,_figinfo,_fig=None
                      fontsize = _figinfo["_label_size"])
 
     # make the symbols for the legend
+
+    shared_line_properties = {'linewidth' : .5,
+                              'linestyle' : '-',
+                              'alpha'     : .8}
+
     _current_sample_line = matplotlib.lines.Line2D([0],
                                                    [0],
                                                    color     = _figinfo["_curr_sample_color"],
-                                                   linewidth = 0.5,
-                                                   linestyle = '-',
-                                                   alpha     = 0.8)
+                                                   **shared_line_properties)
     _background_lines = matplotlib.lines.Line2D([0],
                                                 [0],
                                                 color     = "lightgray",
-                                                linewidth = 0.5,
-                                                linestyle = '-',
-                                                alpha     = 0.6)
+                                                **shared_line_properties)
     _library_line = matplotlib.lines.Line2D([0],
                                             [0],
                                             color     = "indigo",
-                                            linewidth =0.5,
-                                            linestyle ='--',
-                                            alpha     =0.8)
+                                            **shared_line_properties)
+
     Pval = matplotlib.patches.Rectangle((0, 0),
                                         1,
                                         1,
@@ -1454,7 +1456,7 @@ def plotGC(SampleName,user_df,bgd_df, _coverage_df, _position,_figinfo,_fig=None
                   _library_line,
                   _background_lines,
                   Pval],
-                 ["Current Sample",
+                 [f'Current Sample',
                   "Batch Mean",
                   "Batch Samples",
                   "KS Stat: " + str(round(_ks_pval,
@@ -1510,7 +1512,6 @@ def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
     _ax = _f.add_subplot(_figinfo["_subplot_rows"],
                          2,
                          _position)
-
     _low_vals = []
     for _i in _hist_df.iloc[:, 0]:
         _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
@@ -1528,10 +1529,10 @@ def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
     _sum_df = _hist_df.sum().round()
     _curr_sum = _current_samp_array.sum().round()
     _curr_ndx = np.where(_sum_df == _curr_sum)[0][0]
+    hist_mean = sum_df.mean().round()
     _zscore = stats.zscore(_sum_df)
     _pvals  = stats.norm.sf(abs(_zscore))
-    #_curr_pval = _pvals[_curr_ndx]
-    _curr_pval = _curr_sum
+    _curr_pval = _pvals[_curr_ndx]
 
 
     _ax.plot(_low_vals,
@@ -1578,16 +1579,30 @@ def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
                                         linewidth = 0.5,
                                         linestyle = '--',
                                         alpha     = 0.8)
-    _extra_Ztest_Pval = matplotlib.patches.Rectangle((0, 0), 1, 1, facecolor='w', fill=False, edgecolor='None',
-                                                     linewidth=0)
+    _extra_Ztest_Pval = matplotlib.patches.Rectangle((0, 0),
+                                                     1,
+                                                     1,
+                                                     facecolor = 'w',
+                                                     fill      = False,
+                                                     edgecolor = 'None',
+                                                     linewidth = 0)
 
-    _ax.legend([_current_samp_line, _lib_line, _extra_Ztest_Pval],
-               ["Current Sample", "Batch  Mean", "Pvalue (# Detected Genes): " + str(round(_curr_pval.item(),
-                                                                                           3))],
-               loc='upper right',
-               frameon=False, fontsize=_figinfo["_legend_size"], ncol=1)
+    _ax.legend([_current_samp_line,
+                _lib_line,
+                _extra_Ztest_Pval],
+               [f'Current Sample (# Detected Genes = {_curr_sum.item()})',
+                f'Batch  Mean (# Detected Genes) = {hist_mean},
+                f'Pvalue {_curr_pval.item():.3f}'],
+               loc      = 'upper right',
+               frameon  = False,
+               fontsize = _figinfo["_legend_size"],
+               ncol     = 1)
     _ax = mk_axes(_ax)
-    _ax = needs_fail_or_warn(_ax,_curr_pval,_figinfo,"_alpha","lower")
+    _ax = needs_fail_or_warn(ax             = _ax,
+                             current_sample = _curr_pval,
+                             _figinfo       = _figinfo,
+                             cutoff_key     = "_alpha",
+                             higher_lower   = "lower")
 
     return _f
 
