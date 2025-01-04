@@ -38,16 +38,16 @@ from abc import ABC, abstractmethod
 
 # Functions for formatting values....Turn into object?
 def fmt_scatter_million(_x,_pos= None):
-    return f'{_x * 1e-6:.1f}M'
+    return f'{_x:.2E}'
 
 def fmt_million(_x,_pos = None):
     return '{0:.0f}'.format(_x)
 
 def fmt_percent(x,pos = None):
-    return f'{x:.0f}%'
+    return f'{x:.2f}%'
 
 def fmt_percent1(x,pos = None):
-    return f'{x:.1f}%'
+    return f'{x:.0f}%'
 
 def fmt(_x, _pos):
     return '{0:.1f}'.format(_x)
@@ -64,7 +64,7 @@ class UI_adapter:
     human_readable_names = [] # implemented by subclass
     input_program_names  = [] # implemented by subclass
 
-    def make_mapping_names(self):       
+    def make_mapping_names(self):
             self.mapping_names = dict(zip(self.human_readable_names,self.input_program_names))
 
     def _validate_column_names(self):
@@ -74,7 +74,7 @@ class UI_adapter:
         unrecognized_columns = input_columns.difference(valid_columns)
 
         if unrecognized_columns:
-            raise ValueError(f"Unrecognized columns: {', '.join(unrecognized_columns)}")    
+            raise ValueError(f"Unrecognized columns: {', '.join(unrecognized_columns)}")
 
     def _fill_missing_values(self):
         """ Fill empty columns if they are missing."""
@@ -96,13 +96,13 @@ class UI_adapter:
         self.input_df["% Uniquely Aligned Reads"] = (
         (self.input_df["# Uniquely Aligned Reads"]) / (self.input_df["Sequencing Depth"] * self.input_df["% of Reads After Trimming"])) * 10000
 
-    def adapt_input(self): 
+    def adapt_input(self):
         # specific methods required by each subclass to be implemented by subclass
         pass
 
 class input_adapter(UI_adapter):
     """
-    This object is designed to handle the input provided by the user, shape it into the correct format, and return 
+    This object is designed to handle the input provided by the user, shape it into the correct format, and return
     meaningful warnings and errors to avoid downstream confusion
 
     Input: The loaded pd of the input file
@@ -149,7 +149,7 @@ class input_adapter(UI_adapter):
 class manual_cutoff_adapter(UI_adapter):
 
     """
-    This object is designed to handle the manual cutoff file provided by the user, shape it into the correct format, and return 
+    This object is designed to handle the manual cutoff file provided by the user, shape it into the correct format, and return
     meaningful warnings and errors to avoid downstream confusion
 
     Input: The loaded pd of the manual cutoff adapter
@@ -224,36 +224,31 @@ def add_warn_fail_markers(_figinfo,ax,cutoff_key):
 # This function calculates whether the current sample label orientation needs 
 # to be adjusted and returns the required vars
 def adjust_flag(_ax,_current_sample,_lib_mean,Formatter= fmt_scatter_million):
+
+    labelpadding = (get_axis_range(_ax.get_xlim())/ 50)
+
+    curr_sample_kwargs = {'x'        :  _current_sample - labelpadding,
+                          'y'        : (_ax.get_ylim()[1] / 3),
+                          's'        : Formatter(_current_sample),
+                          'fontsize' : 3,
+                          'zorder'   : 2}
+    lib_kwargs = curr_sample_kwargs.copy()
+    lib_kwargs.update({'x' : _lib_mean + labelpadding,
+                       's' : Formatter(_lib_mean)})
     if _current_sample >=  _lib_mean:
         # plot the current sample line
-        _ax.text(x        = _current_sample + (get_axis_range(_ax.get_xlim())/ 100),
-                 y        = (_ax.get_ylim()[1] / 2),
-                 s        = Formatter(_current_sample),
-                 rotation = 270,
-                 fontsize = 3,
-                 zorder   = 2)
+        _ax.text(rotation = 270,
+                 **curr_sample_kwargs)
         # plot the library mean line
-        _ax.text(x        = _lib_mean - (get_axis_range(_ax.get_xlim())/30),
-                 y        = ((_ax.get_ylim()[1] / 2) + 1),
-                 s        = Formatter(_lib_mean),
-                 rotation = 90,
-                 fontsize = 3,
-                 zorder   = 2)
+        _ax.text(rotation = 90,
+                 **lib_kwargs)
     else:
         # plot the current sample line
-        _ax.text(x        = _current_sample - (get_axis_range(_ax.get_xlim())/50),
-                 y        = (_ax.get_ylim()[1] / 2),
-                 s        = Formatter(_current_sample),
-                 rotation = 90,
-                 fontsize = 3,
-                 zorder   = 2)
+        _ax.text(rotation = 90,
+                 **curr_sample_kwargs)
         # plot the library mean line
-        _ax.text(x        = _lib_mean + (get_axis_range(_ax.get_xlim())/80),
-                 y        = ((_ax.get_ylim()[1] / 2) + 1),
-                 s        = Formatter(_lib_mean),
-                 rotation = 270,
-                 fontsize = 3,
-                 zorder   = 2)
+        _ax.text(rotation = 270,
+                 **lib_kwargs)
     return _ax
 
 # set the legend for figures with warn / fail IE 1_6)
@@ -278,33 +273,27 @@ def legend_setup_1_6(_ax,_line1,_line2,_figinfo,cutoff_key,_loc,formatter = fmt_
 # the goal of this function is to set which axes of the regular axis and the Kernel density axis 
 def mk_axes(_plt_ax,_kd_ax = None):
 
-    for label in (_plt_ax.get_xticklabels() + _plt_ax.get_yticklabels()):
+    for label in _plt_ax.get_xticklabels() + _plt_ax.get_yticklabels():
         label.set_fontsize(4)
-    # set the plot axis
-    _plt_ax.spines['top'].set_visible(False)
-    _plt_ax.spines['right'].set_visible(False)
-    _plt_ax.spines['left'].set_visible(True)
-    _plt_ax.spines['bottom'].set_visible(True)
-    _plt_ax.spines['left'].set_color('black')
-    _plt_ax.spines['bottom'].set_color('black')
 
-    _plt_ax.spines['left'].set_linewidth(0.55)
-    _plt_ax.spines['bottom'].set_linewidth(0.55)
+    # Configure plot axis appearance
+    for spine in ['top', 'right']:
+        _plt_ax.spines[spine].set_visible(False)
+    for spine in ['left', 'bottom']:
+        _plt_ax.spines[spine].set_visible(True)
+        _plt_ax.spines[spine].set_color('black')
+        _plt_ax.spines[spine].set_linewidth(0.55)
     _plt_ax.set_facecolor('white')
 
-    if _kd_ax != None: 
-        # set the kernel density axis to be invisible 
+    if _kd_ax is not None:
+        # Make kernel density axis invisible
         _kd_ax.yaxis.set_visible(False)
         _kd_ax.xaxis.set_visible(False)
+        for spine in ['top', 'right', 'bottom', 'left']:
+            _kd_ax.spines[spine].set_visible(False)
+        return _plt_ax, _kd_ax
 
-        _kd_ax.spines['top'].set_visible(False)
-        _kd_ax.spines['right'].set_visible(False)
-        _kd_ax.spines['bottom'].set_visible(False)
-        _kd_ax.spines['left'].set_visible(False)
-        return _plt_ax,_kd_ax
-    else:
-        return _plt_ax
-
+    return _plt_ax
 
 # the goal of this function is to determine if a plot needs a fail or warn box and then call the according
 # helper function 
@@ -360,7 +349,6 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
             insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
     elif higher_lower == "upper":
         if current_sample >= flag_inserter.cutoff_fail:
-            print('inserted?',current_sample,flag_inserter.cutoff_fail, current_sample >= flag_inserter.cutoff_fail)
             insert_flag(ax, flag_inserter.cutoff_fail, lambda ax: flag_inserter.make_flag("fail"))
         elif current_sample >= flag_inserter.cutoff_warn:
             insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
@@ -381,8 +369,6 @@ def get_ci_bound(vec, alpha, upper_lower="both"):
         return lower, upper
     else:
         raise ValueError("Invalid value for 'upper_lower'. Must be 'upper', 'lower', or 'both'.")
-
-# The objective of this function is to generate the dynamic fail cutoffs for sample display, based on background data
 
 # Simple bootstrap calculation
 def CalcBootstrapBound(vec,upper_lower,alpha,num_resamples = 1000):
@@ -498,27 +484,26 @@ def values_to_percentiles(values):
     return percentiles
 
 def set_ticks(_ax,_tick_size):
+
+    shared_tick_kwarggs = {'which'     : 'both',
+                          'length'    : 1,
+                          'width'     : .5,
+                          'labelsize' : _tick_size,
+                          'direction' : 'out',
+                          'pad'       : 2}
     _ax.tick_params(axis        = 'x',
-                    which       = 'both',
-                    length      = 1,
-                    width       = 0.5,
                     labelbottom = True,
                     bottom      = True,
-                    labelsize   = _tick_size,
-                    direction   = 'out',
-                    pad         = 2)
+                    **shared_tick_kwarggs)
     _ax.tick_params(axis      = 'y',
-                    which     = 'both',
-                    length    = 1,
-                    width     = 0.5,
-                    labelsize = _tick_size,
                     labelleft = True,
                     left      = True,
-                    direction = 'out',
-                    pad       = 2)
+                    **shared_tick_kwarggs)
 
     return _ax
 
+
+""" Not used at the moment but could be used potentially to annotate functions for the slop
 def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center_baseline'):
 
     xdata, ydata = line.get_data()
@@ -534,7 +519,7 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
         xx = x2
         halign = 'right'
     elif halign.startswith('c'):
-
+iiiiiiijjjjjjjjjjjjjjjjj
         if ax.get_xscale() == 'log':
             xx = 10 ** (0.5 * (np.log10(x1) + np.log10(x2)))
         else:
@@ -556,7 +541,8 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
 
     ylim = ax.get_ylim()
     xytext = (0, 0)
-    text = ax.annotate(label, xy=(xx, yy), xytext=xytext, textcoords='offset points', size=fs, color=color, zorder=1, horizontalalignment=halign, verticalalignment=valign)
+    text = ax.annotate(label,
+                       xy=(xx, yy), xytext=xytext, textcoords='offset points', size=fs, color=color, zorder=1, horizontalalignment=halign, verticalalignment=valign)
 
     sp1 = ax.transData.transform_point((x1, y1))
     sp2 = ax.transData.transform_point((x2, y2))
@@ -570,7 +556,7 @@ def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center
     ax.set_ylim(ylim)
 
     return text
-
+"""
 # takes two vectors, finds the maximum and minimum, and creates the number of bins specified
 def make_bins(vec1,vec2,num_bins):
 
@@ -592,54 +578,66 @@ def mkTitlePage(_figinfo):
 
     def mk_cutoff_descript(descriptor,cutoff_set):
 
-        cutoff_descriptor = (descriptor +': Default alpha =' + str(cutoff_set["_alpha"])  +
-                                '| Sequencing Depth = ' + '{:.3f}'.format(cutoff_set["_ipReads_cutoff"],3) +
-                                '| Trimming = ' + '{:.3f}'.format(cutoff_set["_trimmedReads_cutoff"],3) +
-                                '| Alignment = ' + '{:.3f}'.format(cutoff_set["_uniqAligned_cutoff"],3) +
-                                '| Gene Exon Mapping = ' + '{:.3f}'.format(cutoff_set["_exonMapping_cutoff"],3) +
-                                '\n| Ribosomal RNA = ' + '{:.3f}'.format(cutoff_set["_riboScatter_cutoff"],3) +
-                                '| Adapter Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_adapter_trimmed"],3) +
-                                '| Overrep. Seq  Contamination = ' + '{:.3f}'.format(cutoff_set["_violin_cutoff_overrep_trimmed"],3) +
-                                '| Gene Body Coverage = ' + '{:.3f}'.format(cutoff_set['GC_cutoff'],3) +
-                                '| Detected Genes = ' + str(cutoff_set["_numGene_cutoff"]))
-        return(cutoff_descriptor)
+        cutoff_descriptor =(f"{descriptor}: Default alpha = {cutoff_set['_alpha']} | "
+                            f"Sequencing Depth = {cutoff_set['_ipReads_cutoff']:.3f} | "
+                            f"Trimming = {cutoff_set['_trimmedReads_cutoff']:.3f} | "
+                            f"Alignment = {cutoff_set['_uniqAligned_cutoff']:.3f} | "
+                            f"Gene Exon Mapping = {cutoff_set['_exonMapping_cutoff']:.3f} | "
+                            f"Ribosomal RNA = {cutoff_set['_riboScatter_cutoff']:.3f} |\n "
+                            f"Adapter Contamination = {cutoff_set['_violin_cutoff_adapter_trimmed']:.3f} | "
+                            f"Overrep. Seq Contamination = {cutoff_set['_violin_cutoff_overrep_trimmed']:.3f} | "
+                            f"Gene Body Coverage K-S Stat = {cutoff_set['GC_cutoff']:.3f} | "
+                            f"# Detected Genes = {cutoff_set['_numGene_cutoff']}")
+        return cutoff_descriptor
 
     fig = plt.figure()
 
     # add text
-    fig.text(.5,.965,"QC Plotter Input Summary",ha='center',va='top',fontsize = 14)
-    fig.text(.005,.985,datetime.now().strftime("%d/%m/%Y %H:%M:%S"),fontsize = 4)
-    fig.text(.005,.97,"Version 2.0",fontsize = 4)
-    fig.text(.5,.5,"Input table =     " + _figinfo["_ip_filename"] + "\nOutput location =    " + \
-    _figinfo["_op_filename"] + "\nBackground table =    " + _figinfo["_bgd_filename"] + 
-    "\nGene Body Coverage file =    " + str(_figinfo["_gc_file"]) + \
-    "\nGene read depth distribution histogram file =" + \
-    str(_figinfo["_hist_file"]) + "\nCutoff file =    " + str(_figinfo["_cutoff_filename"]),
-    fontsize = 6,ha="center",va="center")
+    fig.text(.5,
+             .965,
+             "QC Plotter Input Summary",
+             ha       = 'center',
+             va       = 'top',
+             fontsize = 14)
+    fig.text(.005,
+             .985,
+             datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+             fontsize = 4)
+    fig.text(.005,
+             .97,
+             "Version 2.0",
+             fontsize = 4)
+    fig.text(.5,
+             .5,
+             (f"Input table = {_figinfo['_ip_filename']} \n"
+              f"Output location =    {_figinfo['_op_filename']}\n"
+              f"Background table =    {_figinfo['_bgd_filename']}\n"
+              f"Gene Body Coverage file =    {_figinfo['_gc_file']}\n"
+              f"Gene read depth distribution histogram file = {_figinfo['_hist_file']}\n"
+              f"Cutoff file =     {_figinfo['_cutoff_filename']}"),
+             fontsize = 6,
+             ha       = "center",
+             va       = "center")
 
     # show cutoffs
     warn_descript = mk_cutoff_descript("Warn cutoffs",_figinfo["_warn_cutoffs"]) 
     fail_descript = mk_cutoff_descript("Fail cutoffs",_figinfo["_fail_cutoffs"]) 
 
 
-    fig.text(s          = warn_descript ,
+    shared_text_characteristics = {'fontsize'   : 5,
+                                   'ha'         : 'center',
+                                   'va'         : 'top',
+                                   'fontweight' : 'book',
+                                   'style'      : 'italic'}
+    fig.text(s          = warn_descript,
              x          = .5,
              y          = .1,
-             fontsize   = 5,
-             ha         = 'center',
-             va         = 'top',
-             fontweight = 'book',
-             style      = 'italic')
+             **shared_text_characteristics)
 
-
-    fig.text(s          = fail_descript ,
+    fig.text(s          = fail_descript,
              x          = .5,
              y          = .05,
-             fontsize   = 5,
-             ha         = 'center',
-             va         = 'top',
-             fontweight = 'book',
-             style      = 'italic')
+             **shared_text_characteristics)
 
     return fig
 
@@ -721,15 +719,15 @@ def mkQC_heatmap(heatmap_data):
               fontsize = 10,
               ha       = 'center')
     seaborn.heatmap(heatmap_data.values,
-                    ax=ax,
-                    xticklabels=["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
-                                  "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
-                                 "# Detected Genes","Gene Body Coverage"],
-                    yticklabels=sample_names,
-                    cmap = cm,
-                    cbar_kws = {'aspect': 2,
-                                'shrink' : 2,
-                                'pad' : .025})
+                    ax          = ax,
+                    xticklabels = ["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
+                                   "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
+                                   "# Detected Genes","Gene Body Coverage"],
+                    yticklabels = sample_names,
+                    cmap        = cm,
+                    cbar_kws    = {'aspect' : 2,
+                                   'shrink' : 2,
+                                   'pad'    : .025})
     # change y-axis tick label font size
 
     width_padding = (1 - fig_width / page_width) / 2
@@ -760,7 +758,6 @@ def mkQC_heatmap(heatmap_data):
 
 
 class AbstractHistPlotter(ABC):
-
 
     # Default values for subclass-specific attributes. Overwritten by concrete subclasses
     VarName   = None
@@ -814,9 +811,8 @@ class AbstractHistPlotter(ABC):
         _xmax = max(self.BgdVals.max(),
                     _lib_mean,
                     _current_value)
-        padding = 0.05 * (data_max - data_min)
-        axis.set_xlim(_xmin - padding,
-                      _xmax + padding)
+        cushion = .05 * (_xmax - _xmin)
+        axis.set_xlim(_xmin - cushion,_xmax + cushion)
         axis = set_ticks(axis, self.FigInfo["_tick_size"])
 
         axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
@@ -830,7 +826,7 @@ class AbstractHistPlotter(ABC):
                         labelpad = 1,
                         fontsize = self.FigInfo["_label_size"])
 
-        axis.set_ylabel('Frequency',
+        axis.set_ylabel('# Samples',
                         labelpad = 2,
                         fontsize = self.FigInfo["_label_size"])
 
@@ -853,7 +849,7 @@ class AbstractHistPlotter(ABC):
                                   label     = self.Formatter(_current_value))
 
         # Current Library Mean Line and Label
-        BgdLine = axis.axvline(x         = _lib_mean,
+        BgdLine = axis.axvline(x        = _lib_mean,
                                alpha     = 0.8,
                                color     = 'indigo',
                                linestyle = '--',
@@ -865,8 +861,8 @@ class AbstractHistPlotter(ABC):
                                 _line1     = SampleLine,
                                 _line2     = BgdLine,
                                 _figinfo   = self.FigInfo,
+                                _loc       = 'upper left',
                                 cutoff_key = self.CutoffKey,
-                                _loc       = "upper left",
                                 formatter  = self.Formatter)
 
         #set axes to be visible or not
@@ -885,7 +881,7 @@ class ReadDepthHistPlotter(AbstractHistPlotter):
         self.CutoffKey  = "_ipReads_cutoff"
         self.Formatter  = fmt_scatter_million
         self.PlotTitle  = "Sequencing Depth"
-        self.XAxisTitle = "Total Reads"
+        self.XAxisTitle = "# Sequenced Reads"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
         self.AddHist()
@@ -897,7 +893,7 @@ class TrimmingPlotter(AbstractHistPlotter):
         self.CutoffKey = "_trimmedReads_cutoff"
         self.Formatter = fmt_percent
         self.PlotTitle = "Trimming"
-        self.XAxisTitle = "Post-Trim / Total Reads"
+        self.XAxisTitle = "% Post-trim Reads"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
         self.AddHist()
@@ -909,7 +905,7 @@ class AlignmentPlotter(AbstractHistPlotter):
         self.CutoffKey= "_uniqAligned_cutoff"
         self.Formatter= fmt_percent
         self.PlotTitle= "Alignment"
-        self.XAxisTitle= " Uniquely Aligned / Post-Trim Reads"
+        self.XAxisTitle= "% Uniquely Aligned Reads"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
         self.AddHist()
@@ -921,7 +917,7 @@ class ExonMappingPlotter(AbstractHistPlotter):
         self.CutoffKey= "_exonMapping_cutoff"
         self.Formatter= fmt_percent
         self.PlotTitle= "Exon Mapping"
-        self.XAxisTitle= "Mapped / Aligned Reads"
+        self.XAxisTitle= "% Mapped to Exons / Aligned Reads"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
         self.AddHist()
@@ -954,14 +950,6 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
     Y_pred = linear_regressor.predict(X)
     _slope_current = linear_regressor.coef_[0][0]
 
-    # Plot the regression line
-    _ax.plot(X,
-             Y_pred,
-             c         = 'black',
-             linewidth = 0.7,
-             linestyle = '-',
-             alpha     = 1)
-
     # plot the regression for all points.
     _ax.scatter(x = _plotter_df['Num_Uniquely_Aligned'],
                 y = _plotter_df['Num_Uniquely_Aligned_rRNA'],
@@ -976,7 +964,6 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
                 s      =20,
                 c      =_intupdf["scatter_color"])
 
-
     _ax.set_title("Ribosomal RNA",
                   fontsize = _figinfo["_title_size"])
     _ax = set_ticks(_ax,
@@ -984,11 +971,11 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
 
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
     _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
-    _ax.set_xlabel("Total Uniquely Aligned Reads",
+    _ax.set_xlabel("# Uniquely Aligned Reads",
                    fontsize= _figinfo["_label_size"],
                    labelpad =2)
 
-    _ax.set_ylabel("Aligned rRNA Reads",
+    _ax.set_ylabel("# Aligned rRNA Reads",
                    fontsize= _figinfo["_label_size"],
                    labelpad= 2)
 
@@ -999,25 +986,32 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
     line_y1_warn = _figinfo["_warn_cutoffs"]["_riboScatter_cutoff"] * (xmax - line_x0) + line_y0
     line_y1_fail = _figinfo["_fail_cutoffs"]["_riboScatter_cutoff"] * (xmax - line_x0) + line_y0
 
+    mean_line_kwargs = {'linestyle' : '--',
+                        'linewidth' : .7}
+    fail_warn_kwargs = mean_line_kwargs.copy()
+    fail_warn_kwargs.update({'alpha' : .3})
+
+    # Plot the regression line
+    _ax.plot(X,
+             Y_pred,
+             c         = 'black',
+             **mean_line_kwargs)
+
     _ax.plot([line_x0,
               xmax],
              [line_y0,
               line_y1_warn],
              c         =_figinfo["_warn_color"],
-             linewidth = 1,
-             linestyle = '--',
-             alpha     = 0.3,
-             label     = "Warn")
+             label     = "Warn",
+             **fail_warn_kwargs)
 
     _ax.plot([line_x0,
               xmax],
              [line_y0,
               line_y1_fail],
-             c=_figinfo["_fail_color"],
-             linewidth = 1,
-             linestyle = '--',
-             alpha     = 0.3,
-             label     = "Fail")
+             c         = _figinfo["_fail_color"],
+             label     = "Fail",
+             **fail_warn_kwargs)
     # Set axes margins for padding on both axes
     _ax.margins(0.01)
 
@@ -1025,32 +1019,19 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
                    adjustable = 'box',
                    anchor     = 'SW')
 
-    _historic_data = matplotlib.lines.Line2D([0],
-                                             [0],
-                                             color           = 'w',
-                                             markerfacecolor = 'darkgray',
-                                             marker          = 'o',
-                                             linewidth       = 1,
-                                             markersize      = 3.5)
+
     _curr_lib = matplotlib.lines.Line2D([0],
                                         [0],
                                         color           = 'w',
                                         markerfacecolor = 'indigo',
                                         marker          = 'o',
-                                        linewidth       = 1,
                                         markersize      = 3.5)
-
-    _regression_gradient = matplotlib.lines.Line2D([0],
-                                                   [0],
-                                                   color     = 'black',
-                                                   linewidth = .6)
 
     _curr_samp = matplotlib.lines.Line2D([0],
                                          [0],
                                          color           = 'w',
                                          markerfacecolor = _figinfo["_curr_sample_color"],
                                          marker          = '*',
-                                         linewidth       = 1,
                                          markersize      = 6)
 
     _mean_label = mpatches.Patch(color = 'black',
@@ -1067,9 +1048,9 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
                             _mean_label],
                labels    =  ["Current Sample",
                              "Batch Samples",
-                             "Fail (" + "{:.0%}".format(_figinfo["_fail_cutoffs"]["_riboScatter_cutoff"])  + ")",
-                             "Warn (" + "{:.0%}".format(_figinfo["_warn_cutoffs"]["_riboScatter_cutoff"]) + ")",
-                             "Mean rRNA/Aligned Reads (" + "{:.0%}".format(_slope_current) + ")"],
+                             f"Fail ({_figinfo['_fail_cutoffs']['_riboScatter_cutoff']:.0%})",
+                             f"Warn ({_figinfo['_warn_cutoffs']['_riboScatter_cutoff']:.0%})",
+                             f"Mean rRNA/Aligned Reads ({_slope_current:.0%})"],
                 loc      = 'upper left',
                 frameon  = False,
                 fontsize = _figinfo["_legend_size"])
@@ -1092,7 +1073,6 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
 
         _contaminant_df = _background_df[[OverrepName,
                                           AdaptName]]
-
         _contaminant_df.columns = ["Overrepresented",
                                    "Adapter"]
 
@@ -1100,12 +1080,12 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
                                      var_name   = "Contamination_Metric",
                                      value_name = "Percent")
 
-        _current_overrep_untrim = _current_sample[OverrepName].iloc[0] # if his has the potational to be a huge issue
+        _current_overrep_untrim = _current_sample[OverrepName].iloc[0]
         _current_adapter_untrim = _current_sample[AdaptName].iloc[0]
 
         # Format Axes
         _axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
-        _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent1))
+        _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent))
         _axis = mk_axes(_axis)
         _axis = set_ticks(_axis,
                           _figinfo['_tick_size'])
@@ -1120,15 +1100,18 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
                        linewidth = 0.3,
                        orient    = "h",
                        scale     = "count")
-
         _axis.set_xlabel('')
         _axis.set_ylabel('')
 
-        # Add lines there are meant to be 4 lines one for the actual value and then the mean for all metrics
+        # Add  4 lines one for the actual value and then the mean for all metrics
+        # Define how the lines for each item should be visualized 
         _linekwargs_overrep = {'linestyle' : '-',
                                'linewidth' : .35,
                                'ymin'      : .5,
                                'ymax'      : .95}
+        _linekwargs_adapter = _linekwargs_overrep.copy()
+        _linekwargs_adapter.update({'ymin'      : .05,
+                                   'ymax'      : .45})
 
         _mean_overrep_untrim = _background_df.loc[:, OverrepName].mean()
         _mean_adapter_untrim = _background_df.loc[:, AdaptName].mean()
@@ -1143,10 +1126,6 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
                                            label    = '{:.2f}%'.format(_mean_overrep_untrim),
                                            **_linekwargs_overrep)
 
-        _linekwargs_adapter = {'linestyle' : '-',
-                               'linewidth' : .35,
-                               'ymin'      : .05,
-                               'ymax'      : .45}
 
         _line_adapter = _axis.axvline(x        = _current_adapter_untrim,
                                       color    = _figinfo["_curr_sample_color"],
@@ -1165,12 +1144,10 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
                      frameon  = False,
                      ncol     = 1,
                      fontsize = _figinfo["_legend_size"])
+        # Set appealing limits
+        _axis.margins(x = .05)
 
-        _axis.set_xlim(0,None)
-
-        # No need to return anything because the _axis is modified inline
-        return None
-
+        return None # No need to return anything because the _axis is modified inline
 
     # Define color palette
     _contaminant_pal = {"Overrepresented": "lightgray",
@@ -1231,7 +1208,6 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
 
     ### Adding cutoff markers
     _axis3 = _axis2.twinx()
-
     _axis2,_axis3 = mk_axes(_axis2,_axis3)
     _axis3.yaxis.set_ticks([])
     _axis3.xaxis.label.set_visible(False)
@@ -1263,7 +1239,7 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
     return _f
 
 def EstimateDeviances(data_df):
-    mean_sample = data_df.median(axis = 1) # compute mean across columns for each row
+    mean_sample = data_df.mean(axis = 1) # compute mean across columns for each row
 
     deviances = data_df.sub(mean_sample,
                             axis = 0).abs()
@@ -1370,108 +1346,89 @@ def GC_KSstats(_coverage_df):
     return _kslst
 
 #  GeneBody Coverage Plot
-def plotGC(SampleName,user_df,bgd_df, _coverage_df, _position,_figinfo,_fig=None):
+def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
 
-    # Make a list of all samples in the user_df and the bgd_df and where they come from
-    # determine which samples in _coverage_df are in the user_df and which are in the bgd_df and split accordingly
-    # Split the _coverage_df into the _usercoveragedf and then the _Bgdcoveragedf
+    _axis = _fig.add_subplot(_figinfo["_subplot_rows"], 2, _position)
+    ## Prep information for plotting
 
     # Calculate mean GeneBody Coverage for the entire library
     _mean_df = pd.DataFrame()
     _mean_df['gc_mean'] = _coverage_df.median(axis=1)
-    # acquire the pvalue information from the _figinfo object
 
+    # acquire the pvalue information from the _figinfo object
     _ks_pval = user_df.loc[user_df['Sample'] == SampleName,'GBC_KSstats'].iloc[0]
-    # Plot current sample with library mean
+
+    # Define the visual information for plotting each line
+    sample_line_info = {'color'     : _figinfo["_curr_sample_color"],
+                        'linewidth' : .5,
+                        'linestyle' : '-'}
+    ref_line_info = sample_line_info.copy()
+    ref_line_info.update({'color' :  'lightgray',
+                          'alpha'  : .4})
+    mean_line_info = sample_line_info.copy()
+    mean_line_info.update({'color'     : 'indigo',
+                           'linestyle' : '--'})
+
+    # Plot lines
     _x = np.arange(1, 101, 1)
-    _err = _coverage_df.std(axis=1)*2 # This should be calculated from the BGD DF
-    _axis = _fig.add_subplot(_figinfo["_subplot_rows"],
-                             2,
-                             _position)
 
     _axis.plot(_x,
                _coverage_df,
-               color     = "lightgray",
-               alpha     = .4,
-               linewidth = 0.5,
-               linestyle = '-')
+               **ref_line_info)
     _axis.plot(_x,
                _coverage_df[SampleName],
-               color     = _figinfo["_curr_sample_color"],
-               linewidth = 0.5,
-               linestyle = '-')
+               **sample_line_info)
     _axis.plot(_x,
                _mean_df['gc_mean'],
-               color     = 'indigo',
-               linewidth = 0.5,
-               linestyle = '--',
-               alpha     = 0.8)
+               **mean_line_info)
 
-    # Calculate 95% interval for each position
+    # include a 95% interval for each position
+    _err = _coverage_df.std(axis=1)*2
     _axis.fill_between(_x,
                        _mean_df['gc_mean'] - _err,
                        _mean_df['gc_mean'] + _err,
                        facecolor = 'yellow',
-                       alpha     =  0.5)
-    _axis = set_ticks(_axis,
-                      _figinfo["_tick_size"])
-    _axis.set_xlim(0, 105)
-    _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent))
-
-    _axis.set_title("GeneBody Coverage",
-                    fontsize = _figinfo["_title_size"])
-    _axis.set_xlabel("Gene Percentile (5' " + u"\u2192" + " 3')",
-                     fontsize = _figinfo["_label_size"])
-    _axis.set_ylabel("Read Density",
-                     fontsize = _figinfo["_label_size"])
+                       alpha     =  0.3)
 
     # make the symbols for the legend
-
-    shared_line_properties = {'linewidth' : .5,
-                              'linestyle' : '-',
-                              'alpha'     : .8}
-
     _current_sample_line = matplotlib.lines.Line2D([0],
                                                    [0],
-                                                   color     = _figinfo["_curr_sample_color"],
-                                                   **shared_line_properties)
+                                                   **sample_line_info)
     _background_lines = matplotlib.lines.Line2D([0],
                                                 [0],
-                                                color     = "lightgray",
-                                                **shared_line_properties)
+                                                **ref_line_info)
     _library_line = matplotlib.lines.Line2D([0],
                                             [0],
-                                            color     = "indigo",
-                                            **shared_line_properties)
-
-    Pval = matplotlib.patches.Rectangle((0, 0),
-                                        1,
-                                        1,
-                                        facecolor = 'w',
-                                        fill      = False,
-                                        edgecolor = 'None',
-                                        linewidth = 0)
+                                            **mean_line_info)
 
     _axis.legend([_current_sample_line,
                   _library_line,
-                  _background_lines,
-                  Pval],
-                 [f'Current Sample',
+                  _background_lines],
+                 [f"Current Sample: K-S Stat = {_ks_pval:.2f}",
                   "Batch Mean",
-                  "Batch Samples",
-                  "KS Stat: " + str(round(_ks_pval,
-                                            3))],
+                  "Batch Samples"],
                  loc      = 'lower center',
                  frameon  = False,
                  fontsize = _figinfo["_legend_size"],
                  ncol     = 1)
-
     _axis = mk_axes(_axis)
     _axis = needs_fail_or_warn(ax             = _axis,
                                current_sample = _ks_pval,
                                _figinfo       = _figinfo,
                                cutoff_key     = "GC_cutoff",
                                higher_lower   = "upper")
+
+    _axis = set_ticks(_axis,
+                      _figinfo["_tick_size"])
+    _axis.set_xlim(0, 105)
+    _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent1))
+
+    _axis.set_title("Gene Body Coverage",
+                    fontsize = _figinfo["_title_size"])
+    _axis.set_xlabel("Gene Body Position Percentile (5' " + u"\u2192" + " 3')",
+                     fontsize = _figinfo["_label_size"])
+    _axis.set_ylabel("Read Density",
+                     fontsize = _figinfo["_label_size"])
 
     return _fig
 
@@ -1484,6 +1441,8 @@ def calcHistPval(_hist_df):
 
     return(_pvals)
 
+# Not in use currently but in theory plotNegBin and plotGC could share some values although
+#im not sure the added complexity is worth the squeeze.
 class AbstractLinePlotter(ABC):
 
     def __init__(self,_ipTuple,_hist_df,_user_df,_position,_figinfo,_figure=None):
@@ -1529,74 +1488,62 @@ def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
     _sum_df = _hist_df.sum().round()
     _curr_sum = _current_samp_array.sum().round()
     _curr_ndx = np.where(_sum_df == _curr_sum)[0][0]
-    hist_mean = sum_df.mean().round()
+    hist_mean = _sum_df.mean().round()
     _zscore = stats.zscore(_sum_df)
     _pvals  = stats.norm.sf(abs(_zscore))
     _curr_pval = _pvals[_curr_ndx]
 
+    # Define the visual information for plotting each line
+    sample_line_info = {'color'     : _figinfo["_curr_sample_color"],
+                        'linewidth' : .5,
+                        'linestyle' : '-'}
+    ref_line_info = sample_line_info.copy()
+    ref_line_info.update({'color' :  'lightgray',
+                          'alpha'  : .4})
+    mean_line_info = sample_line_info.copy()
+    mean_line_info.update({'color'     : 'indigo',
+                           'linestyle' : '--'})
 
     _ax.plot(_low_vals,
              _hist_df,
-              color     = 'silver',
-             linewidth = 0.5,
-             linestyle = '-',
-             alpha     = .4)
+             **ref_line_info)
     _ax.plot(_low_vals,
              _hist_df[SampleName],
-             color     = _figinfo["_curr_sample_color"],
-             linewidth = 0.5,
-             linestyle = '-',
-             zorder    = 24)
+             zorder = 24,
+             **sample_line_info)
     _ax.plot(_low_vals,
              _libMean_df['Mean'],
-             color     = 'indigo',
-             linewidth = 0.5,
-             linestyle = '--',
-             alpha     = 0.8,
-             zorder    = 23)
+             zorder    = 23,
+             **mean_line_info)
+
+
+    _current_samp_line = matplotlib.lines.Line2D([0],
+                                                 [0],
+                                                 **sample_line_info)
+    _lib_line = matplotlib.lines.Line2D([0],
+                                        [0],
+                                        **mean_line_info)
+
+    _ax.legend([_current_samp_line,
+                _lib_line],
+               [f'Current Samplen : # Detected Genes = {_curr_sum.item()}(p = {_curr_pval.item():.3f})',
+                f'Batch  Mean (# Detected Genes) = {hist_mean})'],
+               loc      = 'upper right',
+               frameon  = False,
+               fontsize = _figinfo["_legend_size"],
+               ncol     = 1)
 
     _ax = set_ticks(_ax,_figinfo["_tick_size"])
 
     _ax.set_xlim(0, 10)
 
-    _ax.set_title("Gene Expression",
+    _ax.set_title("Gene Expression Distribution",
                   fontsize=_figinfo["_title_size"])
     _ax.set_xlabel("Expression Level (log2(CPM)+1)",
                    fontsize=_figinfo["_label_size"])
-    _ax.set_ylabel("Frequency",
+    _ax.set_ylabel("# Genes",
                    fontsize=_figinfo["_label_size"] )
 
-
-    _current_samp_line = matplotlib.lines.Line2D([0],
-                                                 [0],
-                                                 color     = _figinfo["_curr_sample_color"],
-                                                 linewidth = 0.5,
-                                                 linestyle = '-',
-                                                 alpha     = 0.8)
-    _lib_line = matplotlib.lines.Line2D([0],
-                                        [0],
-                                        color     = "indigo",
-                                        linewidth = 0.5,
-                                        linestyle = '--',
-                                        alpha     = 0.8)
-    _extra_Ztest_Pval = matplotlib.patches.Rectangle((0, 0),
-                                                     1,
-                                                     1,
-                                                     facecolor = 'w',
-                                                     fill      = False,
-                                                     edgecolor = 'None',
-                                                     linewidth = 0)
-
-    _ax.legend([_current_samp_line,
-                _lib_line,
-                _extra_Ztest_Pval],
-               [f'Current Sample (# Detected Genes = {_curr_sum.item()})',
-                f'Batch  Mean (# Detected Genes) = {hist_mean},
-                f'Pvalue {_curr_pval.item():.3f}'],
-               loc      = 'upper right',
-               frameon  = False,
-               fontsize = _figinfo["_legend_size"],
-               ncol     = 1)
     _ax = mk_axes(_ax)
     _ax = needs_fail_or_warn(ax             = _ax,
                              current_sample = _curr_pval,

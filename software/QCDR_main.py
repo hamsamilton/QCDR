@@ -106,16 +106,13 @@ def QCDR_main(qry_filename    = '',
         _figinfo['_fail_cutoffs']['GC_cutoff'] = _fail_GC_cutoff
         _figinfo['_warn_cutoffs']['GC_cutoff'] = _warn_GC_cutoff
         GC_KS_pvals = stats.norm.sf(stats.zscore(GCDeviances))
-        print('the GC deviances are')
 
         # Convert GC into KS vals and calculate the distribution to get a pvalue
         _figinfo["_gbc_pvals"]  = GC_KS_pvals
         _user_df["_gbc_pvals"]  = GC_KS_pvals
         _user_df = _user_df.set_index('Sample')
-        print('the userdf was',_user_df,_user_df.index)
         _user_df['GBC_KSstats'] = GCDeviances
         _user_df = _user_df.reset_index()
-        print('the _user_df is',_user_df)
 
         _figinfo["_gbc_exists"] = True
     else:
@@ -154,7 +151,6 @@ def QCDR_main(qry_filename    = '',
 
         manual_cutoff_adaptr = manual_cutoff_adapter(_manual_cutoffs)
         manual_cutoff_adaptr.adapt_input()
-        print('inputdf',manual_cutoff_adaptr.input_df)
 
         _man_warn_cutoff_dict = manual_cutoff_adaptr.input_df['Warn'].to_dict()
         _man_fail_cutoff_dict = manual_cutoff_adaptr.input_df['Fail'].to_dict()
@@ -237,7 +233,7 @@ def QCDR_main(qry_filename    = '',
 
         # Plotting figure 8: Gene Body Coverage Plot
         if _gc_file is not None:
-            fig = helper_retroFunctions.plotGC(SampleName,_user_df,_bgd_df, _gc_df, 8,_figinfo,fig)
+            fig = helper_retroFunctions.plotGC(SampleName,_user_df, _gc_df, 8,_figinfo,fig)
 
         # Add sample info at the top-left corner of the page
         fig.text(s                   = 'Sample : ' + SampleName,
@@ -292,8 +288,8 @@ if __name__ == "__main__":
                         help     = """[OPTIONAL] Where to save outputs.
                                       -out [OUTPUT-FILENAME.pdf],\t--output-dir [OUTPUT-FOLDER]""")
 
-    parser.add_argument("-bgd",
-                        "--background-data",
+    parser.add_argument("-ref",
+                        "--reference-data",
                         required = False,
                         help     ="[OPTIONAL] Location of background data to contextualize query dataset in")
 
@@ -339,14 +335,14 @@ if __name__ == "__main__":
     op_folder       = args.output_folder
     gc_file         = args.genecoverage_data
     hist_file       = args.histogram_data
-    bgd_filename    = args.background_data if args.background_data else qry_filename
+    bgd_filename    = args.reference_data if args.reference_data else qry_filename
     cutoff_filename = args.cutoff_data
     fail_alpha      = float(args.failalpha)
     warn_alpha      = float(args.warnalpha)
 
     print(f"Query Data : {qry_filename}")
     print(f"Output File : {op_folder}")
-    print(f"Background Data : {bgd_filename}")
+    print(f"Reference Data : {bgd_filename}")
     print(f"cutoffs_provided : {cutoff_filename}")
     print(f"failalpha : {fail_alpha}")
     print(f"warnalpha : {warn_alpha}")

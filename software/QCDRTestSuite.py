@@ -84,7 +84,6 @@ class QCDRTestFactory(TestFactory):
 
         return self
 
-
     def NoHistGBCTest(self):
         # Perform a test when the Hist and GBC are not added
         TestName = 'NoHistGBCTest'
@@ -123,7 +122,6 @@ class QCDRTestFactory(TestFactory):
         self.RunInfoDict[TestName] = LungTransplantTest
 
         return self
-
 
     def LungTransplantTestwCutoff(self):
         # Perform a test on the lung transplant dataset
@@ -182,14 +180,12 @@ class QCDRTestFactory(TestFactory):
         return self
 
 
-
-
-
 if __name__ == '__main__':
 
     print('Running tests')
     [QCDRTestFactory(SaveDir = "QCDRTestOutputs/").
-     ComprehensiveTesting().
+     #ComprehensiveTesting().
+     QuickTest().
      RunTests(TestFun = QCDR_main)]
     print("Tests Finished Running")
 
