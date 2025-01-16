@@ -93,8 +93,10 @@ class UI_adapter:
 
     def _transform_values(self):
         """ Calculate columns that are transformations of the supplied inputs """
-        self.input_df["% Uniquely Aligned Reads"] = (
-        (self.input_df["# Uniquely Aligned Reads"]) / (self.input_df["Sequencing Depth"] * self.input_df["% of Reads After Trimming"])) * 10000
+
+        self.input_df["Percent_PostTrim"] =  self.input_df["Num_PostTrim"] / self.input_df["Num_Sequenced"] * 100
+        self.input_df["% Uniquely Aligned Reads"] = self.input_df["Num_Uniquely_Aligned"] / self.input_df["Num_PostTrim"] * 100
+        self.input_df["Percent Exonic"]  = self.input_df["Num_Exonic"] / self.input_df["Num_Uniquely_Aligned"] * 100
 
     def adapt_input(self):
         # specific methods required by each subclass to be implemented by subclass
@@ -111,12 +113,12 @@ class input_adapter(UI_adapter):
 
     human_readable_names = [
         "Sample",
-        "Sequencing Depth",
-        "% of Reads After Trimming",
+        "# Sequenced Reads",
+        "# Post-trim Reads",
         "# Uniquely Aligned Reads",
         "% Uniquely Aligned Reads",
-        "% Exonic Reads / Aligned Reads",
-        "# rRNA Reads",
+        "# Reads Mapped to Exons",
+        "# Aligned Reads Overlapping rRNA",
         "% Overrepresented Sequences (Pre-trim)",
         "% Adapter Content (Pre-trim)",
         "% Overrepresented Sequences (Post-trim)",
@@ -125,10 +127,10 @@ class input_adapter(UI_adapter):
     input_program_names = [
         "Sample",
         "Input_Size",
-        "Percent_PostTrim",
+        "Num_PostTrim",
         "Num_Uniquely_Aligned",
         "Percent_Uniquely_Aligned",
-        "Percent_Exonic",
+        "Num_Exonic",
         "Num_Uniquely_Aligned_rRNA",
         "Percent_Overrepresented_Seq_Untrimmed",
         "Percent_Adapter_Content_Untrimmed",
@@ -227,27 +229,29 @@ def adjust_flag(_ax,_current_sample,_lib_mean,Formatter= fmt_scatter_million):
 
     labelpadding = (get_axis_range(_ax.get_xlim())/ 50)
 
-    curr_sample_kwargs = {'x'        :  _current_sample - labelpadding,
-                          'y'        : (_ax.get_ylim()[1] / 3),
+    curr_sample_kwargs = {'y'        : (_ax.get_ylim()[1] / 3.5),
                           's'        : Formatter(_current_sample),
                           'fontsize' : 3,
                           'zorder'   : 2}
     lib_kwargs = curr_sample_kwargs.copy()
-    lib_kwargs.update({'x' : _lib_mean + labelpadding,
-                       's' : Formatter(_lib_mean)})
+    lib_kwargs.update({'s' : Formatter(_lib_mean)})
     if _current_sample >=  _lib_mean:
         # plot the current sample line
-        _ax.text(rotation = 270,
+        _ax.text(x        = _current_sample + (labelpadding / 2),
+                 rotation = 270,
                  **curr_sample_kwargs)
         # plot the library mean line
-        _ax.text(rotation = 90,
+        _ax.text(x        = _lib_mean - labelpadding,# this needs to be halved to look good
+                 rotation = 90,
                  **lib_kwargs)
     else:
         # plot the current sample line
-        _ax.text(rotation = 90,
+        _ax.text(x        = _current_sample - labelpadding,
+                 rotation = 90,
                  **curr_sample_kwargs)
         # plot the library mean line
-        _ax.text(rotation = 270,
+        _ax.text(x        = _lib_mean + (labelpadding / 2),
+                 rotation = 270,
                  **lib_kwargs)
     return _ax
 
@@ -502,61 +506,6 @@ def set_ticks(_ax,_tick_size):
 
     return _ax
 
-
-""" Not used at the moment but could be used potentially to annotate functions for the slop
-def label_anno(ax, line, label, color='0.5', fs=3, halign='left', valign='center_baseline'):
-
-    xdata, ydata = line.get_data()
-    x1 = xdata[0]
-    x2 = xdata[-1]
-    y1 = ydata[0]
-    y2 = ydata[-1]
-
-    if halign.startswith('l'):
-        xx = x1
-        halign = 'left'
-    elif halign.startswith('r'):
-        xx = x2
-        halign = 'right'
-    elif halign.startswith('c'):
-iiiiiiijjjjjjjjjjjjjjjjj
-        if ax.get_xscale() == 'log':
-            xx = 10 ** (0.5 * (np.log10(x1) + np.log10(x2)))
-        else:
-            xx = 0.5 * (x1 + x2)
-        halign = 'center'
-    else:
-        raise ValueError("Unrecognized `halign` = '{}'.".format(halign))
-
-    if ax.get_xscale() == 'log' and ax.get_yscale() == 'log':
-        yy = 10 ** (np.interp(np.log10(xx), np.log10(xdata), np.log10(ydata)))
-    elif ax.get_xscale() == 'log' and ax.get_yscale() != 'log':
-        yy = np.interp(np.log10(xx), np.log10(xdata), ydata)
-    elif valign.startswith('t'):
-        valign = 'top'
-        yy = np.interp(xx, xdata, ydata)
-    else:
-        yy = np.interp(xx, xdata, ydata)
-
-
-    ylim = ax.get_ylim()
-    xytext = (0, 0)
-    text = ax.annotate(label,
-                       xy=(xx, yy), xytext=xytext, textcoords='offset points', size=fs, color=color, zorder=1, horizontalalignment=halign, verticalalignment=valign)
-
-    sp1 = ax.transData.transform_point((x1, y1))
-    sp2 = ax.transData.transform_point((x2, y2))
-
-    rise = (sp2[1] - sp1[1])
-    run = (sp2[0] - sp1[0])
-
-    slope_degrees = np.degrees(np.arctan2(rise, run))
-    text.set_rotation_mode('anchor')
-    text.set_rotation(slope_degrees)
-    ax.set_ylim(ylim)
-
-    return text
-"""
 # takes two vectors, finds the maximum and minimum, and creates the number of bins specified
 def make_bins(vec1,vec2,num_bins):
 
@@ -578,16 +527,16 @@ def mkTitlePage(_figinfo):
 
     def mk_cutoff_descript(descriptor,cutoff_set):
 
-        cutoff_descriptor =(f"{descriptor}: Default alpha = {cutoff_set['_alpha']} | "
-                            f"Sequencing Depth = {cutoff_set['_ipReads_cutoff']:.3f} | "
-                            f"Trimming = {cutoff_set['_trimmedReads_cutoff']:.3f} | "
-                            f"Alignment = {cutoff_set['_uniqAligned_cutoff']:.3f} | "
-                            f"Gene Exon Mapping = {cutoff_set['_exonMapping_cutoff']:.3f} | "
-                            f"Ribosomal RNA = {cutoff_set['_riboScatter_cutoff']:.3f} |\n "
-                            f"Adapter Contamination = {cutoff_set['_violin_cutoff_adapter_trimmed']:.3f} | "
-                            f"Overrep. Seq Contamination = {cutoff_set['_violin_cutoff_overrep_trimmed']:.3f} | "
-                            f"Gene Body Coverage K-S Stat = {cutoff_set['GC_cutoff']:.3f} | "
-                            f"# Detected Genes = {cutoff_set['_numGene_cutoff']}")
+        cutoff_descriptor =(f"{descriptor}: Default alpha : {cutoff_set['_alpha']} | "
+                            f"Sequencing Depth : < {int(cutoff_set['_ipReads_cutoff'])} | "
+                            f"Trimming : < {cutoff_set['_trimmedReads_cutoff']:.3f}% | "
+                            f"Alignment : < {cutoff_set['_uniqAligned_cutoff']:.3f}% | "
+                            f"Gene Exon Mapping : < {cutoff_set['_exonMapping_cutoff']:.3f}% | "
+                            f"Ribosomal RNA : > {cutoff_set['_riboScatter_cutoff']:.3f}% |\n "
+                            f"Adapter Contamination : >{cutoff_set['_violin_cutoff_adapter_trimmed']:.3f}% | "
+                            f"Overrep. Seq Contamination : >{cutoff_set['_violin_cutoff_overrep_trimmed']:.3f}% | "
+                            f"Gene Body Coverage K-S Stat : >{cutoff_set['GC_cutoff']:.3f} | "
+                            f"# Detected Genes : < {int(cutoff_set['_numGene_cutoff'])}")
         return cutoff_descriptor
 
     fig = plt.figure()
@@ -1526,8 +1475,8 @@ def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
 
     _ax.legend([_current_samp_line,
                 _lib_line],
-               [f'Current Samplen : # Detected Genes = {_curr_sum.item()}(p = {_curr_pval.item():.3f})',
-                f'Batch  Mean (# Detected Genes) = {hist_mean})'],
+               [f'Current Sample: {_curr_sum.item()} Detected Genes (p={_curr_pval.item():.3f})',
+                f'Batch Mean: {hist_mean} Detected Genes'],
                loc      = 'upper right',
                frameon  = False,
                fontsize = _figinfo["_legend_size"],
