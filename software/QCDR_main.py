@@ -4,14 +4,12 @@ import matplotlib
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 import os
-import math as math
 import argparse
 matplotlib.use('PDF')
 import pickle
 import matplotlib.pyplot as plt
 import sys
 import json
-import seaborn as sns
 import time
 import shutil
 import glob
@@ -20,18 +18,12 @@ import subprocess
 import numpy as np
 import pandas as pd
 from helper_retroFunctions import *
-from Sam_PyUtils import *
-from sklearn.linear_model import LinearRegression
 from scipy.stats import norm
 from scipy import stats
-from sklearn.preprocessing import LabelEncoder
 from matplotlib.backends.backend_pdf import PdfPages
-from sklearn.preprocessing import MinMaxScaler
 import matplotlib.offsetbox
-from statsmodels.stats.weightstats import ztest
 
 '''RetroPlotter caller function for reading data and passing it to individual plotters. Add option/flag for including GC/Hist and create 6-panel or 8-panel grid based on the flag passed to plotter functions'''
-
 def QCDR_main(qry_filename    = '',
               op_folder       = '',
               _bgd_file       = '',
@@ -46,11 +38,13 @@ def QCDR_main(qry_filename    = '',
                 exist_ok = True)
 
     # Read query file and load USER data
-    _user_df = pd.read_csv(qry_filename)
+    _user_df = read_file(qry_filename)
     _user_df = input_adapter(_user_df).adapt_input().input_df
 
+    print('userdf',_user_df.columns)
+
     ## Read Background file 
-    _bgd_df = pd.read_csv(_bgd_file)
+    _bgd_df = read_file(_bgd_file)
     _bgd_df  = input_adapter(_bgd_df).adapt_input().input_df
 
     # Make standard cutoffs for warn/fail
@@ -85,14 +79,13 @@ def QCDR_main(qry_filename    = '',
     _figinfo["_bgd_filename"]      = _bgd_file
     _figinfo["_cutoff_filename"]   = cutoff_filename
 
-
     # add cutoff info
     _figinfo["_fail_cutoffs"] = _fail_cutoffs
     _figinfo["_warn_cutoffs"] = _warn_cutoffs
 
     # Read Gene Coverage Data
     if _gc_file is not None:
-        _gc_df = pd.read_csv(_gc_file).iloc[:,1:]
+        _gc_df = read_file(_gc_file).iloc[:,1:]
 
         GCDeviances = EstimateDeviances(data_df = _gc_df).sum(axis = 0)
         #GCDeviances = GC_KSstats(_coverage_df = _gc_df)
@@ -114,13 +107,13 @@ def QCDR_main(qry_filename    = '',
         _user_df['GBC_KSstats'] = GCDeviances
         _user_df = _user_df.reset_index()
 
-        _figinfo["_gbc_exists"] = True
     else:
-        _figinfo["_gbc_exists"] = False
+        _figinfo['_fail_cutoffs']['GC_cutoff'] = None
+        _figinfo['_warn_cutoffs']['GC_cutoff'] = None
 
     # Read Histogram data
     if _hist_file is not None:
-        _negBin_df = CountsMatrixToGeneHist(df       = pd.read_excel(_hist_file),
+        _negBin_df = CountsMatrixToGeneHist(df       = read_file(_hist_file),
                                             binsize  = .25,
                                             maxdepth = 18.5)
         # Preprocess raw counts table
@@ -133,21 +126,19 @@ def QCDR_main(qry_filename    = '',
         _warn_numGene_cutoff = CalcBootstrapBound(vec         = _sum_df,
                                                   alpha       = 2*warn_alpha,
                                                   upper_lower = "lower")
-        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = _fail_numGene_cutoff
-        _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = _warn_numGene_cutoff
+        _figinfo["_fail_cutoffs"]["NumGenes"] = _fail_numGene_cutoff
+        _figinfo["_warn_cutoffs"]["NumGenes"] = _warn_numGene_cutoff
         _user_df["_hist_pvals"]  = calcHistPval(_data_df)
         _user_df["NumGenes"]  =  _data_df.sum().round().values
         _figinfo["_hist_pvals"]  = calcHistPval(_data_df)
-        _figinfo["_hist_exists"] = True
     else:
-        _figinfo["_fail_cutoffs"]["_numGene_cutoff"] = "None"
-        _figinfo["_warn_cutoffs"]["_numGene_cutoff"] = "None"
+        _figinfo["_fail_cutoffs"]["NumGenes"] = None
+        _figinfo["_warn_cutoffs"]["NumGenes"] = None
         _figinfo["_hist_pvals"]  = None
-        _figinfo["_hist_exists"] = False
 
 
     if cutoff_filename is not None:
-        _manual_cutoffs = pd.read_excel(cutoff_filename)
+        _manual_cutoffs = read_file(cutoff_filename)
 
         manual_cutoff_adaptr = manual_cutoff_adapter(_manual_cutoffs)
         manual_cutoff_adaptr.adapt_input()
@@ -222,18 +213,18 @@ def QCDR_main(qry_filename    = '',
         fig = ExonMapping.Figure
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
-        fig = helper_retroFunctions.plotScatter_rRNA(SampleName, _user_df, _bgd_df, 5,_figinfo,fig)
+        fig = plotScatter_rRNA(SampleName, _user_df, _bgd_df, 5,_figinfo,fig)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
-        fig = helper_retroFunctions.plotViolin_dualAxis(SampleName, _user_df, _bgd_df, 6,_figinfo,fig)
+        fig = plotViolin_dualAxis(SampleName, _user_df, _bgd_df, 6,_figinfo,fig)
 
         # Plotting figure 7: Expression Distribution Plot
         if _hist_file is not None:
-            fig = helper_retroFunctions.plotNegBin(SampleName,_user_df,_negBin_df,7,_figinfo,fig)
+            fig = plotNegBin(SampleName,_user_df,_negBin_df,7,_figinfo,fig)
 
         # Plotting figure 8: Gene Body Coverage Plot
         if _gc_file is not None:
-            fig = helper_retroFunctions.plotGC(SampleName,_user_df, _gc_df, 8,_figinfo,fig)
+            fig = plotGC(SampleName,_user_df, _gc_df, 8,_figinfo,fig)
 
         # Add sample info at the top-left corner of the page
         fig.text(s                   = 'Sample : ' + SampleName,

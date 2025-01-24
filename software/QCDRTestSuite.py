@@ -11,21 +11,22 @@ class QCDRTestFactory(TestFactory):
         self.warn_alpha = .1
 
         self.SCRIPTDataLoc = self.DataLoc + 'SCRIPT/'
-        self.SCRIPTCutoffTable = self.SCRIPTDataLoc + "manual_cutoff_table.xslx"
+        self.SCRIPTCutoffTable = self.SCRIPTDataLoc + "manual_cutoff_table.xlsx"
         #Full SCRIPT data paths
-        self.SCRIPTAllData = self.SCRIPTDataLoc + "SCRIPT_stats_allbatches.csv"
-        self.SCRIPTCountTable = self.SCRIPTDataLoc + "SCRIPT_CountTable.xlsx"
+        self.SCRIPTAllData = self.SCRIPTDataLoc + "SCRIPT_AllBatches_QCTable.csv"
+        self.SCRIPTCountTable = self.SCRIPTDataLoc + "SCRIPT_CountTable.csv"
         self.SCRIPT_GC_info = self.SCRIPTDataLoc + "SCRIPT_GC_info.csv"
         # B11 SCRIPT data paths for faster testing and iterating
-        self.SCRIPTB11 = self.SCRIPTDataLoc + "SCRIPT_B11stats.csv"
-        self.SCRIPTB11CountTable = self.SCRIPTDataLoc + "SCRIPT_CountTable_B11.xlsx"
+        self.SCRIPTB11 = self.SCRIPTDataLoc + "SCRIPT_B11_QCTable.csv"
+        self.SCRIPTB11CountTable = self.SCRIPTDataLoc + "SCRIPT_CountTable_B11.csv"
         self.SCRIPT_B11_GC_info = self.SCRIPTDataLoc + "SCRIPT_B11_GC_info.csv"
         # Lung Transplant files
         self.LungDataLoc = self.DataLoc + 'LungTransplant/'
-        self.LungTransplant = self.LungDataLoc + "LungTransplantStats.csv"
+        self.LungTransplant = self.LungDataLoc + "LungTransplantQCTable.csv"
         self.LungTransplantGBC = self.LungDataLoc + "LungTransplant_GBC.csv"
-        self.LungTransplantCountTable = self.LungDataLoc + "LungTransplantRawCounts.xlsx"
+        self.LungTransplantCountTable = self.LungDataLoc + "LungTransplantRawCounts.csv"
         self.CutoffTable= self.LungDataLoc + "LTcutoffs.xlsx"
+        self.CutoffTableSCRIPT= self.LungDataLoc + "SCRIPTderivedcutoffsforLT.xlsx"
 
         self.BaseTest = {"qry_filename"    : self.SCRIPTB11,
                          "op_folder"       : self.SaveDir + "SCRIPTB11Test",
@@ -75,7 +76,6 @@ class QCDRTestFactory(TestFactory):
     def NoHistTest(self):
         # Perform a test when the Hist is not added
         TestName = 'NoHistTest'
-
         NoHistTest = self.BaseTest.copy()
         NoHistTest['op_folder'] = self.SaveDir + TestName
         NoHistTest['_hist_file'] = None
@@ -123,6 +123,64 @@ class QCDRTestFactory(TestFactory):
 
         return self
 
+    def LTNoGBCNoHist(self):
+
+        TestName = 'LTTestNoGBCNoHist'
+        LungTransplantTest = self.BaseTest.copy()
+        LungTransplantTest["qry_filename"] = self.LungTransplant
+        LungTransplantTest["op_folder"] = self.SaveDir + TestName
+        LungTransplantTest["_bgd_file"] = self.LungTransplant
+        LungTransplantTest["_gc_file"] = None
+        LungTransplantTest["_hist_file"] = None
+
+        self.RunInfoDict[TestName] = LungTransplantTest
+
+        return self
+
+    def LTNoGC(self):
+
+        TestName = 'LTTestNoGBC'
+        LungTransplantTest = self.BaseTest.copy()
+        LungTransplantTest["qry_filename"] = self.LungTransplant
+        LungTransplantTest["op_folder"] = self.SaveDir + TestName
+        LungTransplantTest["_bgd_file"] = self.LungTransplant
+        LungTransplantTest["_gc_file"] = None
+        LungTransplantTest["_hist_file"] = self.LungTransplantCountTable
+
+        self.RunInfoDict[TestName] = LungTransplantTest
+
+        return self
+
+    def LTNoHist(self):
+
+        TestName = 'LTTestNoHist'
+        LungTransplantTest = self.BaseTest.copy()
+        LungTransplantTest["qry_filename"] = self.LungTransplant
+        LungTransplantTest["op_folder"] = self.SaveDir + TestName
+        LungTransplantTest["_bgd_file"] = self.LungTransplant
+        LungTransplantTest["_gc_file"] = self.LungTransplantGBC
+        LungTransplantTest["_hist_file"] = None
+
+        self.RunInfoDict[TestName] = LungTransplantTest
+
+        return self
+
+    def LungTransplantTestwCutoffSCRIPT(self):
+        # Perform a test on the lung transplant dataset
+
+        TestName = "LungTransplantwCutoffSCRIPTTest"
+        LungTransplantTest = self.BaseTest.copy()
+        LungTransplantTest["qry_filename"] = self.LungTransplant
+        LungTransplantTest["op_folder"] = self.SaveDir + TestName
+        LungTransplantTest["_bgd_file"] = self.LungTransplant
+        LungTransplantTest["_gc_file"] = self.LungTransplantGBC
+        LungTransplantTest["_hist_file"] = self.LungTransplantCountTable
+        LungTransplantTest["cutoff_filename"] = self.CutoffTableSCRIPT
+
+        self.RunInfoDict[TestName] = LungTransplantTest
+
+        return self
+
     def LungTransplantTestwCutoff(self):
         # Perform a test on the lung transplant dataset
 
@@ -134,7 +192,6 @@ class QCDRTestFactory(TestFactory):
         LungTransplantTest["_gc_file"] = self.LungTransplantGBC
         LungTransplantTest["_hist_file"] = self.LungTransplantCountTable
         LungTransplantTest["cutoff_filename"] = self.CutoffTable
-
 
         self.RunInfoDict[TestName] = LungTransplantTest
 
@@ -172,30 +229,23 @@ class QCDRTestFactory(TestFactory):
     def QuickTest(self):
         # Run a limited number of fast tests to iterate quickly and bugfix
 
-        #self.MakeB11SCRIPTTest()
-        #self.LungTransplantTest()
-        #self.LungTransplantTestSCRIPTbgd()
+        self.MakeB11SCRIPTTest()
+        self.LungTransplantTest()
+        self.LungTransplantTestSCRIPTbgd()
         self.LungTransplantTestwCutoff()
+        self.LungTransplantTestwCutoffSCRIPT()
+        #self.LTNoGBCNoHist()
+        #self.LTNoHist()
+        #self.LTNoGC()
 
         return self
-
 
 if __name__ == '__main__':
 
     print('Running tests')
-    [QCDRTestFactory(SaveDir = "QCDRTestOutputsComp/").
-     ComprehensiveTesting().
-     #QuickTest().
+    [QCDRTestFactory(SaveDir = "QCDRTestOutputs/").
+     #ComprehensiveTesting().
+     QuickTest().
      RunTests(TestFun = QCDR_main)]
     print("Tests Finished Running")
-
-
-
-
-
-
-
-
-
-
 

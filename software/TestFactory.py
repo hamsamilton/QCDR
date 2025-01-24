@@ -14,7 +14,7 @@ class TestFactory(ABC):
   send to the test functions
   """
   @abstractmethod
-  def __init__(self,SaveDir = '',MaxWorkers = 5):
+  def __init__(self,SaveDir = '',MaxWorkers = 6):
     """RunInfoDict: A dictionary to be filled with tests with their information on how to run
     SaveDir    : Specify the super folder where output information should be saved
     MaxWorkers : How many distinct jobs do you want to run at once, too many and you'll crash the job"""
@@ -111,7 +111,7 @@ class TestFactory(ABC):
         profiler.disable()
         ps = pstats.Stats(profiler,
                           stream = sys.stdout).sort_stats('cumulative')
-        ps.print_stats(30)
+        ps.print_stats(40)
         #Restore original stdout and stderr
         sys.stdout = original_stdout
         sys.stderr = original_stderr
