@@ -27,6 +27,7 @@ class QCDRTestFactory(TestFactory):
         self.LungTransplantCountTable = self.LungDataLoc + "LungTransplantRawCounts.csv"
         self.CutoffTable= self.LungDataLoc + "LTcutoffs.xlsx"
         self.CutoffTableSCRIPT= self.LungDataLoc + "SCRIPTderivedcutoffsforLT.xlsx"
+        self.removedcolumnsfolder = self.SCRIPTDataLoc + 'wremovedcolumns/'
 
         self.BaseTest = {"qry_filename"    : self.SCRIPTB11,
                          "op_folder"       : self.SaveDir + "SCRIPTB11Test",
@@ -55,11 +56,21 @@ class QCDRTestFactory(TestFactory):
         TestName = "SCRIPTB11Test"
 
         SCRIPTB11Test = self.BaseTest.copy()
+        SCRIPTB11Test['_bgd_file'] = self.SCRIPTB11
         SCRIPTB11Test["op_folder"] = self.SaveDir + TestName
 
         self.RunInfoDict[TestName] = SCRIPTB11Test
 
         return self
+
+    def MakeB11SCRIPTwithAllSCRIPTbgd(self):
+        TestName = 'SCRIPTB11Test'
+
+        SCRIPTB11Test = self.BaseTest.copy()
+        SCRIPTB11Test["op_folder"] = self.SaveDir + TestName
+
+        self.RunInfoDict[TestName] = SCRIPTB11Test
+
 
     def NoGBCTest(self):
         # Perform a test when the GBC is not added
@@ -152,6 +163,8 @@ class QCDRTestFactory(TestFactory):
         return self
 
     def LTNoHist(self):
+        """"Run the Lung Transplant dataset when the fistogram is not included
+        this tests the ability of the SCRIPT to run when teh hist file is not supplied"""
 
         TestName = 'LTTestNoHist'
         LungTransplantTest = self.BaseTest.copy()
@@ -166,7 +179,8 @@ class QCDRTestFactory(TestFactory):
         return self
 
     def LungTransplantTestwCutoffSCRIPT(self):
-        # Perform a test on the lung transplant dataset
+        """ Perform a test on the lung transplant dataset with cutoffs derived
+        from the SCRIPT dataset"""
 
         TestName = "LungTransplantwCutoffSCRIPTTest"
         LungTransplantTest = self.BaseTest.copy()
@@ -211,6 +225,27 @@ class QCDRTestFactory(TestFactory):
 
         self.RunInfoDict[TestName] = LungTestSCRIPTBgd
 
+
+    def MakeColumnMissingTests(self):
+        """ Creates a separate test entry in self.RunInfoDict for the SCRIPTB11 Testingdataset
+        which have columns removed and scrambled to test the robustness of the script to these
+        inputs"""
+
+        for fname in os.listdir(self.removedcolumnsfolder):
+            full_path = os.path.join(self.removedcolumnsfolder,
+                                    fname)
+
+            TestName = f'RemovedColsTest){fname}'
+
+            current_test = self.BaseTest.copy()
+            current_test['_bgd_file'] = full_path
+            current_test['qry_filename'] = full_path
+            current_test['op_folder'] = os.path.join(self.SaveDir,
+                                                     TestName)
+            self.RunInfoDict[TestName] = current_test
+
+        return self
+
     def ComprehensiveTesting(self):
 
         # Run a comprehensive list of the above tests for thorough testing
@@ -234,18 +269,19 @@ class QCDRTestFactory(TestFactory):
         self.LungTransplantTestSCRIPTbgd()
         self.LungTransplantTestwCutoff()
         self.LungTransplantTestwCutoffSCRIPT()
-        #self.LTNoGBCNoHist()
-        #self.LTNoHist()
-        #self.LTNoGC()
+        self.LTNoGBCNoHist()
+        self.LTNoHist()
+        self.LTNoGC()
 
         return self
 
 if __name__ == '__main__':
 
     print('Running tests')
-    [QCDRTestFactory(SaveDir = "QCDRTestOutputs/").
+    [QCDRTestFactory(SaveDir = "TestOutputsMissingColumns/").
      #ComprehensiveTesting().
-     QuickTest().
+     #QuickTest().
+     MakeColumnMissingTests().
      RunTests(TestFun = QCDR_main)]
     print("Tests Finished Running")
 

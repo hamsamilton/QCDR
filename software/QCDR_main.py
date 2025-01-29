@@ -41,17 +41,64 @@ def QCDR_main(qry_filename    = '',
     _user_df = read_file(qry_filename)
     _user_df = input_adapter(_user_df).adapt_input().input_df
 
-    print('userdf',_user_df.columns)
-
     ## Read Background file 
     _bgd_df = read_file(_bgd_file)
     _bgd_df  = input_adapter(_bgd_df).adapt_input().input_df
+    MetricInfo = InitMetricInfo()
+
+    # Read Gene Coverage Data
+    if _gc_file is not None:
+        _gc_df = read_file(_gc_file).iloc[:,1:]
+
+        GCDeviances = EstimateDeviances(data_df = _gc_df).sum(axis = 0)
+        #GCDeviances = GC_KSstats(_coverage_df = _gc_df)
+
+        GCDeviances = pd.Series(GCDeviances,
+                                index = _gc_df.columns,
+                                name  = 'GBC_KSstats')
+
+        _user_df = _user_df.set_index('Sample')
+        _bgd_df  = _bgd_df.set_index('Sample')
+
+        _user_df["GBC_KSstats"] = _user_df.index.map(GCDeviances).fillna(0) # Not sure if this should be filling NAs
+        _bgd_df["GBC_KSstats"] = _bgd_df.index.map(GCDeviances).fillna(0)
+
+        _user_df = _user_df.reset_index()
+        _bgd_df = _bgd_df.reset_index()
+
+    # Read Histogram data
+    if _hist_file is not None:
+        _negBin_df = CountsMatrixToGeneHist(df       = read_file(_hist_file),
+                                            binsize  = .25,
+                                            maxdepth = 18.5)
+        # Preprocess raw counts table
+        _data_df = _negBin_df.drop(['Bins'],
+                                   axis = 1)
+        _sum_df = _data_df.sum().round()
+        NumGenes_series = pd.Series(_sum_df.values,
+                                    index = _data_df.columns,
+                                    name  = "NumGenes")
+
+        _user_df = _user_df.set_index("Sample")
+        _bgd_df = _bgd_df.set_index("Sample")
+        _user_df["NumGenes"] = _user_df.index.map(NumGenes_series).fillna(0)
+        _bgd_df["NumGenes"]  = _bgd_df.index.map(NumGenes_series).fillna(0)
+
+        _user_df = _user_df.reset_index()
+        _bgd_df = _bgd_df.reset_index()
 
     # Make standard cutoffs for warn/fail
-    _fail_cutoffs = gen_cutoffs(bgd_df = _bgd_df,
-                                alph   = fail_alpha)
-    _warn_cutoffs = gen_cutoffs(bgd_df = _bgd_df,
-                                alph   = warn_alpha)
+    _fail_cutoffs = CutoffCalculator(bgd_df      = _bgd_df,
+                                     alph        = fail_alpha).gen_cutoffs()
+    _warn_cutoffs = CutoffCalculator(bgd_df      = _bgd_df,
+                                     alph        = warn_alpha).gen_cutoffs()
+
+    # Add cutoffs to the cutoffinfo
+    # Add _fail_cutoffs and _warn_cutoffs as new columns
+    MetricInfo["Fail_Cutoff"] = MetricInfo["Metric"].map(_fail_cutoffs)
+    MetricInfo["Warn_Cutoff"] = MetricInfo["Metric"].map(_warn_cutoffs)
+
+    print(MetricInfo)
 
     # add an additional row if the gc or hist data was added
     if _gc_file is None and _hist_file is None:
@@ -78,63 +125,11 @@ def QCDR_main(qry_filename    = '',
     _figinfo["_hist_file"]         = _hist_file
     _figinfo["_bgd_filename"]      = _bgd_file
     _figinfo["_cutoff_filename"]   = cutoff_filename
+    _figinfo['_MetricInfo']        = MetricInfo
 
     # add cutoff info
     _figinfo["_fail_cutoffs"] = _fail_cutoffs
     _figinfo["_warn_cutoffs"] = _warn_cutoffs
-
-    # Read Gene Coverage Data
-    if _gc_file is not None:
-        _gc_df = read_file(_gc_file).iloc[:,1:]
-
-        GCDeviances = EstimateDeviances(data_df = _gc_df).sum(axis = 0)
-        #GCDeviances = GC_KSstats(_coverage_df = _gc_df)
-
-        _fail_GC_cutoff = CalcBootstrapBound(vec         = GCDeviances,
-                                             alpha       = 2 * fail_alpha,
-                                             upper_lower = 'upper')
-        _warn_GC_cutoff = CalcBootstrapBound(vec         = GCDeviances,
-                                             alpha       = 2 * warn_alpha,
-                                             upper_lower = 'upper')
-        _figinfo['_fail_cutoffs']['GC_cutoff'] = _fail_GC_cutoff
-        _figinfo['_warn_cutoffs']['GC_cutoff'] = _warn_GC_cutoff
-        GC_KS_pvals = stats.norm.sf(stats.zscore(GCDeviances))
-
-        # Convert GC into KS vals and calculate the distribution to get a pvalue
-        _figinfo["_gbc_pvals"]  = GC_KS_pvals
-        _user_df["_gbc_pvals"]  = GC_KS_pvals
-        _user_df = _user_df.set_index('Sample')
-        _user_df['GBC_KSstats'] = GCDeviances
-        _user_df = _user_df.reset_index()
-
-    else:
-        _figinfo['_fail_cutoffs']['GC_cutoff'] = None
-        _figinfo['_warn_cutoffs']['GC_cutoff'] = None
-
-    # Read Histogram data
-    if _hist_file is not None:
-        _negBin_df = CountsMatrixToGeneHist(df       = read_file(_hist_file),
-                                            binsize  = .25,
-                                            maxdepth = 18.5)
-        # Preprocess raw counts table
-        _data_df = _negBin_df.drop(['Bins'],
-                                   axis = 1)
-        _sum_df = _data_df.sum().round()
-        _fail_numGene_cutoff = CalcBootstrapBound(vec         = _sum_df,
-                                                  alpha       = 2*fail_alpha,
-                                                  upper_lower = "lower")
-        _warn_numGene_cutoff = CalcBootstrapBound(vec         = _sum_df,
-                                                  alpha       = 2*warn_alpha,
-                                                  upper_lower = "lower")
-        _figinfo["_fail_cutoffs"]["NumGenes"] = _fail_numGene_cutoff
-        _figinfo["_warn_cutoffs"]["NumGenes"] = _warn_numGene_cutoff
-        _user_df["_hist_pvals"]  = calcHistPval(_data_df)
-        _user_df["NumGenes"]  =  _data_df.sum().round().values
-        _figinfo["_hist_pvals"]  = calcHistPval(_data_df)
-    else:
-        _figinfo["_fail_cutoffs"]["NumGenes"] = None
-        _figinfo["_warn_cutoffs"]["NumGenes"] = None
-        _figinfo["_hist_pvals"]  = None
 
 
     if cutoff_filename is not None:
@@ -158,7 +153,6 @@ def QCDR_main(qry_filename    = '',
         # add cutoff info
         _figinfo["_fail_cutoffs"] = _fail_cutoffs
         _figinfo["_warn_cutoffs"] = _warn_cutoffs
-
     # Save the user_df
     _user_df.to_csv(op_folder + '/QCDR_ReportInfo.csv',
                     index = False)
@@ -175,14 +169,14 @@ def QCDR_main(qry_filename    = '',
 
     # how many tables do we need? 
     _summary_heatmap_data = mkQC_heatmap_data(_user_df,_figinfo)
-    _summary_heatmap_data = pd.DataFrame(_summary_heatmap_data)
-    # Save heatmap data
-    _summary_heatmap_data["Sample"] = _user_df.Sample
     _summary_heatmap_data.to_csv(op_folder + '/Heatmapinfo.csv',
                                  index = False)
-    my_range = list(range(0,len(_user_df),20))
-    my_range.append(len(_user_df))
 
+    # Subset the heatmap data into smaller heatmaps for plotting
+    my_range = list(range(0,len(_user_df),20))
+    my_range.append(len(_user_df)) # how many rows will be used for plotting
+
+    # Get subset and plot
     for i in range(0,len(my_range)-1):
         new_rng = list(range(my_range[i],my_range[i+1]))
         _sub_df = _summary_heatmap_data.iloc[new_rng]
@@ -192,57 +186,66 @@ def QCDR_main(qry_filename    = '',
         plt.close(_summary_heatmap_fig)
 
     for SampleName in _user_df["Sample"]:
+        print(SampleName)
 
         # Create empty figure
         fig = plt.figure(frameon=False)
 
         # Plotting figure 1: Input Size
-        InputSize = ReadDepthHistPlotter(SampleName,_user_df,_bgd_df,1,_figinfo,fig)
-        fig = InputSize.Figure
+        if pd.notna(MetricInfo.loc[MetricInfo['Metric'] == 'Input_Size','Warn_Cutoff'].values[0]):
+            InputSize = ReadDepthHistPlotter(SampleName,_user_df,_bgd_df,1,_figinfo,fig)
+            fig = InputSize.Figure
 
         # Plotting figure 2: Percentage of Reads after Trimming
-        TrimmingPercent = TrimmingPlotter(SampleName, _user_df, _bgd_df,2,_figinfo,fig)
-        fig = TrimmingPercent.Figure
+        if pd.notna(MetricInfo.loc[MetricInfo['Metric'] == 'Percent_PostTrim','Warn_Cutoff'].values[0]):
+            TrimmingPercent = TrimmingPlotter(SampleName, _user_df, _bgd_df,2,_figinfo,fig)
+            fig = TrimmingPercent.Figure
 
         # Plotting figure 3: Percentage of Uniquely Aligned Reads
-        Alignment = AlignmentPlotter(SampleName, _user_df, _bgd_df,3,_figinfo,fig)
-        fig = Alignment.Figure
+        if pd.notna(MetricInfo.loc[MetricInfo['Metric'] == 'Percent_Uniquely_Aligned','Warn_Cutoff'].values[0]):
+            Alignment = AlignmentPlotter(SampleName, _user_df, _bgd_df,3,_figinfo,fig)
+            fig = Alignment.Figure
 
         # Plotting figure 4: Percentage of Reads Mapped to Exons
-        ExonMapping = ExonMappingPlotter(SampleName, _user_df, _bgd_df,4,_figinfo,fig)
-        fig = ExonMapping.Figure
+        if pd.notna(MetricInfo.loc[MetricInfo['Metric'] == 'Percent_Exonic','Warn_Cutoff'].values[0]):
+            ExonMapping = ExonMappingPlotter(SampleName, _user_df, _bgd_df,4,_figinfo,fig)
+            fig = ExonMapping.Figure
 
         # Plotting figure 5: Scatter Plot of Number of Ribosomal RNA reads per Uniquely Aligned Reads
-        fig = plotScatter_rRNA(SampleName, _user_df, _bgd_df, 5,_figinfo,fig)
+        if pd.notna(MetricInfo.loc[MetricInfo['Metric'] == 'Perc_Aligned_Reads_Overlapping_rRNA','Warn_Cutoff'].values[0]):
+            fig = plotScatter_rRNA(SampleName, _user_df, _bgd_df, 5,_figinfo,fig)
 
         # Plotting figure 6: Violin Plot for Contamination - % Adapter Content and % Overrepresented Sequences
-        fig = plotViolin_dualAxis(SampleName, _user_df, _bgd_df, 6,_figinfo,fig)
+        if all(col in _bgd_df.columns for col in ["Percent_Overrepresented_Seq_Trimmed",
+                                                  'Percent_Adapter_Content_Trimmed',
+                                                  "Percent_Overrepresented_Seq_Untrimmed",
+                                                  'Percent_Adapter_Content_Untrimmed']):
+
+            fig = plotViolin_dualAxis(SampleName, _user_df, _bgd_df, 6,_figinfo,fig)
 
         # Plotting figure 7: Expression Distribution Plot
-        if _hist_file is not None:
+        if pd.notna(MetricInfo.loc[MetricInfo['Metric'] == 'NumGenes','Warn_Cutoff'].values[0]):
             fig = plotNegBin(SampleName,_user_df,_negBin_df,7,_figinfo,fig)
 
         # Plotting figure 8: Gene Body Coverage Plot
-        if _gc_file is not None:
+        if pd.notna(MetricInfo.loc[MetricInfo['Metric'] == 'GBC_KSstats','Warn_Cutoff'].values[0]):
             fig = plotGC(SampleName,_user_df, _gc_df, 8,_figinfo,fig)
 
+        shared_text_kwargs = {'y'                 : .99,
+                              'fontsize'          : 6,
+                              'verticalalignment' : 'top',
+                              'fontweight'        : 'book',
+                              'style'             : 'italic'}
         # Add sample info at the top-left corner of the page
         fig.text(s                   = 'Sample : ' + SampleName,
                  x                   = 0.01,
-                 y                   = 0.99,
-                 fontsize            = 6,
                  horizontalalignment = 'left',
-                 verticalalignment   = 'top',
-                 fontweight          = 'book',
-                 style               = 'italic')
+                 **shared_text_kwargs)
+
         fig.text(s                   = "Batch : " + _user_df.loc[_user_df['Sample'] == SampleName,'Batch'].iloc[0],
                  x                   = 0.99,
-                 y                   = 0.99,
-                 fontsize            = 6,
                  horizontalalignment = 'right',
-                 verticalalignment   = 'top',
-                 fontweight          = 'book',
-                 style               = 'italic')
+                 **shared_text_kwargs)
 
         plt.subplots_adjust(left   = .07,
                             right  = .93,
@@ -256,7 +259,6 @@ def QCDR_main(qry_filename    = '',
     _pdfObj.close()
 
     return None
-
 
 if __name__ == "__main__":
     profiler = cProfile.Profile()

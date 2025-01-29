@@ -77,10 +77,7 @@ class UI_adapter:
 
     def _reorder_columns(self):
         """ Reorder columns to fit the format expected by the rest of the program"""
-        missing_columns = [col for col in self.input_program_names if col not in self.input_df.columns]
-        if missing_columns:
-            raise KeyError(f"The following columns are missing from the DataFrame: {missing_columns}")
-        self.input_df = self.input_df[self.input_program_names]
+        #self.input_df = self.input_df[self.input_program_names]
 
     def _change_column_names(self):
         """ Change the user friendly column names to those expected by the internal program"""
@@ -88,11 +85,21 @@ class UI_adapter:
 
     def _transform_values(self):
         """ Calculate columns that are transformations of the supplied inputs """
+        # Percent_PostTrim
+        if {"Num_PostTrim", "Input_Size"}.issubset(self.input_df.columns):
+            self.input_df["Percent_PostTrim"] = (self.input_df["Num_PostTrim"] / self.input_df["Input_Size"] * 100)
 
-        self.input_df["Percent_PostTrim"] =  self.input_df["Num_PostTrim"] / self.input_df["Input_Size"] * 100
-        self.input_df["Percent_Uniquely_Aligned"] = self.input_df["Num_Uniquely_Aligned"] / self.input_df["Num_PostTrim"] * 100
-        self.input_df["Percent_Exonic"]  = self.input_df["Num_Exonic"] / self.input_df["Num_Uniquely_Aligned"] * 100
-        self.input_df['% Aligned Reads Overlapping rRNA'] = self.input_df['Num_Uniquely_Aligned_rRNA'] / self.input_df['Num_Uniquely_Aligned']
+        # Percent_Uniquely_Aligned
+        if {"Num_Uniquely_Aligned", "Num_PostTrim"}.issubset(self.input_df.columns):
+            self.input_df["Percent_Uniquely_Aligned"] = (self.input_df["Num_Uniquely_Aligned"] / self.input_df["Num_PostTrim"] * 100)
+
+        # Percent_Exonic
+        if {"Num_Exonic", "Num_Uniquely_Aligned"}.issubset(self.input_df.columns):
+            self.input_df["Percent_Exonic"] = (self.input_df["Num_Exonic"] / self.input_df["Num_Uniquely_Aligned"] * 100)
+
+        # Perc_Aligned_Reads_Overlapping_rRNA
+        if {"Num_Uniquely_Aligned_rRNA", "Num_Uniquely_Aligned"}.issubset(self.input_df.columns):
+            self.input_df["Perc_Aligned_Reads_Overlapping_rRNA"] = (self.input_df["Num_Uniquely_Aligned_rRNA"] / self.input_df["Num_Uniquely_Aligned"])
 
     def adapt_input(self):
         # specific methods required by each subclass to be implemented by subclass
@@ -113,11 +120,11 @@ class input_adapter(UI_adapter):
         "# Post-trim Reads",
         "Percent_PostTrim", # Calculated by adapter
         "# Uniquely Aligned Reads",
-        "% Uniquely Aligned Reads",
+        "% Uniquely Aligned Reads", # Calculated by adapter
         "# Reads Mapped to Exons",
         "Percent_Exonic", # Calculated by adapter
         "# Aligned Reads Overlapping rRNA",
-        "% Aligned Reads Overlapping rRNA", # Calculated by adapter
+        "Perc_Aligned_Reads_Overlapping_rRNA", # Calculated by adapter
         "% Overrepresented Sequences (Pre-trim)",
         "% Adapter Content (Pre-trim)",
         "% Overrepresented Sequences (Post-trim)",
@@ -133,7 +140,7 @@ class input_adapter(UI_adapter):
         "Num_Exonic",
         "Percent_Exonic", # Calculated by adapter
         "Num_Uniquely_Aligned_rRNA",
-        "% Aligned Reads Overlapping rRNA", # Calculated by adapter
+        "Perc_Aligned_Reads_Overlapping_rRNA", # Calculated by adapter
         "Percent_Overrepresented_Seq_Untrimmed",
         "Percent_Adapter_Content_Untrimmed",
         "Percent_Overrepresented_Seq_Trimmed",
@@ -178,11 +185,11 @@ class manual_cutoff_adapter(UI_adapter):
         "Percent_PostTrim",
         "Percent_Uniquely_Aligned",
         "Percent_Exonic",
-        "% Aligned Reads Overlapping rRNA",
+        "Perc_Aligned_Reads_Overlapping_rRNA",
         "Percent_Overrepresented_Seq_Trimmed",
         "Percent_Adapter_Content_Trimmed",
         "NumGenes",
-        "GC_cutoff"]
+        "GBC_KSstats"]
 
     def _transpose_df(self):
         """transposes the df with additional operations to get the right columns names"""
@@ -198,6 +205,8 @@ class manual_cutoff_adapter(UI_adapter):
         self._transpose_df()
 
 def add_warn_fail_markers(_figinfo,ax,cutoff_key):
+
+    Metric_row = _figinfo['_MetricInfo'].query('Metric == @cutoff_key')
 
     def add_vert_marker(ax,cutoff,plot_scalar,clr,txt):
 
@@ -217,12 +226,12 @@ def add_warn_fail_markers(_figinfo,ax,cutoff_key):
     plot_scalar =  get_axis_range(ax.get_ylim()) / 100
 
     ax = add_vert_marker(ax          = ax,
-                         cutoff      = _figinfo["_fail_cutoffs"][cutoff_key],
+                         cutoff      = Metric_row['Fail_Cutoff'].iloc[0],
                          plot_scalar = plot_scalar,
                          clr         = _figinfo["_fail_color"],
                          txt         = "Fail")
     ax = add_vert_marker(ax          = ax,
-                         cutoff      = _figinfo["_warn_cutoffs"][cutoff_key],
+                         cutoff      = Metric_row['Warn_Cutoff'].iloc[0],
                          plot_scalar = plot_scalar,
                          clr         = _figinfo["_warn_color"],
                          txt         = "Warn")
@@ -263,6 +272,8 @@ def adjust_flag(_ax,_current_sample,_lib_mean,Formatter= fmt_scatter_million):
 
 # set the legend for figures with warn / fail IE 1_6)
 def legend_setup_1_6(_ax,_line1,_line2,_figinfo,cutoff_key,_loc,formatter = fmt_million):
+
+    MetricInfo = _figinfo['_MetricInfo'].query('Metric == @cutoff_key')
     _fail_label = mpatches.Patch(color = _figinfo["_fail_color"],
                                  label = 'Fail Cutoff')
     _warn_label=  mpatches.Patch(color = _figinfo["_warn_color"],
@@ -273,8 +284,8 @@ def legend_setup_1_6(_ax,_line1,_line2,_figinfo,cutoff_key,_loc,formatter = fmt_
                             _warn_label],
                labels    = ["Current Sample",
                             "Batch Mean",
-                            "Fail (" + formatter(_figinfo["_fail_cutoffs"][cutoff_key]) + ")",
-                            "Warn (" + formatter(_figinfo["_warn_cutoffs"][cutoff_key]) + ")"],
+                            "Fail (" + formatter(MetricInfo["Fail_Cutoff"].iloc[0]) + ")",
+                            "Warn (" + formatter(MetricInfo["Warn_Cutoff"].iloc[0]) + ")"],
                 loc      = _loc,
                 frameon  = False,
                 fontsize = _figinfo["_legend_size"])
@@ -310,10 +321,12 @@ def mk_axes(_plt_ax,_kd_ax = None):
 def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
 
     class FlagInserter:
-        def __init__(self, ax=None):
+        def __init__(self,cutoff_key, ax=None):
             self.ax = ax or plt.gca()
-            self.cutoff_warn = _figinfo["_warn_cutoffs"][cutoff_key]
-            self.cutoff_fail = _figinfo["_fail_cutoffs"][cutoff_key]
+            CutoffInfo = _figinfo['_MetricInfo'].query('Metric == @cutoff_key')
+
+            self.cutoff_warn = CutoffInfo['Warn_Cutoff'].iloc[0]
+            self.cutoff_fail = CutoffInfo['Fail_Cutoff'].iloc[0]
 
         def make_flag(self, flag_type):
             if flag_type == "fail":
@@ -348,8 +361,9 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
     def insert_flag(ax, cutoff, flag_func):
         if higher_lower == "lower" and current_sample <= cutoff  or higher_lower == "upper" and current_sample >= cutoff:
             flag_func(ax)
+        return ax
 
-    flag_inserter = FlagInserter()
+    flag_inserter = FlagInserter(cutoff_key = cutoff_key)
 
     if higher_lower == "lower":
         if current_sample <= flag_inserter.cutoff_fail:
@@ -363,21 +377,6 @@ def needs_fail_or_warn(ax,current_sample,_figinfo,cutoff_key,higher_lower):
             insert_flag(ax, flag_inserter.cutoff_warn, lambda ax: flag_inserter.make_flag("warn"))
 
     return ax
-
-# The goal of this function is to return the upper or/and lower bound of a ci given a vec
-def get_ci_bound(vec, alpha, upper_lower="both"):
-    mean = np.mean(vec)
-    scale = stats.tstd(vec)
-    lower, upper = stats.norm.interval(alpha= 1 - alpha, loc=mean, scale=scale)
-
-    if upper_lower == "upper":
-        return upper
-    elif upper_lower == "lower":
-        return lower
-    elif upper_lower == "both":
-        return lower, upper
-    else:
-        raise ValueError("Invalid value for 'upper_lower'. Must be 'upper', 'lower', or 'both'.")
 
 # Simple bootstrap calculation
 def CalcBootstrapBound(vec,upper_lower,alpha,num_resamples = 1000):
@@ -418,20 +417,58 @@ def CalcBootstrapBound(vec,upper_lower,alpha,num_resamples = 1000):
 
     return np.float64(cutoff)
 
+def InitMetricInfo():
+    """ This function creates a dataframe which should store cutoff information and their cutoffs"""
+
+    data = { 'Metric' : ["Input_Size",
+                         "Percent_PostTrim",
+                         "Percent_Uniquely_Aligned",
+                         "Percent_Exonic",
+                         "Perc_Aligned_Reads_Overlapping_rRNA",
+                         "Percent_Overrepresented_Seq_Trimmed",
+                         "Percent_Adapter_Content_Trimmed",
+                         "NumGenes",
+                         "GBC_KSstats"],
+            'Direction': ['<',
+                          '<',
+                          '<',
+                          '<',
+                          '>',
+                          '>',
+                          '>',
+                          '<',
+                          '>'],
+            'Formatting': ["{:,.0f}",
+                           "{:.3f}%",
+                           "{:.3f}%",
+                           "{:.3f}%",
+                           "{:.3f}%",
+                           "{:.3f}%",
+                           "{:.3f}%",
+                           '{:,.0f}',
+                           '{:.3f}']}
+    Df = pd.DataFrame(data)
+
+    return Df
+
 class CutoffCalculator:
     def __init__(self, bgd_df, alph):
         self.bgd_df = bgd_df
         self.onesided_alph = 2*alph
         self.cutoffs_dict = {}
         self.cutoffs_dict["_alpha"] = alph
+        self.MetricInfo = InitMetricInfo()
 
-    def __call__(self):
+    def gen_cutoffs(self):
 
-        for metric in ["Input_Size","Percent_PostTrim","Percent_Uniquely_Aligned","Percent_Exonic"]:
-            self.calculate_cutoff(metric,'lower')
+        # For column in bgd_df that is also a metric in  Cutoff Info?
 
-        for metric in ["% Aligned Reads Overlapping rRNA","Percent_Overrepresented_Seq_Trimmed","Percent_Adapter_Content_Trimmed"]:
-            self.calculate_cutoff(metric, "upper")
+        for _, row in self.MetricInfo.iterrows():
+            metric = row['Metric']
+            direction = row['Direction']
+
+            if metric in self.bgd_df.columns:
+                self.calculate_cutoff(metric,direction)
 
         return self.cutoffs_dict
 
@@ -442,15 +479,11 @@ class CutoffCalculator:
         bootstrap_std  = bs.bootstrap(vec,
                                       stat_func = bs_stats.std).value
         conf_size = norm.ppf(self.onesided_alph) * bootstrap_std
-        if upper_lower == "upper":
-            self.cutoffs_dict[column] = bootstrap_mean - conf_size
-        if upper_lower == "lower":
+        if upper_lower == "<":
             self.cutoffs_dict[column] = bootstrap_mean + conf_size
+        if upper_lower == ">":
+            self.cutoffs_dict[column] = bootstrap_mean - conf_size
 
-
-def gen_cutoffs(bgd_df, alph):
-    calculator = CutoffCalculator(bgd_df, alph)
-    return calculator()
 
 def set_ticks(_ax,_tick_size):
 
@@ -488,26 +521,22 @@ def mkTitlePage(_figinfo):
     The Goal of this function is to calculate a matrix that can be used with matplotlibs heatmap
     function which contains whether a sample passed, failed, or was warned for each test
     """
+    def mk_cutoff_descript(cutoff_df):
 
+        cutoff_texts = []
+        for _, row in cutoff_df.iterrows():
+            metric = row['Metric']
+            direction = row['Direction']
+            formatter = row['Formatting']
+            fail_cutoff = row['Fail_Cutoff']
+            warn_cutoff = row['Warn_Cutoff']
 
-    def mk_cutoff_descript(descriptor,cutoff_set):
-        print('the cutoff set is',cutoff_set)
+            if pd.notna(fail_cutoff) or pd.notna(warn_cutoff):
+                formatted_fail = formatter.format(fail_cutoff)
+                formatted_warn = formatter.format(warn_cutoff)
+                cutoff_texts.append(f"{metric} ({direction}): Warn: {formatted_fail} | Fail: {formatted_warn}")
 
-        GC_cutoff_text = (f"Gene Body Coverage K-S Stat : >{cutoff_set['GC_cutoff']:.3f} | "
-                          if cutoff_set['GC_cutoff'] else "")
-        Hist_cutoff_text =  (f"# Detected Genes : < {int(cutoff_set['NumGenes'])}"
-                             if cutoff_set['NumGenes'] else "")
-        cutoff_descriptor =(f"{descriptor}: Default alpha : {cutoff_set['_alpha']} | "
-                            f"Sequencing Depth : < {int(cutoff_set['Input_Size'])} | "
-                            f"Trimming : < {cutoff_set['Percent_PostTrim']:.3f}% | "
-                            f"Alignment : < {cutoff_set['Percent_Uniquely_Aligned']:.3f}% | "
-                            f"Gene Exon Mapping : < {cutoff_set['Percent_Exonic']:.3f}% | "
-                            f"Ribosomal RNA : > {cutoff_set['% Aligned Reads Overlapping rRNA']:.3f}% |\n "
-                            f"Adapter Contamination : >{cutoff_set['Percent_Adapter_Content_Trimmed']:.3f}% | "
-                            f"Overrep. Seq Contamination : >{cutoff_set['Percent_Overrepresented_Seq_Trimmed']:.3f}% | "
-                            f"{GC_cutoff_text}"
-                            f"{Hist_cutoff_text}")
-        return cutoff_descriptor
+        return (f"Quality Cutoff Thresholds\n" + "\n".join(cutoff_texts))
 
     fig = plt.figure()
 
@@ -524,38 +553,31 @@ def mkTitlePage(_figinfo):
              fontsize = 4)
     fig.text(.005,
              .97,
-             "Version 2.0",
+             "Version 0.1",
              fontsize = 4)
     fig.text(.5,
              .5,
              (f"Input table = {_figinfo['_ip_filename']} \n"
-              f"Output location =    {_figinfo['_op_filename']}\n"
-              f"Background table =    {_figinfo['_bgd_filename']}\n"
-              f"Gene Body Coverage file =    {_figinfo['_gc_file']}\n"
+              f"Output location = {_figinfo['_op_filename']}\n"
+              f"Background table = {_figinfo['_bgd_filename']}\n"
+              f"Gene Body Coverage file = {_figinfo['_gc_file']}\n"
               f"Raw count table  = {_figinfo['_hist_file']}\n"
-              f"Cutoff file =     {_figinfo['_cutoff_filename']}"),
+              f"Cutoff file = {_figinfo['_cutoff_filename']}"),
              fontsize = 6,
              ha       = "center",
              va       = "center")
 
     # show cutoffs
-    warn_descript = mk_cutoff_descript("Warn cutoffs",_figinfo["_warn_cutoffs"]) 
-    fail_descript = mk_cutoff_descript("Fail cutoffs",_figinfo["_fail_cutoffs"]) 
-
+    cutoff_descript = mk_cutoff_descript(_figinfo["_MetricInfo"])
 
     shared_text_characteristics = {'fontsize'   : 5,
                                    'ha'         : 'center',
                                    'va'         : 'top',
                                    'fontweight' : 'book',
                                    'style'      : 'italic'}
-    fig.text(s          = warn_descript,
+    fig.text(s          = cutoff_descript,
              x          = .5,
-             y          = .1,
-             **shared_text_characteristics)
-
-    fig.text(s          = fail_descript,
-             x          = .5,
-             y          = .05,
+             y          = .2,
              **shared_text_characteristics)
 
     return fig
@@ -580,32 +602,38 @@ def mkQC_heatmap_data(_userDf, _figinfo):
     lower_status_strategy = LowerStatusStrategy()
     upper_status_strategy = UpperStatusStrategy()
 
-    strategies = [
-        ("Input_Size", "Input_Size", lower_status_strategy),
-        ("Percent_PostTrim", "Percent_PostTrim", lower_status_strategy),
-        ("Percent_Uniquely_Aligned","Percent_Uniquely_Aligned",lower_status_strategy),
-        ("Percent_Exonic","Percent_Exonic",lower_status_strategy),
-        ("% Aligned Reads Overlapping rRNA","% Aligned Reads Overlapping rRNA",upper_status_strategy),
-        ("Percent_Overrepresented_Seq_Trimmed","Percent_Overrepresented_Seq_Trimmed",upper_status_strategy),
-        ("Percent_Adapter_Content_Trimmed","Percent_Adapter_Content_Trimmed",upper_status_strategy)]
-    if _figinfo["_fail_cutoffs"]['NumGenes'] is not None:
-        strategies.append(("NumGenes","NumGenes",lower_status_strategy))
+    MetricDf = _figinfo['_MetricInfo']
 
-    if _figinfo["_fail_cutoffs"]['GC_cutoff'] is not None:
-        strategies.append(("GBC_KSstats","GC_cutoff",upper_status_strategy))
+    strategies = []
+    for _, row in MetricDf.iterrows():
+        metric = row['Metric']
+        direction = row['Direction']
 
-    _htmat = np.zeros((len(_userDf), 9))
+        # Skip metrics with NaN in Fail_Cutoff or Warn_Cutoff
+        if pd.isna(row['Fail_Cutoff']) or pd.isna(row['Warn_Cutoff']):
+            continue
+
+        # Determine the strategy based on the direction
+        strategy = lower_status_strategy if direction == '<' else upper_status_strategy
+        strategies.append((metric,strategy))
+
+    heatmap_df = pd.DataFrame(index   = _userDf['Sample'],
+                              columns = [metric for metric, _ in strategies],
+                              dtype   = float)
 
     for _tuple in _userDf.itertuples():
-        for i, (column, key, strategy) in enumerate(strategies):
+        for i, (column, strategy) in enumerate(strategies):
 
+            cutoff_row = MetricDf.loc[MetricDf['Metric'] == column]
+            warn_value = cutoff_row['Warn_Cutoff'].values[0]
+            fail_value = cutoff_row['Fail_Cutoff'].values[0]
             test_value = _userDf.iloc[_tuple.Index][column]
-            warn_value = _figinfo["_warn_cutoffs"][key]
-            fail_value = _figinfo["_fail_cutoffs"][key]
 
-            _htmat[_tuple.Index, i] = strategy.compute_status(test_value, warn_value, fail_value)
+            heatmap_df.loc[_tuple.Sample,column] = strategy.compute_status(test_value,
+                                                                           warn_value,
+                                                                           fail_value)
 
-    return _htmat
+    return heatmap_df
 
 def mkQC_heatmap(heatmap_data):
 
@@ -613,7 +641,6 @@ def mkQC_heatmap(heatmap_data):
     mkQC_heatmap: This function generates the summary heatmap
     take input from mkQC_heatmap_data as input
     """
-
     # get how many rows there are
     numrows, numcols = heatmap_data.shape
     cellwidth = .25
@@ -624,11 +651,11 @@ def mkQC_heatmap(heatmap_data):
 
     page_height = 5
     page_width = 6.3
-    colors = ["grey","goldenrod","red"]
+    colors = ["lightcyan","gold","lightcoral"]
     cm = matplotlib.colors.ListedColormap(colors)
-    sample_names = heatmap_data.Sample
-    heatmap_data = heatmap_data.drop("Sample",axis = 1)
-    fig2,ax = plt.subplots(figsize=(page_width, page_height))
+
+    fig2,ax = plt.subplots(figsize=(page_width,
+                                    page_height))
     fig2.text(s        = "Summary of QC Metrics",
               x        = .5,
               y        = .9,
@@ -636,10 +663,8 @@ def mkQC_heatmap(heatmap_data):
               ha       = 'center')
     seaborn.heatmap(heatmap_data.values,
                     ax          = ax,
-                    xticklabels = ["Sequencing Depth","Trimming","Alignment","Exon Mapping","Ribosomal RNA",
-                                   "Sequence Contamination (Overrep)","Sequence Contamination (Adapter)",
-                                   "# Detected Genes","Gene Body Coverage"],
-                    yticklabels = sample_names,
+                    xticklabels = heatmap_data.columns,
+                    yticklabels = heatmap_data.index,
                     cmap        = cm,
                     cbar_kws    = {'aspect' : 2,
                                    'shrink' : 2,
@@ -672,12 +697,10 @@ def mkQC_heatmap(heatmap_data):
 
     return fig2
 
-
 class AbstractHistPlotter(ABC):
 
     # Default values for subclass-specific attributes. Overwritten by concrete subclasses
     VarName   = None
-    CutoffKey = None
     Formatter = None
     PlotTitle = None
     XAxisTitle= None
@@ -692,7 +715,10 @@ class AbstractHistPlotter(ABC):
 
     def InitDependentFields(self):
         self.UserVals = self.UserDf[self.VarName]
-        self.BgdVals  = self.BgdDf[self.VarName] #"the background to compare the sample to"
+        self.BgdVals  = self.BgdDf[self.VarName] #the background to compare the sample to
+        # See if the data required to make teh plot exists.
+        self.MetricInfo = self.FigInfo['_MetricInfo'].query("Metric == @self.VarName")
+        self.Exists = pd.notna(self.MetricInfo['Warn_Cutoff'].iloc[0])
 
     def AddHist(self):
         _bins = make_bins(self.BgdVals,
@@ -702,8 +728,8 @@ class AbstractHistPlotter(ABC):
         _current_sample = self.UserDf[self.UserDf['Sample'] == self.SampleName].iloc[0]
         _current_value = _current_sample[self.VarName]
         _lib_mean = self.UserDf.loc[self.UserDf['Batch'] == _current_sample['Batch'],self.VarName].mean()
-        warn_limit = self.FigInfo['_warn_cutoffs'][self.CutoffKey]
-        fail_limit = self.FigInfo['_fail_cutoffs'][self.CutoffKey]
+        warn_limit = self.MetricInfo['Warn_Cutoff'].iloc[0]
+        fail_limit = self.MetricInfo['Fail_Cutoff'].iloc[0]
 
         axis = self.Figure.add_subplot(self.FigInfo["_subplot_rows"],
                                        2,
@@ -760,7 +786,7 @@ class AbstractHistPlotter(ABC):
         ### Adding cutoff markers
         axis = add_warn_fail_markers(self.FigInfo,
                                      axis,
-                                     self.CutoffKey)
+                                     self.VarName)
 
         # Current Sample Line and Label
         SampleLine = axis.axvline(x         = _current_value,
@@ -782,7 +808,7 @@ class AbstractHistPlotter(ABC):
                                 _line2     = BgdLine,
                                 _figinfo   = self.FigInfo,
                                 _loc       = 'upper left',
-                                cutoff_key = self.CutoffKey,
+                                cutoff_key = self.VarName,
                                 formatter  = self.Formatter)
 
         #set axes to be visible or not
@@ -791,59 +817,61 @@ class AbstractHistPlotter(ABC):
         axis = needs_fail_or_warn(ax             = axis,
                                   current_sample = _current_value,
                                   _figinfo       = self.FigInfo,
-                                  cutoff_key     = self.CutoffKey,
+                                  cutoff_key     = self.VarName,
                                   higher_lower   = "lower")
 
 class ReadDepthHistPlotter(AbstractHistPlotter):
 
     def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
         self.VarName    =  "Input_Size"
-        self.CutoffKey  = "Input_Size"
         self.Formatter  = fmt_scatter_million
         self.PlotTitle  = "Sequencing Depth"
         self.XAxisTitle = "# Sequenced Reads"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
-        self.AddHist()
+        if self.Exists:
+            self.AddHist()
 
 class TrimmingPlotter(AbstractHistPlotter):
 
     def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
         self.VarName   = "Percent_PostTrim"
-        self.CutoffKey = "Percent_PostTrim"
         self.Formatter = fmt_percent
         self.PlotTitle = "Trimming"
         self.XAxisTitle = "% Post-trim Reads"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
-        self.AddHist()
-
+        if self.Exists:
+            self.AddHist()
 class AlignmentPlotter(AbstractHistPlotter):
 
     def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
         self.VarName  = "Percent_Uniquely_Aligned"
-        self.CutoffKey= "Percent_Uniquely_Aligned"
         self.Formatter= fmt_percent
         self.PlotTitle= "Alignment"
         self.XAxisTitle= "% Uniquely Aligned Reads"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
-        self.AddHist()
+        if self.Exists:
+            self.AddHist()
 
 class ExonMappingPlotter(AbstractHistPlotter):
 
     def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
         self.VarName  = "Percent_Exonic"
-        self.CutoffKey= "Percent_Exonic"
         self.Formatter= fmt_percent
         self.PlotTitle= "Exon Mapping"
         self.XAxisTitle= "% Mapped to Exons / Aligned Reads"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
-        self.AddHist()
+        if self.Exists:
+            self.AddHist()
 
 #### Plot 5: rRNA Scatter ####
 def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None):
+
+
+    MetricInfo = _figinfo['_MetricInfo'].query('Metric == "Perc_Aligned_Reads_Overlapping_rRNA"')
 
     _ax = plt.subplot(_figinfo["_subplot_rows"],
                       2,
@@ -852,6 +880,7 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
     _plotter_df = pd.concat([_background_df,
                              _userDf],
                             sort = True)
+
 
     # Assign color for current project's library (all samples in the current project)
     current_batch = _userDf[_userDf['Sample'] == SampleName].iloc[0]['Batch']
@@ -905,8 +934,8 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
     line_x0 = 0
     line_y0 = 0
 
-    line_y1_warn = _figinfo["_warn_cutoffs"]["% Aligned Reads Overlapping rRNA"] * (xmax - line_x0) + line_y0
-    line_y1_fail = _figinfo["_fail_cutoffs"]["% Aligned Reads Overlapping rRNA"] * (xmax - line_x0) + line_y0
+    line_y1_warn = MetricInfo["Warn_Cutoff"].iloc[0] * (xmax - line_x0) + line_y0
+    line_y1_fail = MetricInfo["Fail_Cutoff"].iloc[0]* (xmax - line_x0) + line_y0
 
     mean_line_kwargs = {'linestyle' : '--',
                         'linewidth' : .7}
@@ -963,28 +992,31 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
                             _mean_label],
                labels    =  ["Current Sample",
                              "Batch Samples",
-                             f"Fail ({_figinfo['_fail_cutoffs']['% Aligned Reads Overlapping rRNA']:.0%})",
-                             f"Warn ({_figinfo['_warn_cutoffs']['% Aligned Reads Overlapping rRNA']:.0%})",
-                             f"Mean rRNA/Aligned Reads ({_slope_current:.0%})"],
+                             f"Fail ({MetricInfo['Fail_Cutoff'].iloc[0]})",
+                             f"Warn ({MetricInfo['Warn_Cutoff'].iloc[0]})",
+                             f"Batch Avg. rRNA/Aligned Reads ({_slope_current:.0%})"],
                 loc      = 'upper left',
                 frameon  = False,
                 fontsize = _figinfo["_legend_size"])
 
     _ax = mk_axes(_ax)
-    _ax = needs_fail_or_warn(_ax,
-                             _slope_current,
-                             _figinfo,
-                             "% Aligned Reads Overlapping rRNA",
-                             "upper")
+    _ax = needs_fail_or_warn(ax             = _ax,
+                             current_sample = _slope_current,
+                             _figinfo       = _figinfo,
+                             cutoff_key     = "Perc_Aligned_Reads_Overlapping_rRNA",
+                             higher_lower   = "upper")
 
     return _f
 
 #### Plot 6: Sequence Contamination - Violin Plot ####
-
 def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,_f=None):
 
     # for plotting the individual composite functions
     def SingleViolin(_axis,_current_sample,_background_df,OverrepName,AdaptName):
+        if not all(col in _background_df.columns for col in [OverrepName, AdaptName]):
+            print(f"Warning: Columns '{OverrepName}' and/or '{AdaptNamme}' not found in input data. Skipping plot.")
+
+            return None
 
         _contaminant_df = _background_df[[OverrepName,
                                           AdaptName]]
@@ -1078,6 +1110,22 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
 
     _axis  = _f.add_subplot(_gridsp[4, 1:])
 
+    # Add warn and fail flags
+
+    if "Percent_Overrepresented_Seq_Trimmed" not in _background_df.columns: 
+        needs_fail_or_warn(ax             = _axis,
+                           current_sample = _current_sample['Percent_Overrepresented_Seq_Trimmed'].iloc[0],
+                           _figinfo       = _figinfo,
+                           cutoff_key     = "Percent_Overrepresented_Seq_Trimmed",
+                           higher_lower   = "upper")
+
+    if "Percent_Adapter_Content_Trimmed" not in _background_df.columns: 
+        needs_fail_or_warn(ax             = _axis,
+                           current_sample = _current_sample['Percent_Adapter_Content_Trimmed'].iloc[0],
+                           _figinfo       = _figinfo,
+                           cutoff_key     = "Percent_Adapter_Content_Trimmed",
+                           higher_lower   = "upper")
+
     # Create the composing violin plots
     SingleViolin(_axis           = _axis,
                  _current_sample = _current_sample,
@@ -1085,20 +1133,8 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
                  OverrepName     = 'Percent_Overrepresented_Seq_Untrimmed',
                  AdaptName       = 'Percent_Adapter_Content_Untrimmed')
 
-    # Add warn and fail flags
-    needs_fail_or_warn(ax             = _axis,
-                       current_sample = _current_sample['Percent_Overrepresented_Seq_Trimmed'].iloc[0],
-                       _figinfo       = _figinfo,
-                       cutoff_key     = "Percent_Overrepresented_Seq_Trimmed",
-                       higher_lower   = "upper")
-
-    needs_fail_or_warn(ax             = _axis,
-                       current_sample = _current_sample['Percent_Adapter_Content_Trimmed'].iloc[0],
-                       _figinfo       = _figinfo,
-                       cutoff_key     = "Percent_Adapter_Content_Trimmed",
-                       higher_lower   = "upper")
-
     _axis2 = _f.add_subplot(_gridsp[5, 1:])
+
     SingleViolin(_axis           = _axis2,
                  _current_sample = _current_sample,
                  _background_df  = _background_df,
@@ -1129,12 +1165,14 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
     _axis3.xaxis.label.set_visible(False)
     _axis3.set_ylim(_axis2.get_ylim()[0], _axis2.get_ylim()[1])
 
+    OverrepCutoff = _figinfo['_MetricInfo'].query("Metric == 'Percent_Overrepresented_Seq_Trimmed'")
+    AdapterCutoff = _figinfo['_MetricInfo'].query("Metric == 'Percent_Adapter_Content_Trimmed'")
     _markers = [ # overrepresented
-    (_axis3, _figinfo["_fail_cutoffs"]["Percent_Overrepresented_Seq_Trimmed"], -0.4, 'Fail', _figinfo["_fail_color"]),
-    (_axis3, _figinfo["_warn_cutoffs"]["Percent_Overrepresented_Seq_Trimmed"], -0.6,'Warn', _figinfo["_warn_color"]),
+    (_axis3, OverrepCutoff['Fail_Cutoff'].iloc[0], -0.4, 'Fail', _figinfo["_fail_color"]),
+    (_axis3, OverrepCutoff['Warn_Cutoff'].iloc[0],  -0.6,'Warn', _figinfo["_warn_color"]),
     # adapter 
-    (_axis3, _figinfo["_fail_cutoffs"]["Percent_Adapter_Content_Trimmed"], .75, 'Fail', _figinfo["_fail_color"]),
-    (_axis3, _figinfo["_warn_cutoffs"]["Percent_Adapter_Content_Trimmed"], .85, 'Warn', _figinfo["_warn_color"])]
+    (_axis3, AdapterCutoff['Fail_Cutoff'].iloc[0], .75, 'Fail', _figinfo["_fail_color"]),
+    (_axis3, AdapterCutoff['Warn_Cutoff'].iloc[0], .85, 'Warn', _figinfo["_warn_color"])]
 
     for _axs, _cutoff, yloc,label, color in _markers:
         _axs.plot(_cutoff,
@@ -1159,6 +1197,7 @@ def EstimateDeviances(data_df):
 
     deviances = data_df.sub(mean_sample,
                             axis = 0).abs()
+
     return deviances
 
 def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
@@ -1268,7 +1307,7 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
     _mean_df = pd.DataFrame()
     _mean_df['gc_mean'] = _coverage_df[SamplesInBatch].median(axis=1)
 
-    # acquire the pvalue information from the _figinfo object
+    # acquire the pvalue information from the userdf object
     _ks_pval = user_df.loc[user_df['Sample'] == SampleName,'GBC_KSstats'].iloc[0]
     #Acquire the batch information from the user_df
 
@@ -1328,7 +1367,7 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
     _axis = needs_fail_or_warn(ax             = _axis,
                                current_sample = _ks_pval,
                                _figinfo       = _figinfo,
-                               cutoff_key     = "GC_cutoff",
+                               cutoff_key     = "GBC_KSstats",
                                higher_lower   = "upper")
 
     _axis = set_ticks(_axis,
@@ -1344,40 +1383,6 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
                      fontsize = _figinfo["_label_size"])
 
     return _fig
-
-def calcHistPval(_hist_df):
-
-    # code for calculating Z value of number of expressed genes. In need of some improvement.
-    _sum_df = _hist_df.sum().round()
-    _zscore = stats.zscore(_sum_df)
-    _pvals  = stats.norm.sf(abs(_zscore))
-
-    return(_pvals)
-
-# Not in use currently but in theory plotNegBin and plotGC could share some values although
-#im not sure the added complexity is worth the squeeze.
-class AbstractLinePlotter(ABC):
-
-    def __init__(self,_ipTuple,_hist_df,_user_df,_position,_figinfo,_figure=None):
-        self.IpTuple = _ipTuple
-        self.Position= _position
-        self.UserDf  = _user_df
-        self.FigInfo = _figinfo
-        self.Figure  = _figure
-        self.HistDf  = _hist_df
-
-    def AddLinePlot(self):
-        _ax = self.Figure.add_subplot(self.FigInfo["_subplot_rows"],2,self.Position)
-
-        _index_array = self.HistDf.iloc[:, 0]
-
-        _low_vals =  []
-        _high_vals = []
-
-        for _i in _index_array:
-            _low_vals.append(float(_i.strip('(').strip(']').split(',')[0]))
-            _high_vals.append(float(_i.strip('(').strip(']').split(',')[1]))
-
 
 # Plot 8 : Gene Expression Distribution Plot 
 def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
@@ -1405,14 +1410,8 @@ def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
                                              axis         = 1)
     _current_samp_array = _hist_df[SampleName].values
 
-    # code for calculating Z value of number of expressed genes. In need of some improvement.
-    _sum_df = batch_hist_df.sum().round()
     _curr_sum = _current_samp_array.sum().round()
-    _curr_ndx = np.where(_sum_df == _curr_sum)[0][0]
-    hist_mean = _sum_df.mean().round()
-    _zscore = stats.zscore(_sum_df)
-    _pvals  = stats.norm.sf(abs(_zscore))
-    _curr_pval = _pvals[_curr_ndx]
+    hist_mean = _libMean_df['Mean'].sum().round()
 
     # Define the visual information for plotting each line
     sample_line_info = {'color'     : _figinfo["_curr_sample_color"],
@@ -1447,7 +1446,7 @@ def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
 
     _ax.legend([_current_samp_line,
                 _lib_line],
-               [f'Current Sample: {_curr_sum.item()} Detected Genes (p={_curr_pval.item():.3f})',
+               [f'Current Sample: {_curr_sum.item()} Detected Genes',
                 f'Batch Mean: {hist_mean} Detected Genes'],
                loc      = 'upper right',
                frameon  = False,
@@ -1467,9 +1466,9 @@ def plotNegBin(SampleName,UserDf, _hist_df, _position,_figinfo,_f=None):
 
     _ax = mk_axes(_ax)
     _ax = needs_fail_or_warn(ax             = _ax,
-                             current_sample = _curr_pval,
+                             current_sample = _curr_sum,
                              _figinfo       = _figinfo,
-                             cutoff_key     = "_alpha",
+                             cutoff_key     = "NumGenes",
                              higher_lower   = "lower")
 
     return _f
