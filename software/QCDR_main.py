@@ -127,11 +127,6 @@ def QCDR_main(qry_filename    = '',
     _figinfo["_cutoff_filename"]   = cutoff_filename
     _figinfo['_MetricInfo']        = MetricInfo
 
-    # add cutoff info
-    _figinfo["_fail_cutoffs"] = _fail_cutoffs
-    _figinfo["_warn_cutoffs"] = _warn_cutoffs
-
-
     if cutoff_filename is not None:
         _manual_cutoffs = read_file(cutoff_filename)
 
@@ -145,14 +140,9 @@ def QCDR_main(qry_filename    = '',
         repl_missing_values_indict(_man_warn_cutoff_dict,_warn_cutoffs)
         repl_missing_values_indict(_man_fail_cutoff_dict,_fail_cutoffs)
 
-        _warn_cutoffs = _man_warn_cutoff_dict
-        _fail_cutoffs = _man_fail_cutoff_dict
-        _warn_cutoffs["_alpha"] = _figinfo["warn_alpha"]
-        _fail_cutoffs["_alpha"] = _figinfo["fail_alpha"]
+        MetricInfo["Fail_Cutoff"] = MetricInfo["Metric"].map(_man_fail_cutoff_dict)
+        MetricInfo["Warn_Cutoff"] = MetricInfo["Metric"].map(_man_warn_cutoff_dict)
 
-        # add cutoff info
-        _figinfo["_fail_cutoffs"] = _fail_cutoffs
-        _figinfo["_warn_cutoffs"] = _warn_cutoffs
     # Save the user_df
     _user_df.to_csv(op_folder + '/QCDR_ReportInfo.csv',
                     index = False)

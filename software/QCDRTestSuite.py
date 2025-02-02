@@ -265,23 +265,23 @@ class QCDRTestFactory(TestFactory):
         # Run a limited number of fast tests to iterate quickly and bugfix
 
         self.MakeB11SCRIPTTest()
-        self.LungTransplantTest()
-        self.LungTransplantTestSCRIPTbgd()
+        #self.LungTransplantTest()
+        #self.LungTransplantTestSCRIPTbgd()
         self.LungTransplantTestwCutoff()
         self.LungTransplantTestwCutoffSCRIPT()
-        self.LTNoGBCNoHist()
-        self.LTNoHist()
-        self.LTNoGC()
+        #self.LTNoGBCNoHist()
+        #self.LTNoHist()
+        #self.LTNoGC()
 
         return self
 
 if __name__ == '__main__':
 
     print('Running tests')
-    [QCDRTestFactory(SaveDir = "TestOutputsMissingColumns/").
+    [QCDRTestFactory(SaveDir = "TestOutputsCutoffs/").
      #ComprehensiveTesting().
-     #QuickTest().
-     MakeColumnMissingTests().
+     QuickTest().
+     #MakeColumnMissingTests().
      RunTests(TestFun = QCDR_main)]
     print("Tests Finished Running")
 

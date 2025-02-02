@@ -16,6 +16,8 @@ import seaborn as sns
 import time
 import shutil
 import glob
+import cProfile
+import pstats
 import csv
 import subprocess
 import numpy as np
@@ -420,7 +422,16 @@ def CalcBootstrapBound(vec,upper_lower,alpha,num_resamples = 1000):
 def InitMetricInfo():
     """ This function creates a dataframe which should store cutoff information and their cutoffs"""
 
-    data = { 'Metric' : ["Input_Size",
+    data = {"LegibleNames" : ["# Sequenced Reads",
+                              "% Post-trim Reads",
+                              "% Uniquely Aligned Reads",
+                              "% Reads Mapped to Exons / Aligned",
+                              "% Uniquely Aligned Reads Overlapping rRNA",
+                              "% Overrepresented Sequences (Post-trim)",
+                              "% Adapter Content (Post-trim)",
+                              "# Detected Genes",
+                              "Gene Body Coverage"],
+            'Metric' : ["Input_Size",
                          "Percent_PostTrim",
                          "Percent_Uniquely_Aligned",
                          "Percent_Exonic",
@@ -525,7 +536,7 @@ def mkTitlePage(_figinfo):
 
         cutoff_texts = []
         for _, row in cutoff_df.iterrows():
-            metric = row['Metric']
+            metric = row['LegibleNames']
             direction = row['Direction']
             formatter = row['Formatting']
             fail_cutoff = row['Fail_Cutoff']
@@ -553,7 +564,7 @@ def mkTitlePage(_figinfo):
              fontsize = 4)
     fig.text(.005,
              .97,
-             "Version 0.1",
+             "Version 1",
              fontsize = 4)
     fig.text(.5,
              .5,
@@ -617,6 +628,14 @@ def mkQC_heatmap_data(_userDf, _figinfo):
         strategy = lower_status_strategy if direction == '<' else upper_status_strategy
         strategies.append((metric,strategy))
 
+    # Create a mapping from metric to legible name.
+    metric_to_legible = {}
+    for _, row in MetricDf.iterrows():
+        metric = row['Metric']
+        # Only add if this metric was used (i.e. not skipped)
+        if metric in [m for m, _ in strategies]:
+            metric_to_legible[metric] = row['LegibleNames']
+
     heatmap_df = pd.DataFrame(index   = _userDf['Sample'],
                               columns = [metric for metric, _ in strategies],
                               dtype   = float)
@@ -632,6 +651,16 @@ def mkQC_heatmap_data(_userDf, _figinfo):
             heatmap_df.loc[_tuple.Sample,column] = strategy.compute_status(test_value,
                                                                            warn_value,
                                                                            fail_value)
+    # Create a mapping from raw metric names to legible names.
+    mapping = {}
+    for _, row in MetricDf.iterrows():
+        metric = row['Metric']
+        # Only include those metrics that were used.
+        if metric in heatmap_df.columns:
+            mapping[metric] = row['LegibleNames']
+
+    # Rename the DataFrame's columns in place.
+    heatmap_df.rename(columns=mapping, inplace=True)
 
     return heatmap_df
 
@@ -641,6 +670,7 @@ def mkQC_heatmap(heatmap_data):
     mkQC_heatmap: This function generates the summary heatmap
     take input from mkQC_heatmap_data as input
     """
+
     # get how many rows there are
     numrows, numcols = heatmap_data.shape
     cellwidth = .25
@@ -651,16 +681,17 @@ def mkQC_heatmap(heatmap_data):
 
     page_height = 5
     page_width = 6.3
-    colors = ["lightcyan","gold","lightcoral"]
+    colors = ["lightgray","goldenrod","red"]
     cm = matplotlib.colors.ListedColormap(colors)
 
     fig2,ax = plt.subplots(figsize=(page_width,
                                     page_height))
     fig2.text(s        = "Summary of QC Metrics",
               x        = .5,
-              y        = .9,
+              y        = .97,
               fontsize = 10,
               ha       = 'center')
+
     seaborn.heatmap(heatmap_data.values,
                     ax          = ax,
                     xticklabels = heatmap_data.columns,
@@ -679,19 +710,18 @@ def mkQC_heatmap(heatmap_data):
                          top    = 1 - height_padding,
                          bottom = height_padding)
 
-    ax.set_yticklabels(ax.get_yticklabels(), fontsize = 5)
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize = 3.7)
     # change x-axis tick label font size
-    ax.set_xticklabels(ax.get_xticklabels(), fontsize = 5)
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize = 3.7)
     plt.yticks(rotation = 0)
     plt.xticks(rotation = 90)
     # Get the Colorbar object from the heatmap
     cbar = ax.collections[0].colorbar
     cbar.ax.set_aspect(.5)
-    cbar.ax.set_anchor("N")
-    # Change the ticks on the colorbar
-    cbar.set_ticks([0, 0.5, 1])
-    ax.collections[0].colorbar.ax.tick_params(labelsize=5)
+    cbar.ax.set_anchor('N')
+    cbar.set_ticks([0,.5,1])
     cbar.set_ticklabels(['Passed', 'Warned', 'Failed'])
+    cbar.ax.tick_params(labelsize=5)
 
 #    plt.subplots_adjust(left=0.3, bottom=0.3, right=0.7, top=0.8)
 
@@ -699,6 +729,7 @@ def mkQC_heatmap(heatmap_data):
 
 class AbstractHistPlotter(ABC):
 
+    #Setup profile
     # Default values for subclass-specific attributes. Overwritten by concrete subclasses
     VarName   = None
     Formatter = None
@@ -721,6 +752,8 @@ class AbstractHistPlotter(ABC):
         self.Exists = pd.notna(self.MetricInfo['Warn_Cutoff'].iloc[0])
 
     def AddHist(self):
+        profiler = cProfile.Profile()
+        profiler.enable()
         _bins = make_bins(self.BgdVals,
                           self.UserVals,
                           self.FigInfo["_bin_num"])
@@ -746,7 +779,8 @@ class AbstractHistPlotter(ABC):
                     ax        = axis1,
                     color     = 'black',
                     lw        = 0.5,
-                    bw_adjust = .5)
+                    bw_adjust = .6,
+                    gridsize  = 33)
 
         # set limits
         _xmin = min(self.BgdVals.min(),
@@ -764,7 +798,7 @@ class AbstractHistPlotter(ABC):
         axis = set_ticks(axis, self.FigInfo["_tick_size"])
 
         axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
-        axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
+        axis.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=4,integer = True))
         axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(self.Formatter))
 
         axis.set_title(self.PlotTitle,
@@ -820,6 +854,10 @@ class AbstractHistPlotter(ABC):
                                   cutoff_key     = self.VarName,
                                   higher_lower   = "lower")
 
+        profiler.disable()
+        ps = pstats.Stats(profiler,
+                          stream = sys.stdout).sort_stats('cumulative')
+        ps.print_stats(40)
 class ReadDepthHistPlotter(AbstractHistPlotter):
 
     def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
@@ -870,7 +908,6 @@ class ExonMappingPlotter(AbstractHistPlotter):
 #### Plot 5: rRNA Scatter ####
 def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None):
 
-
     MetricInfo = _figinfo['_MetricInfo'].query('Metric == "Perc_Aligned_Reads_Overlapping_rRNA"')
 
     _ax = plt.subplot(_figinfo["_subplot_rows"],
@@ -893,6 +930,7 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
     _plotter_df.loc[_plotter_df["Sample"] == SampleName,
                     "scatter_color"] = _figinfo["_curr_sample_color"]
     _intupdf = _plotter_df.loc[_plotter_df["Sample"] == SampleName]
+    _intupval = _intupdf['Num_Uniquely_Aligned_rRNA'].iloc[0] / _intupdf['Num_Uniquely_Aligned'].iloc[0]
 
     ## Regression line (gradient slope)
     X = _background_df.loc[:, "Num_Uniquely_Aligned"].values.reshape(-1, 1)
@@ -923,13 +961,16 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
     _ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
     _ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_scatter_million))
     _ax.set_xlabel("# Uniquely Aligned Reads",
-                   fontsize= _figinfo["_label_size"],
-                   labelpad =2)
+                   fontsize = _figinfo["_label_size"],
+                   labelpad = 2)
 
     _ax.set_ylabel("# Aligned rRNA Reads",
-                   fontsize= _figinfo["_label_size"],
-                   labelpad= 2)
+                   fontsize = _figinfo["_label_size"],
+                   labelpad = 2)
 
+    xmax  =  _plotter_df['Num_Uniquely_Aligned'].max()
+    xmin  = _plotter_df['Num_Uniquely_Aligned'].min()
+    cushion = 0.05 * (xmax - xmin)
     xmin, xmax = _ax.get_xlim()
     line_x0 = 0
     line_y0 = 0
@@ -992,16 +1033,18 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
                             _mean_label],
                labels    =  ["Current Sample",
                              "Batch Samples",
-                             f"Fail ({MetricInfo['Fail_Cutoff'].iloc[0]})",
-                             f"Warn ({MetricInfo['Warn_Cutoff'].iloc[0]})",
-                             f"Batch Avg. rRNA/Aligned Reads ({_slope_current:.0%})"],
+                             f"Fail ({MetricInfo['Fail_Cutoff'].iloc[0]:.1%})",
+                             f"Warn ({MetricInfo['Warn_Cutoff'].iloc[0]:.1%})",
+                             f"Batch Avg. rRNA/Aligned Reads ({_slope_current:.1%})"],
                 loc      = 'upper left',
                 frameon  = False,
                 fontsize = _figinfo["_legend_size"])
 
     _ax = mk_axes(_ax)
+    _ax.set_xlim(xmin - cushion, xmax + cushion)
+    print(_intupval)
     _ax = needs_fail_or_warn(ax             = _ax,
-                             current_sample = _slope_current,
+                             current_sample = _intupval,
                              _figinfo       = _figinfo,
                              cutoff_key     = "Perc_Aligned_Reads_Overlapping_rRNA",
                              higher_lower   = "upper")
