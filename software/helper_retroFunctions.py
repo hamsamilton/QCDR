@@ -481,10 +481,11 @@ class CutoffCalculator:
             if metric in self.bgd_df.columns:
                 self.calculate_cutoff(metric,direction)
 
+
         return self.cutoffs_dict
 
     def calculate_cutoff(self,column,upper_lower):
-        vec = np.array(self.bgd_df.loc[:, column])
+        vec = np.array(self.bgd_df.loc[:, column].dropna())
         bootstrap_mean = bs.bootstrap(vec,
                                       stat_func = bs_stats.mean).value
         bootstrap_std  = bs.bootstrap(vec,
@@ -898,8 +899,8 @@ class ExonMappingPlotter(AbstractHistPlotter):
     def __init__(self, _ip_tuple, _user_df, _background_df, _position, _figinfo, _figure=None):
         self.VarName  = "Percent_Exonic"
         self.Formatter= fmt_percent
-        self.PlotTitle= "Exon Mapping"
-        self.XAxisTitle= "% Mapped to Exons / Aligned Reads"
+        self.PlotTitle= "Gene Quantification"
+        self.XAxisTitle= "% Mapped to Exons"
         super().__init__(_ip_tuple, _user_df, _background_df, _position, _figinfo, _figure)
         self.InitDependentFields()
         if self.Exists:
@@ -1042,7 +1043,6 @@ def plotScatter_rRNA(SampleName, _userDf, _background_df, _pos,_figinfo,_f=None)
 
     _ax = mk_axes(_ax)
     _ax.set_xlim(xmin - cushion, xmax + cushion)
-    print(_intupval)
     _ax = needs_fail_or_warn(ax             = _ax,
                              current_sample = _intupval,
                              _figinfo       = _figinfo,
@@ -1155,19 +1155,17 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
 
     # Add warn and fail flags
 
-    if "Percent_Overrepresented_Seq_Trimmed" not in _background_df.columns: 
-        needs_fail_or_warn(ax             = _axis,
-                           current_sample = _current_sample['Percent_Overrepresented_Seq_Trimmed'].iloc[0],
-                           _figinfo       = _figinfo,
-                           cutoff_key     = "Percent_Overrepresented_Seq_Trimmed",
-                           higher_lower   = "upper")
+    needs_fail_or_warn(ax             = _axis,
+                       current_sample = _current_sample['Percent_Overrepresented_Seq_Trimmed'].iloc[0],
+                       _figinfo       = _figinfo,
+                       cutoff_key     = "Percent_Overrepresented_Seq_Trimmed",
+                       higher_lower   = "upper")
 
-    if "Percent_Adapter_Content_Trimmed" not in _background_df.columns: 
-        needs_fail_or_warn(ax             = _axis,
-                           current_sample = _current_sample['Percent_Adapter_Content_Trimmed'].iloc[0],
-                           _figinfo       = _figinfo,
-                           cutoff_key     = "Percent_Adapter_Content_Trimmed",
-                           higher_lower   = "upper")
+    needs_fail_or_warn(ax             = _axis,
+                       current_sample = _current_sample['Percent_Adapter_Content_Trimmed'].iloc[0],
+                       _figinfo       = _figinfo,
+                       cutoff_key     = "Percent_Adapter_Content_Trimmed",
+                       higher_lower   = "upper")
 
     # Create the composing violin plots
     SingleViolin(_axis           = _axis,
@@ -1338,6 +1336,20 @@ def GC_KSstats(_coverage_df):
 
     return _kslst
 
+def GC_AUC(coverage_df):
+
+    #init list to store values
+    AUClst = []
+
+    for column_name, column_data in coverage_df.iteritems():
+
+        AUC = sum(column_data)
+        AUClst.append(AUC)
+
+    return AUClst
+
+
+
 #  GeneBody Coverage Plot
 def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
 
@@ -1352,6 +1364,8 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
 
     # acquire the pvalue information from the userdf object
     _ks_pval = user_df.loc[user_df['Sample'] == SampleName,'GBC_KSstats'].iloc[0]
+    # acquire the AUC value for display
+    GC_AUC = user_df.loc[user_df['Sample'] == SampleName,'GC_AUC'].iloc[0]
     #Acquire the batch information from the user_df
 
     # Define the visual information for plotting each line
@@ -1399,7 +1413,7 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
     _axis.legend([_current_sample_line,
                   _library_line,
                   _background_lines],
-                 [f"Current Sample: K-S Stat = {_ks_pval:.2f}",
+                 [f"Current Sample: AUC = {GC_AUC:.2f}",
                   "Batch Mean",
                   "Batch Samples"],
                  loc      = 'lower center',

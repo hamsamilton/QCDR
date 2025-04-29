@@ -50,8 +50,8 @@ def QCDR_main(qry_filename    = '',
     if _gc_file is not None:
         _gc_df = read_file(_gc_file).iloc[:,1:]
 
-        GCDeviances = EstimateDeviances(data_df = _gc_df).sum(axis = 0)
-        #GCDeviances = GC_KSstats(_coverage_df = _gc_df)
+        # KS value for thresholding
+        GCDeviances = GC_KSstats(_coverage_df = _gc_df)
 
         GCDeviances = pd.Series(GCDeviances,
                                 index = _gc_df.columns,
@@ -59,9 +59,27 @@ def QCDR_main(qry_filename    = '',
 
         _user_df = _user_df.set_index('Sample')
         _bgd_df  = _bgd_df.set_index('Sample')
+        print('the deviances were', GCDeviances)
 
-        _user_df["GBC_KSstats"] = _user_df.index.map(GCDeviances).fillna(0) # Not sure if this should be filling NAs
-        _bgd_df["GBC_KSstats"] = _bgd_df.index.map(GCDeviances).fillna(0)
+        _user_df["GBC_KSstats"] = _user_df.index.map(GCDeviances)#.fillna(0) #Check y NA fill
+        _bgd_df["GBC_KSstats"] = _bgd_df.index.map(GCDeviances)#.fillna(0)
+
+        _user_df = _user_df.reset_index()
+        _bgd_df = _bgd_df.reset_index()
+
+
+        # AUC value for display
+        GCDeviances = GC_AUC(coverage_df = _gc_df)
+
+        GCDeviances = pd.Series(GCDeviances,
+                                index = _gc_df.columns,
+                                name  = 'GC_AUC')
+
+        _user_df = _user_df.set_index('Sample')
+        _bgd_df  = _bgd_df.set_index('Sample')
+
+        _user_df["GC_AUC"] = _user_df.index.map(GCDeviances)#.fillna(0) #Check y NA fill
+        _bgd_df["GC_AUC"] = _bgd_df.index.map(GCDeviances)#.fillna(0)
 
         _user_df = _user_df.reset_index()
         _bgd_df = _bgd_df.reset_index()
@@ -81,8 +99,8 @@ def QCDR_main(qry_filename    = '',
 
         _user_df = _user_df.set_index("Sample")
         _bgd_df = _bgd_df.set_index("Sample")
-        _user_df["NumGenes"] = _user_df.index.map(NumGenes_series).fillna(0)
-        _bgd_df["NumGenes"]  = _bgd_df.index.map(NumGenes_series).fillna(0)
+        _user_df["NumGenes"] = _user_df.index.map(NumGenes_series)#.fillna(0)
+        _bgd_df["NumGenes"]  = _bgd_df.index.map(NumGenes_series)#.fillna(0)
 
         _user_df = _user_df.reset_index()
         _bgd_df = _bgd_df.reset_index()
