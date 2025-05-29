@@ -171,15 +171,15 @@ class manual_cutoff_adapter(UI_adapter):
 
     human_readable_names = [
         "Cutoff",
-        "Sequencing Depth",
-        "% of Reads After Trimming",
-        "% Uniquely Aligned Reads / Trimmed Reads",
-        "% Mapped Reads / Aligned Reads",
-        "rRNA Reads / Aligned Reads",
+        "# Sequenced Reads",
+        "% Post-Trim Reads",
+        "% Uniquely Aligned Reads",
+        "% Mapped Reads",
+        "% rRNA Reads",
         "% Overrep Sequences (Post-Trim)",
         "% Adapter Content (Post-Trim)",
         "# Detected Genes",
-        "Gene Body Coverage (Pval)"]
+        "Gene Body Coverage"]
 
     input_program_names = [
         "cutoff",
@@ -425,9 +425,9 @@ def InitMetricInfo():
     data = {"LegibleNames" : ["# Sequenced Reads",
                               "% Post-trim Reads",
                               "% Uniquely Aligned Reads",
-                              "% Reads Mapped to Exons / Aligned",
-                              "% Uniquely Aligned Reads Overlapping rRNA",
-                              "% Overrepresented Sequences (Post-trim)",
+                              "% Reads Mapped to Exons",
+                              "% rRNA reads",
+                              "% Overrep. Sequences (Post-trim)",
                               "% Adapter Content (Post-trim)",
                               "# Detected Genes",
                               "Gene Body Coverage"],
@@ -555,7 +555,7 @@ def mkTitlePage(_figinfo):
     # add text
     fig.text(.5,
              .965,
-             "QC Plotter Input Summary",
+             "QC-DR Input Summary",
              ha       = 'center',
              va       = 'top',
              fontsize = 14)
@@ -1331,7 +1331,8 @@ def GC_KSstats(_coverage_df):
 
     for column_name, _column_data in _coverage_df.iteritems():
         _ks_stat, _ks_pval = stats.ks_2samp(data1 = _column_data,
-                                            data2 = _mean_df['gc_mean'])
+                                            data2 = _mean_df['gc_mean'],
+                                            method = 'asymp')
         _kslst.append(_ks_stat)
 
     return _kslst
@@ -1361,6 +1362,7 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
     # Calculate mean GeneBody Coverage for the entire library
     _mean_df = pd.DataFrame()
     _mean_df['gc_mean'] = _coverage_df[SamplesInBatch].median(axis=1)
+    BatchAUC = sum(_mean_df['gc_mean'])
 
     # acquire the pvalue information from the userdf object
     _ks_pval = user_df.loc[user_df['Sample'] == SampleName,'GBC_KSstats'].iloc[0]
@@ -1414,7 +1416,7 @@ def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):
                   _library_line,
                   _background_lines],
                  [f"Current Sample: AUC = {GC_AUC:.2f}",
-                  "Batch Mean",
+                  f"Batch Mean: AUC = {BatchAUC:.2f}",
                   "Batch Samples"],
                  loc      = 'lower center',
                  frameon  = False,
