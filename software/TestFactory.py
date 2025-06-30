@@ -14,7 +14,7 @@ class TestFactory(ABC):
   send to the test functions
   """
   @abstractmethod
-  def __init__(self,SaveDir = '',MaxWorkers = 6):
+  def __init__(self,SaveDir = '',MaxWorkers = 10):
     """RunInfoDict: A dictionary to be filled with tests with their information on how to run
     SaveDir    : Specify the super folder where output information should be saved
     MaxWorkers : How many distinct jobs do you want to run at once, too many and you'll crash the job"""

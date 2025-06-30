@@ -86,9 +86,17 @@ def QCDR_main(qry_filename    = '',
 
     # Read Histogram data
     if _hist_file is not None:
-        _negBin_df = CountsMatrixToGeneHist(df       = read_file(_hist_file),
-                                            binsize  = .25,
-                                            maxdepth = 18.5)
+
+        histfile = read_file(_hist_file)
+
+        # determin if a histogram table or a count table was supplied
+        if 'Bins' in histfile.columns:
+            _negBin_df = _data_df
+        else:
+            # its a raw count matrix
+            _negBin_df = CountsMatrixToGeneHist(df       = histfile,
+                                                binsize  = .25,
+                                                maxdepth = 18.5) #Transform to hist
         # Preprocess raw counts table
         _data_df = _negBin_df.drop(['Bins'],
                                    axis = 1)
@@ -177,21 +185,60 @@ def QCDR_main(qry_filename    = '',
 
     # how many tables do we need? 
     _summary_heatmap_data = mkQC_heatmap_data(_user_df,_figinfo)
-    _summary_heatmap_data.to_csv(op_folder + '/Heatmapinfo.csv',
-                                 index = False)
 
+    # to save
+    # Define the mapping
+    qc_map = {0: 'Pass', 0.5: 'Warn', 1: 'Fail'}
+    # Apply the mapping
+    labeled_df = _summary_heatmap_data.replace(qc_map)
+    labeled_df.to_csv(op_folder + '/Heatmapinfo.csv',
+                                 index = True)
+
+    # Save Cutoff Info
+    _figinfo["_MetricInfo"].drop(columns=['Formatting','Metric']) \
+        .to_csv(os.path.join(op_folder, 'cutoff_table.csv'), index=False)
     # Subset the heatmap data into smaller heatmaps for plotting
-    my_range = list(range(0,len(_user_df),20))
-    my_range.append(len(_user_df)) # how many rows will be used for plotting
+    def get_batchwise_chunks(user_df, max_per_page=40):
+        grouped = user_df.groupby('Batch')
+        page_chunks = []
 
-    # Get subset and plot
-    for i in range(0,len(my_range)-1):
-        new_rng = list(range(my_range[i],my_range[i+1]))
+        current_chunk = []
+
+        for batch_name, batch_df in grouped:
+            batch_indices = batch_df.index.tolist()
+
+            # If entire batch fits on a page
+            if len(batch_indices) <= max_per_page:
+                # If adding this batch exceeds the page limit, start new page
+                if len(current_chunk) + len(batch_indices) > max_per_page:
+                    page_chunks.append(current_chunk)
+                    current_chunk = []
+
+                current_chunk.extend(batch_indices)
+
+            else:
+                # Split batch into multiple chunks of max size
+                for i in range(0, len(batch_indices), max_per_page):
+                    chunk = batch_indices[i:i+max_per_page]
+                    if current_chunk:
+                        page_chunks.append(current_chunk)
+                        current_chunk = []
+                    page_chunks.append(chunk)
+
+        if current_chunk:
+            page_chunks.append(current_chunk)
+
+        return page_chunks
+
+    page_chunks = get_batchwise_chunks(_user_df, max_per_page=40)
+
+    for new_rng in page_chunks:
         _sub_df = _summary_heatmap_data.iloc[new_rng]
         _summary_heatmap_fig = mkQC_heatmap(_sub_df)
 
         _pdfObj.savefig(_summary_heatmap_fig)
         plt.close(_summary_heatmap_fig)
+
 
     for SampleName in _user_df["Sample"]:
         print(SampleName)

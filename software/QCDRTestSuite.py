@@ -258,17 +258,19 @@ class QCDRTestFactory(TestFactory):
         self.NoHistGBCTest()
         self.ChangeFailandWarn()
         self.LungTransplantTestwCutoff()
+        self.LungTransplantTestwCutoffSCRIPT()
 
         return self
 
     def QuickTest(self):
         # Run a limited number of fast tests to iterate quickly and bugfix
 
-        self.MakeB11SCRIPTTest()
+        #self.MakeB11SCRIPTTest()
+        self.MakeB11SCRIPTwithAllSCRIPTbgd()
         #self.LungTransplantTest()
         #self.LungTransplantTestSCRIPTbgd()
-        self.LungTransplantTestwCutoff()
-        self.LungTransplantTestwCutoffSCRIPT()
+        #self.LungTransplantTestwCutoff()
+        #self.LungTransplantTestwCutoffSCRIPT()
         #self.LTNoGBCNoHist()
         #self.LTNoHist()
         #self.LTNoGC()
@@ -278,7 +280,7 @@ class QCDRTestFactory(TestFactory):
 if __name__ == '__main__':
 
     print('Running tests')
-    [QCDRTestFactory(SaveDir = "TestOutputsCutoffs/").
+    [QCDRTestFactory(SaveDir = "TestOutputsQCQuickJun19/").
      #ComprehensiveTesting().
      QuickTest().
      #MakeColumnMissingTests().

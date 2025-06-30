@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 import os
 import argparse
 matplotlib.use('PDF')
+from itertools import chain
 import seaborn
 import sys
 import json
@@ -174,7 +175,7 @@ class manual_cutoff_adapter(UI_adapter):
         "# Sequenced Reads",
         "% Post-Trim Reads",
         "% Uniquely Aligned Reads",
-        "% Mapped Reads",
+        "% Reads Mapped to Exons",
         "% rRNA Reads",
         "% Overrep Sequences (Post-Trim)",
         "% Adapter Content (Post-Trim)",
@@ -708,18 +709,20 @@ def mkQC_heatmap(heatmap_data):
 
     fig2.subplots_adjust(left   =  width_padding,
                          right  = 1 -  width_padding,
-                         top    = 1 - height_padding,
-                         bottom = height_padding)
+                         top    = 1 - height_padding * .5,
+                         bottom = height_padding * 2)
 
     ax.set_yticklabels(ax.get_yticklabels(), fontsize = 3.7)
     # change x-axis tick label font size
     ax.set_xticklabels(ax.get_xticklabels(), fontsize = 3.7)
     plt.yticks(rotation = 0)
-    plt.xticks(rotation = 90)
+    plt.xticks(rotation = 45,
+               ha = 'right',
+               va = 'top')
     # Get the Colorbar object from the heatmap
     cbar = ax.collections[0].colorbar
     cbar.ax.set_aspect(.5)
-    cbar.ax.set_anchor('N')
+    cbar.ax.set_anchor('C')
     cbar.set_ticks([0,.5,1])
     cbar.set_ticklabels(['Passed', 'Warned', 'Failed'])
     cbar.ax.tick_params(labelsize=5)
@@ -1075,7 +1078,8 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
 
         # Format Axes
         _axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5))
-        _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(fmt_percent))
+        fmt = _figinfo["_MetricInfo"].set_index("Metric").at["Percent_Overrepresented_Seq_Trimmed", "Formatting"]
+        _axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, _: fmt.format(x)))
         _axis = mk_axes(_axis)
         _axis = set_ticks(_axis,
                           _figinfo['_tick_size'])

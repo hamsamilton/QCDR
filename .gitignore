@@ -6,3 +6,4 @@ software/developertests
 *.sw*
 software/QCDRTestOutputs
 software/developer_resources/
+__pycache__
