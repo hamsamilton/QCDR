@@ -26,15 +26,17 @@ Below I summarize the inputs
 -wrna -fla (optional) Should the user shose to tighten or loosen the stringency of the statistical tests used to flag samples, users can set the alphas for the warn and fail alphas using these arguments.
 
 
-A separate supplied table is additionally required to generate the gene body coverage distribution subplot. We have built a separate but interoperable utility, ezGBC to generate these tables. Download and usage instructions can be found at https://github.com/hamsamilton/ezGBC. The csv files created by ezGBC can be used directly as input. An aexample final can be found at data/SCRIPT/SCRIPT_B11_GC_info.csv. Once generated, it can be added to the QCDR output like this
+A separate supplied table is additionally required to generate the gene body coverage distribution subplot. There is an optional utility included within the software called GBC_Creation_Module to generate this. The csv files created by ezGBC can be used directly as input. An example final can be found at data/SCRIPT/SCRIPT_B11_GC_info.csv. Once generated, it can be added to the QCDR output like this
 
 python3 pyRetroPlotter_main.py -ip ../data/User_Template/User_Input.csv -out /path/to/outlocation.pdf -bgd ../data/User_Template/User_Input.csv -gc gcdata.csv
 
+A similar utility for calculating gene hists is supplied as the GeneHistCreationModule.py function
+
 Last, cutoffs can be set to specific values by filling the values in the data/User_Template/user_cutoff_table.xlsx file.
-For all metrics except for the hist and gc cutoffs, these should be raw values. For the hist and gc cutoffs, these must be significance levels. If the user does not want to set a metric, the cells can be left blank. If left blank, it will use the default cutoffs or those set by the -w or -f tags. The table should be applied to the -ctf flag as such.
+ If the user does not want to set a metric, the cells can be left blank. If left blank, it will use the default cutoffs or those set by the -wrna or -fla tags. 
 
 python3 pyRetroPlotter_main.py -ip ../data/User_Template/User_Input.csv -out /path/to/outlocation.pdf -bgd ../data/User_Template/User_Input.csv. -ctf USER_cutoff_table.xlsx
 
-This covers the capabilities of QCDR. If you are having difficulties, encounter bugs, or have other feedback about the software, please email the project maintainer at samuelhamilton2024@u.northwestern.edu
+This covers the capabilities of QCDR. If you are having difficulties, encounter bugs, or have other feedback about the software, please email the project maintainer at samilton840@gmail.com
 
 
