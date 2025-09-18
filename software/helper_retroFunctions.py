@@ -547,7 +547,7 @@ def mkTitlePage(_figinfo):
             if pd.notna(fail_cutoff) or pd.notna(warn_cutoff):
                 formatted_fail = formatter.format(fail_cutoff)
                 formatted_warn = formatter.format(warn_cutoff)
-                cutoff_texts.append(f"{metric} ({direction}): Warn: {formatted_fail} | Fail: {formatted_warn}")
+                cutoff_texts.append(f"{metric} ({direction}): Warn: {formatted_warn} | Fail: {formatted_fail}")
 
         return (f"Quality Cutoff Thresholds\n" + "\n".join(cutoff_texts))
 
@@ -653,6 +653,15 @@ def mkQC_heatmap_data(_userDf, _figinfo):
             heatmap_df.loc[_tuple.Sample,column] = strategy.compute_status(test_value,
                                                                            warn_value,
                                                                            fail_value)
+
+    # Ensure columns with all-zeros remain all zeros (explicit reset)
+    for col in heatmap_df.columns:
+        if (heatmap_df[col] == 1).all():
+
+            heatmap_df[col] = 0
+
+        heatmap_df[col] = heatmap_df[col].replace(1, 0.5)
+
     # Create a mapping from raw metric names to legible names.
     mapping = {}
     for _, row in MetricDf.iterrows():
@@ -1060,7 +1069,7 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
     # for plotting the individual composite functions
     def SingleViolin(_axis,_current_sample,_background_df,OverrepName,AdaptName):
         if not all(col in _background_df.columns for col in [OverrepName, AdaptName]):
-            print(f"Warning: Columns '{OverrepName}' and/or '{AdaptNamme}' not found in input data. Skipping plot.")
+            print(f"Warning: Columns '{OverrepName}' and/or '{AdaptName}' not found in input data. Skipping plot.")
 
             return None
 
@@ -1164,7 +1173,6 @@ def plotViolin_dualAxis(SampleName, _userDf, _background_df, _position,_figinfo,
                        _figinfo       = _figinfo,
                        cutoff_key     = "Percent_Overrepresented_Seq_Trimmed",
                        higher_lower   = "upper")
-
     needs_fail_or_warn(ax             = _axis,
                        current_sample = _current_sample['Percent_Adapter_Content_Trimmed'].iloc[0],
                        _figinfo       = _figinfo,
@@ -1265,10 +1273,6 @@ def calculate_distribution_diff_pvals(data_df, n_bootstraps = 1000):
 
     total_deviances_per_sample = deviances.sum(axis = 0)
 
-    # perform bootstrapping
-    #bootstrap_distribution = bootstrap_deviances(deviances    = total_deviances_per_sample,
-    #                                             n_bootstraps = n_bootstraps)
-
     def calculate_pvalues(total_deviance, bootstrap_dist):
         total_deviance = np.array(total_deviance).reshape(1,-1) # reshape to match dimenssions (1, n_samples)
         pvalues = np.mean(bootstrap_dist >= total_deviance,
@@ -1352,8 +1356,6 @@ def GC_AUC(coverage_df):
         AUClst.append(AUC)
 
     return AUClst
-
-
 
 #  GeneBody Coverage Plot
 def plotGC(SampleName,user_df, _coverage_df, _position,_figinfo,_fig=None):

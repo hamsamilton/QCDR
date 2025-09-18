@@ -159,6 +159,8 @@ def QCDR_main(qry_filename    = '',
         manual_cutoff_adaptr = manual_cutoff_adapter(_manual_cutoffs)
         manual_cutoff_adaptr.adapt_input()
 
+        print(manual_cutoff_adaptr.input_df)
+
         _man_warn_cutoff_dict = manual_cutoff_adaptr.input_df['Warn'].to_dict()
         _man_fail_cutoff_dict = manual_cutoff_adaptr.input_df['Fail'].to_dict()
 
@@ -168,6 +170,10 @@ def QCDR_main(qry_filename    = '',
 
         MetricInfo["Fail_Cutoff"] = MetricInfo["Metric"].map(_man_fail_cutoff_dict)
         MetricInfo["Warn_Cutoff"] = MetricInfo["Metric"].map(_man_warn_cutoff_dict)
+
+        print('cutoffs')
+        print(MetricInfo["Fail_Cutoff"])
+        print(MetricInfo["Warn_Cutoff"])
 
     # Save the user_df
     _user_df.to_csv(op_folder + '/QCDR_ReportInfo.csv',
