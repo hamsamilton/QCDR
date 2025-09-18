@@ -26,7 +26,7 @@ Below I summarize the inputs
 -wrna -fla (optional) Should the user shose to tighten or loosen the stringency of the statistical tests used to flag samples, users can set the alphas for the warn and fail alphas using these arguments.
 
 
-A separate supplied table is additionally required to generate the gene body coverage distribution subplot. There is an optional utility included within the software called GBC_Creation_Module to generate this. The csv files created by ezGBC can be used directly as input. An example final can be found at data/SCRIPT/SCRIPT_B11_GC_info.csv. Once generated, it can be added to the QCDR output like this
+A separate supplied table is additionally required to generate the gene body coverage distribution subplot. There is an optional utility included within the software called GBC_Creation_Module to generate this. The csv files created by this can be used directly as input. An example final can be found at data/SCRIPT/SCRIPT_B11_GC_info.csv. Once generated, it can be added to the QCDR output like this
 
 python3 pyRetroPlotter_main.py -ip ../data/User_Template/User_Input.csv -out /path/to/outlocation.pdf -bgd ../data/User_Template/User_Input.csv -gc gcdata.csv
 
